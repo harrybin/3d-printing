@@ -124,5 +124,5 @@ Models support both placement conventions on the 250 × 250 mm bed:
 
 - **Center-origin** — XY target `(0, 0)`
 - **Corner-origin** — XY target `(125, 125)`
-
+asödlj
 Convention is auto-detected from coordinates: negative XY implies center-origin, otherwise corner-origin. When ambiguous, corner-origin is used to match common slicer build-plate coordinates.
