@@ -7,6 +7,8 @@ description: Edit STL geometry (scale/rotate/translate/split/merge) while preser
 
 Use this skill when changing existing STL models.
 
+Perform all edits with the project Python libraries (venv `.venv`): **trimesh** (+ **numpy**) for transforms, merges, splits, and validation, **manifold3d** for boolean operations, **vedo** for post-edit render verification. Never edit STL text or facet data by hand; if a shape change exceeds simple transforms, regenerate from the parametric source script (build123d) instead.
+
 ## Supported edits
 
 - Scale (uniform or per-axis)

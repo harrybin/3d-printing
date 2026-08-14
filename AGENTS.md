@@ -37,12 +37,18 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - When convention is not explicitly provided, prefer auto-detection (negative XY implies center-origin; otherwise corner-origin).
 - For fit-critical features, keep clearances explicit and parameterized (example: `PRESS_CLEAR` in `scripts/lineal_clip_kappe.py`).
 - For mesh booleans, use the manifold engine and keep output watertight.
+- Never hand-write STL facets or manual vertex/triangle lists for complex objects: always generate geometry through the Python libraries in `requirements.txt` (build123d for engineering solids, trimesh + manifold3d for CSG/repair/export, vedo for render checks, opencv for reference comparison).
+- For engineering shapes (countersinks, bosses, ribs, hulled contours), prefer **build123d** for the solid and re-export through trimesh (round vertices to 0.001 mm, merge, dedupe faces) to guarantee a watertight ASCII STL.
+- When recreating parts from photos/videos, run the render-and-compare loop (vedo offscreen renders vs. reference frames) before declaring the model done; see `.github/skills/stl-from-image-measurements/SKILL.md`.
 
 ## Common Pitfalls
 
 - `manifold3d` must be installed, or boolean operations fail.
+- OCCT exports (build123d) are often not watertight until the trimesh repair re-export runs; tangential knife-edge contours cause non-manifold edges and must be fixed by overlapping solids in the source geometry.
+- `pymeshfix` deletes geometry on thin-walled multi-chamber parts; do not use it.
 - Editing `models/*.stl` directly can desync files from their parametric source script.
 - Fit tweaks should be made in script parameters, then regenerated and revalidated.
+- User-edited measurement docs under `docs/` are authoritative; re-read them before every geometry change.
 
 ## Key References
 

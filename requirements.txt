@@ -3,3 +3,8 @@ manifold3d
 numpy
 scipy
 networkx
+pillow
+matplotlib
+opencv-python-headless
+vedo
+build123d

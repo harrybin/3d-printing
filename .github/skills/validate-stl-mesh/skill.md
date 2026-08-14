@@ -21,6 +21,21 @@ If the provided input cannot be parsed or validated (e.g., binary data is not ac
 - No self-intersections
 - No zero-area or degenerate triangles
 - Consistent outward normals
+- Single connected component unless separate bodies are intentional (check `mesh.split(only_watertight=False)`)
+
+## Repair recipe for CAD-kernel exports (session-verified)
+
+OCCT-based exporters (build123d, CadQuery) frequently produce STLs that are not watertight even though the solid is valid. Apply this lossless repair before failing the mesh:
+
+1. `vertices = np.round(vertices, 3)` (0.001 mm grid, print-neutral)
+2. `merge_vertices()`, then `unique_faces()` and `nondegenerate_faces()`
+3. Re-check watertightness and re-export as ASCII STL if it passes.
+
+Diagnosis guidance when repair does not converge:
+
+- Open edges = 0 but not watertight -> non-manifold edges. Count edge occurrences (`edges_sorted`); edges used by more than 2 faces usually come from **tangential knife-edge contact** between design contours. Fix in the source geometry by overlapping the solids, not in the mesh.
+- Never use pymeshfix on thin-walled or multi-chamber parts: its smallest-component removal deletes valid geometry.
+- Coarser rounding than 0.01 mm collapses thin features and creates new open edges; do not exceed it.
 
 ## Manufacturing checks (FDM)
 

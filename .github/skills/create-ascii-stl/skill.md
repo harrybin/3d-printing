@@ -7,6 +7,20 @@ description: Create ASCII STL files using print-safe defaults for Anycubic Kobra
 
 Use this skill to generate new STL files for FDM printing.
 
+## Mandatory library usage
+
+Never write STL facets or triangle lists by hand and never assemble complex geometry from manually computed vertices. Always generate geometry through a parametric Python script (in `scripts/`, run with the project venv `.venv`) using these libraries from `requirements.txt`:
+
+| Task                                                                                 | Library                                |
+| ------------------------------------------------------------------------------------ | -------------------------------------- |
+| Engineering solids: sketches, extrusions, countersinks, bosses, ribs, hulls, fillets | **build123d** (OCCT kernel)            |
+| Simple prismatic CSG, mesh loading, repair, validation, ASCII export                 | **trimesh** + **manifold3d**           |
+| Numeric parameters and vertex post-processing                                        | **numpy**                              |
+| Offscreen rendering for visual verification                                          | **vedo**                               |
+| Photo/video frame analysis for reference comparison                                  | **opencv-python-headless**, **pillow** |
+
+Hand-written meshes (raw `Trimesh(vertices, faces)` constructions, manual `solid ... endsolid` text) are only acceptable for trivial primitives that the libraries cannot express more simply — and even then a library primitive (`trimesh.creation.box`, `Cylinder`, `convex_hull`) is preferred.
+
 ## Inputs to collect first
 
 - Target dimensions (mm)
@@ -21,6 +35,16 @@ Use this skill to generate new STL files for FDM printing.
 - Output valid ASCII STL (`solid ... endsolid`) unless binary is explicitly requested.
 - Triangles only, with outward normals and manifold mesh.
 - Keep the model centered or explicitly origin-aligned as requested.
+
+## Proven toolchain (session-verified)
+
+- For engineering shapes (countersinks, bosses, ribs, hulled contours, fillets), build the solid with **build123d** (OCCT kernel) instead of hand-assembled trimesh primitives. Conical countersinks must blend directly into their bores (`Cone` from sink diameter to bore diameter) so no ledge or material gap remains.
+- Model teardrop/egg outlines as the **hull of two intersecting circles** (`make_hull`), not as ellipse unions.
+- Avoid tangential (knife-edge) contact between contours: it creates a non-manifold edge in the tessellation. Overlap solids by >= 1 mm instead.
+- OCCT STL exports are often not watertight. Always re-export through trimesh: `vertices = round(vertices, 3)` -> `merge_vertices()` -> `unique_faces()` -> `nondegenerate_faces()` -> verify `is_watertight` -> `export(file_type="stl_ascii")`.
+- Do **not** use pymeshfix on thin-walled or multi-chamber parts: it deletes geometry (`remove_smallest_components`).
+- Keep trimesh + manifold3d for simple prismatic CSG and as the validation layer.
+- Every generator script must print: facets, bounds, extents, watertight, winding consistency, volume, degenerate-face count.
 
 ## Anycubic Kobra S1 Combo defaults
 

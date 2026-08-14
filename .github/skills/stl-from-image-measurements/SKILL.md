@@ -108,6 +108,13 @@ For each object, create a dimension table before editing geometry:
 
 State which dimensions are exact versus inferred. If an inferred dimension controls fit or assembly, get confirmation before finalizing.
 
+Measurement precedence and pitfalls (session-verified):
+
+- User caliper readings always override image-derived estimates. Grid-based photo scaling (including FFT pitch estimation) routinely errs by 20-40% due to perspective and parallax; treat it as a rough prior only.
+- Persist the dimension table as a markdown doc under `docs/` and keep generator parameters in sync with it. The user may edit that doc directly: re-read it before every geometry change.
+- Convert user units carefully (`0,785 cm` = 7.85 mm); challenge physically implausible values (e.g., walls thinner than one extrusion line) before using them.
+- Recreate the **interior structure** of cast/molded parts (chambers, ribs, bosses, pads, guide blocks), not a simplified solid. Simplified solids get rejected when compared against the original.
+
 ### 5. Apply requested relationships between objects
 
 Translate the user's wording into explicit geometric constraints.
@@ -123,6 +130,8 @@ Examples:
 After applying relations, report the final relative positions in mm so the user can verify intent.
 
 ### 6. Compose or edit the STL
+
+Use the project libraries for all geometry work — never hand-write STL facets or manually computed triangle meshes for complex objects: **build123d** for engineering solids (sketches, hulls, countersinks, bosses, ribs), **trimesh + manifold3d** for simple CSG, repair, and export, **vedo** for render verification, **opencv-python-headless** for frame extraction and silhouette comparison.
 
 Allowed operations include:
 
@@ -182,6 +191,18 @@ If validation fails, stop and report:
 - the safest correction or redesign option
 
 Never present a failing STL as complete.
+
+### 8b. Render-and-compare loop against photos and video (mandatory for recreations)
+
+When the goal is to match a pictured/filmed original, do not rely on mesh statistics alone. Iterate visually until the render matches the references:
+
+1. If a video is provided, extract evenly spaced frames with OpenCV (`cv2.VideoCapture`, `CAP_PROP_POS_FRAMES`); take a denser pass over sections that show the relevant detail.
+2. Render the current STL offscreen with **vedo** (`Plotter(offscreen=True)`) from at least top, bottom, front, side, and iso views. vedo/VTK works headless on Windows; matplotlib `Poly3DCollection` is only a fallback (no z-buffer, wrong occlusion).
+3. Compare each render against the matching photo/frame viewpoint: outline shape, pocket/cavity contours, rib and boss layout, guide features, countersink transitions.
+4. Fix one structural discrepancy at a time in the parametric script, regenerate, re-render, and repeat until no structural difference remains.
+5. For quantitative checks, extract silhouettes (white-on-black render) and compare contours via OpenCV (`cv2.matchShapes`, IoU overlay).
+
+Only report completion after the render-versus-reference loop converges and the user-visible structures match.
 
 ### 9. Show the result in the STL canvas (mandatory)
 
