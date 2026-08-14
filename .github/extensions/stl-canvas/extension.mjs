@@ -253,6 +253,9 @@ function renderHtml(title) {
       .viewer-container { flex: 1; min-height: 0; padding: 10px 12px; position: relative; }
       #info { position: absolute; top: 18px; left: 20px; padding: 8px 10px; border-radius: 6px; background: rgba(13, 17, 23, 0.78); color: #e6edf3; font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace); font-size: 11px; line-height: 1.5; pointer-events: none; white-space: pre; }
       #info[hidden] { display: none; }
+      #measurePanel { position: absolute; top: 18px; right: 20px; max-width: 260px; padding: 8px 10px; border-radius: 6px; background: rgba(13, 17, 23, 0.85); color: #e6edf3; font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace); font-size: 11px; line-height: 1.55; white-space: pre-wrap; pointer-events: none; }
+      #measurePanel[hidden] { display: none; }
+      #view.measuring { cursor: crosshair; }
       #view { display: block; width: 100%; height: 100%; border: 1px solid var(--border-color-default, #d1d9e0); border-radius: 6px; background: #0d1117; cursor: grab; }
       #view:active { cursor: grabbing; }
       #meta { padding: 8px 12px; border-top: 1px solid var(--border-color-default, #d1d9e0); font-size: 12px; color: var(--text-color-muted, #57606a); display: flex; flex-wrap: wrap; gap: 4px 14px; }
@@ -311,10 +314,16 @@ function renderHtml(title) {
         <label class="field"><input id="showBoundingBox" type="checkbox"> Box</label>
         <label class="field"><input id="showInfo" type="checkbox"> Info</label>
       </div>
+      <div class="group">
+        <span class="group-label">Measure</span>
+        <label class="field"><input id="measureMode" type="checkbox"> On</label>
+        <button type="button" id="measureClear" title="Clear selected features (Esc)">Clear</button>
+      </div>
     </div>
     <div class="viewer-container">
       <canvas id="view"></canvas>
       <div id="info" hidden></div>
+      <div id="measurePanel" hidden></div>
     </div>
     <div id="meta">Loading model…</div>
     <script>
@@ -330,7 +339,7 @@ function renderHtml(title) {
       };
       let rotX = baseView.rotX, rotY = baseView.rotY, rotZ = baseView.rotZ || 0, panX = baseView.panX, panY = baseView.panY, objectX = 0, objectY = 0;
       let modelRotX = 0, modelRotY = 0, modelRotZ = 0;
-      let isDragging = false, isShiftDrag = false, isRightDrag = false, lastX = 0, lastY = 0;
+      let isDragging = false, isShiftDrag = false, isRightDrag = false, lastX = 0, lastY = 0, dragMoved = 0;
       const canvas = document.getElementById('view');
       const ctx = canvas.getContext('2d');
       const fileChooser = document.getElementById('fileChooser');
@@ -344,6 +353,9 @@ function renderHtml(title) {
       const showBoxInput = document.getElementById('showBoundingBox');
       const showInfoInput = document.getElementById('showInfo');
       const infoBox = document.getElementById('info');
+      const measureModeInput = document.getElementById('measureMode');
+      const measurePanel = document.getElementById('measurePanel');
+      const measureClearBtn = document.getElementById('measureClear');
       showGridInput.checked = baseView.showGrid;
       showAxesInput.checked = baseView.showAxes;
       showBoxInput.checked = baseView.showBoundingBox;
@@ -353,9 +365,14 @@ function renderHtml(title) {
       let rawTriangles = [];
       let triangles = [];
       // Crease-aware per-corner normals, rebuilt whenever the geometry changes.
-      let cornerNormals = null;
+      let cornerNormals = null, faceNormals = null;
+      // Measure gizmo state: welded points, crease edges, fitted circles.
+      let measurePoints = [], measureEdges = [], measureCircles = [], triVerts = null, vertexEdges = null;
+      let creaseIndex = null, vertexCircle = null;
+      let hoverFeature = null, pickedFeatures = [], lastPointer = null;
       // Software z-buffer target so walls can never show through each other.
-      let rasterCanvas = null, rasterCtx = null, rasterImage = null, depthBuffer = null;
+      let rasterCanvas = null, rasterCtx = null, rasterImage = null, depthBuffer = null, pickBuffer = null;
+      let lastProjection = null;
       let modelBounds = null;
       let currentFile = ${JSON.stringify(defaultModelFile)};
       // Anycubic Kobra S1 build plate: 250 x 250 mm.
@@ -437,6 +454,121 @@ function renderHtml(title) {
           }
         }
         cornerNormals = out;
+        faceNormals = faceN;
+        buildMeasureFeatures();
+      }
+      // Weld vertices, collect the crease edges that a human would call an
+      // "edge", and fit circles to closed crease loops (bores, bosses, arcs).
+      // This mirrors the feature set of the OrcaSlicer measure gizmo:
+      // point, edge, circle and plane.
+      function buildMeasureFeatures() {
+        measurePoints = [];
+        measureEdges = [];
+        measureCircles = [];
+        triVerts = new Int32Array(triangles.length * 3);
+        vertexEdges = null;
+        if (!triangles.length) return;
+        const index = new Map();
+        const key = (v) => Math.round(v[0] * 1000) + '|' + Math.round(v[1] * 1000) + '|' + Math.round(v[2] * 1000);
+        for (let i = 0; i < triangles.length; i++) {
+          for (let j = 0; j < 3; j++) {
+            const v = triangles[i][j];
+            const k = key(v);
+            let id = index.get(k);
+            if (id === undefined) { id = measurePoints.length; index.set(k, id); measurePoints.push([v[0], v[1], v[2]]); }
+            triVerts[i * 3 + j] = id;
+          }
+        }
+        // Edge -> adjacent faces
+        const edgeMap = new Map();
+        for (let i = 0; i < triangles.length; i++) {
+          for (let j = 0; j < 3; j++) {
+            const a = triVerts[i * 3 + j], b = triVerts[i * 3 + (j + 1) % 3];
+            const k = a < b ? a + '_' + b : b + '_' + a;
+            let e = edgeMap.get(k);
+            if (!e) { e = { a: Math.min(a, b), b: Math.max(a, b), f: [] }; edgeMap.set(k, e); }
+            e.f.push(i);
+          }
+        }
+        const creaseCos = Math.cos(18 * Math.PI / 180);
+        for (const e of edgeMap.values()) {
+          let crease = e.f.length !== 2;
+          if (!crease) {
+            const p = e.f[0] * 3, q = e.f[1] * 3;
+            const d = faceNormals[p] * faceNormals[q] + faceNormals[p + 1] * faceNormals[q + 1] + faceNormals[p + 2] * faceNormals[q + 2];
+            crease = d < creaseCos;
+          }
+          if (crease) measureEdges.push({ a: e.a, b: e.b });
+        }
+        // Adjacency over crease edges only, used for hover lookup and loops.
+        vertexEdges = new Map();
+        for (let i = 0; i < measureEdges.length; i++) {
+          for (const v of [measureEdges[i].a, measureEdges[i].b]) {
+            let list = vertexEdges.get(v);
+            if (!list) { list = []; vertexEdges.set(v, list); }
+            list.push(i);
+          }
+        }
+        // Closed loops where every vertex has exactly two crease edges are
+        // candidates for circles; accept them when the points are coplanar and
+        // equidistant from their centroid.
+        const seen = new Uint8Array(measureEdges.length);
+        for (let start = 0; start < measureEdges.length; start++) {
+          if (seen[start]) continue;
+          const loop = [];
+          let edgeIdx = start, vert = measureEdges[start].a;
+          const first = vert;
+          let ok = true;
+          for (let guard = 0; guard < 4096; guard++) {
+            seen[edgeIdx] = 1;
+            loop.push(vert);
+            const e = measureEdges[edgeIdx];
+            const next = e.a === vert ? e.b : e.a;
+            const around = vertexEdges.get(next);
+            if (!around || around.length !== 2) { ok = false; break; }
+            const nextEdge = around[0] === edgeIdx ? around[1] : around[0];
+            if (next === first) break;
+            if (seen[nextEdge]) { ok = false; break; }
+            edgeIdx = nextEdge; vert = next;
+          }
+          if (!ok || loop.length < 8) continue;
+          const circle = fitCircle(loop);
+          if (circle) measureCircles.push(circle);
+        }
+        const creaseKey = (a, b) => (a < b ? a + '_' + b : b + '_' + a);
+        creaseIndex = new Map();
+        for (let i = 0; i < measureEdges.length; i++) creaseIndex.set(creaseKey(measureEdges[i].a, measureEdges[i].b), i);
+        vertexCircle = new Map();
+        for (let i = 0; i < measureCircles.length; i++) {
+          for (const v of measureCircles[i].loop) if (!vertexCircle.has(v)) vertexCircle.set(v, i);
+        }
+      }
+      function fitCircle(loop) {
+        let cx = 0, cy = 0, cz = 0;
+        for (const i of loop) { const p = measurePoints[i]; cx += p[0]; cy += p[1]; cz += p[2]; }
+        const n = loop.length;
+        cx /= n; cy /= n; cz /= n;
+        let rSum = 0, rMin = Infinity, rMax = 0;
+        for (const i of loop) {
+          const p = measurePoints[i];
+          const r = Math.hypot(p[0] - cx, p[1] - cy, p[2] - cz);
+          rSum += r; if (r < rMin) rMin = r; if (r > rMax) rMax = r;
+        }
+        const r = rSum / n;
+        if (r < 0.2 || rMax - rMin > Math.max(0.02, r * 0.02)) return null;
+        // Plane fit: normal from the two widest spokes.
+        const p0 = measurePoints[loop[0]], p1 = measurePoints[loop[Math.floor(n / 3)]], p2 = measurePoints[loop[Math.floor(2 * n / 3)]];
+        const ax = p1[0] - p0[0], ay = p1[1] - p0[1], az = p1[2] - p0[2];
+        const bx = p2[0] - p0[0], by = p2[1] - p0[1], bz = p2[2] - p0[2];
+        let nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+        const nl = Math.hypot(nx, ny, nz);
+        if (nl < 1e-9) return null;
+        nx /= nl; ny /= nl; nz /= nl;
+        for (const i of loop) {
+          const p = measurePoints[i];
+          if (Math.abs((p[0] - cx) * nx + (p[1] - cy) * ny + (p[2] - cz) * nz) > 0.02) return null;
+        }
+        return { center: [cx, cy, cz], normal: [nx, ny, nz], radius: r, loop };
       }
       function applyViewPreset(name) {
         const preset = VIEW_PRESETS[name] || VIEW_PRESETS.isometric;
@@ -622,10 +754,13 @@ function renderHtml(title) {
           rasterCanvas.width = W; rasterCanvas.height = H;
           rasterImage = rasterCtx.createImageData(W, H);
           depthBuffer = new Float32Array(W * H);
+          pickBuffer = new Int32Array(W * H);
         }
         const pix = rasterImage.data;
         pix.fill(0);
         depthBuffer.fill(-1e30);
+        pickBuffer.fill(-1);
+        lastProjection = { rx, ry, rz, zoom, w, h, centerX, centerY, baseZ, dpr };
         const mode = shadingInput.value;
         const c0 = [0, 0, 0], c1 = [0, 0, 0], c2 = [0, 0, 0];
         const sx = [0, 0, 0], sy = [0, 0, 0], sz = [0, 0, 0];
@@ -665,6 +800,7 @@ function renderHtml(title) {
               const idx = py * W + px;
               if (z <= depthBuffer[idx]) continue;
               depthBuffer[idx] = z;
+              pickBuffer[idx] = i;
               const o = idx * 4;
               pix[o] = w0 * c0[0] + w1 * c1[0] + w2 * c2[0];
               pix[o + 1] = w0 * c0[1] + w1 * c1[1] + w2 * c2[1];
@@ -675,6 +811,218 @@ function renderHtml(title) {
         }
         rasterCtx.putImageData(rasterImage, 0, 0);
         ctx.drawImage(rasterCanvas, 0, 0, W / dpr, H / dpr);
+      }
+
+      // ---- Measure gizmo -------------------------------------------------
+      const SNAP_PX = 9;
+      function projectModel(p) {
+        const L = lastProjection;
+        if (!L) return null;
+        return projectPoint([p[0] - L.centerX + objectX, p[1] - L.centerY + objectY, p[2] - L.baseZ], L.rx, L.ry, L.rz, L.w, L.h, L.zoom);
+      }
+      function segmentPixelDistance(px, py, a, b) {
+        const ax = a[0], ay = a[1], bx = b[0], by = b[1];
+        const dx = bx - ax, dy = by - ay;
+        const len2 = dx * dx + dy * dy;
+        let t = len2 > 0 ? ((px - ax) * dx + (py - ay) * dy) / len2 : 0;
+        t = Math.max(0, Math.min(1, t));
+        return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+      }
+      function pickFeature(cssX, cssY) {
+        if (!lastProjection || !pickBuffer || !triVerts) return null;
+        const dpr = lastProjection.dpr;
+        const W = rasterCanvas.width, H = rasterCanvas.height;
+        const cx = Math.round(cssX * dpr), cy = Math.round(cssY * dpr);
+        let tri = -1;
+        const reach = Math.max(2, Math.round(3 * dpr));
+        outer:
+        for (let r = 0; r <= reach; r++) {
+          for (let oy = -r; oy <= r; oy++) {
+            for (let ox = -r; ox <= r; ox++) {
+              if (Math.max(Math.abs(ox), Math.abs(oy)) !== r) continue;
+              const x = cx + ox, y = cy + oy;
+              if (x < 0 || y < 0 || x >= W || y >= H) continue;
+              const v = pickBuffer[y * W + x];
+              if (v >= 0) { tri = v; break outer; }
+            }
+          }
+        }
+        if (tri < 0) return null;
+        const ids = [triVerts[tri * 3], triVerts[tri * 3 + 1], triVerts[tri * 3 + 2]];
+        const world = ids.map((i) => measurePoints[i]);
+        const screen = world.map((p) => projectModel(p));
+        // Barycentric hit point on the triangle, used for plane picks.
+        const area = (screen[1][0] - screen[0][0]) * (screen[2][1] - screen[0][1]) - (screen[2][0] - screen[0][0]) * (screen[1][1] - screen[0][1]);
+        let hit = world[0];
+        if (Math.abs(area) > 1e-9) {
+          const w0 = ((screen[1][0] - cssX) * (screen[2][1] - cssY) - (screen[2][0] - cssX) * (screen[1][1] - cssY)) / area;
+          const w1 = ((screen[2][0] - cssX) * (screen[0][1] - cssY) - (screen[0][0] - cssX) * (screen[2][1] - cssY)) / area;
+          const w2 = 1 - w0 - w1;
+          hit = [
+            w0 * world[0][0] + w1 * world[1][0] + w2 * world[2][0],
+            w0 * world[0][1] + w1 * world[1][1] + w2 * world[2][1],
+            w0 * world[0][2] + w1 * world[1][2] + w2 * world[2][2]
+          ];
+        }
+        // 1) snap to a corner
+        let bestVert = -1, bestVertDist = SNAP_PX;
+        for (let j = 0; j < 3; j++) {
+          const d = Math.hypot(screen[j][0] - cssX, screen[j][1] - cssY);
+          if (d < bestVertDist) { bestVertDist = d; bestVert = j; }
+        }
+        // 2) snap to a crease edge, and prefer a fitted circle through it
+        let bestEdge = -1, bestEdgeDist = SNAP_PX;
+        for (let j = 0; j < 3; j++) {
+          const a = ids[j], b = ids[(j + 1) % 3];
+          const idx = creaseIndex ? creaseIndex.get(a < b ? a + '_' + b : b + '_' + a) : undefined;
+          if (idx === undefined) continue;
+          const d = segmentPixelDistance(cssX, cssY, screen[j], screen[(j + 1) % 3]);
+          if (d < bestEdgeDist) { bestEdgeDist = d; bestEdge = j; }
+        }
+        if (bestEdge >= 0 && vertexCircle) {
+          const a = ids[bestEdge], b = ids[(bestEdge + 1) % 3];
+          const ci = vertexCircle.has(a) ? vertexCircle.get(a) : vertexCircle.get(b);
+          if (ci !== undefined) {
+            const c = measureCircles[ci];
+            return { kind: 'circle', center: c.center, normal: c.normal, radius: c.radius, loop: c.loop, tri };
+          }
+        }
+        if (bestVert >= 0 && bestVertDist <= bestEdgeDist) {
+          return { kind: 'point', p: world[bestVert], id: ids[bestVert], tri };
+        }
+        if (bestEdge >= 0) {
+          return { kind: 'edge', a: world[bestEdge], b: world[(bestEdge + 1) % 3], tri };
+        }
+        const n = [faceNormals[tri * 3], faceNormals[tri * 3 + 1], faceNormals[tri * 3 + 2]];
+        return { kind: 'plane', p: hit, normal: n, tri };
+      }
+      function featureAnchor(f) {
+        if (f.kind === 'point') return f.p;
+        if (f.kind === 'circle') return f.center;
+        if (f.kind === 'edge') return [(f.a[0] + f.b[0]) / 2, (f.a[1] + f.b[1]) / 2, (f.a[2] + f.b[2]) / 2];
+        return f.p;
+      }
+      function featureLabel(f) {
+        const r3 = (n) => n.toFixed(2);
+        if (f.kind === 'point') return 'Point  ' + f.p.map(r3).join(', ');
+        if (f.kind === 'circle') return 'Circle  d ' + r3(f.radius * 2) + '  center ' + f.center.map(r3).join(', ');
+        if (f.kind === 'edge') return 'Edge  len ' + r3(Math.hypot(f.b[0] - f.a[0], f.b[1] - f.a[1], f.b[2] - f.a[2]));
+        return 'Plane  n ' + f.normal.map((v) => v.toFixed(2)).join(', ');
+      }
+      function sub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+      function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+      function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+      function norm(a) { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; }
+      function featureDirection(f) {
+        if (f.kind === 'edge') return norm(sub(f.b, f.a));
+        if (f.kind === 'circle') return f.normal;
+        if (f.kind === 'plane') return f.normal;
+        return null;
+      }
+      function measureBetween(a, b) {
+        const pa = featureAnchor(a), pb = featureAnchor(b);
+        const d = sub(pb, pa);
+        const lines = [];
+        const r3 = (n) => n.toFixed(3);
+        let headline = 'Distance  ' + r3(Math.hypot(d[0], d[1], d[2])) + ' mm';
+        const kinds = [a.kind, b.kind].sort().join('-');
+        if (kinds === 'plane-point' || kinds === 'circle-plane') {
+          const pl = a.kind === 'plane' ? a : b, other = a.kind === 'plane' ? b : a;
+          lines.push('Perpendicular  ' + r3(Math.abs(dot(sub(featureAnchor(other), pl.p), pl.normal))) + ' mm');
+        } else if (kinds === 'edge-point' || kinds === 'circle-edge') {
+          const e = a.kind === 'edge' ? a : b, other = a.kind === 'edge' ? b : a;
+          const dir = norm(sub(e.b, e.a));
+          const v = sub(featureAnchor(other), e.a);
+          const perp = sub(v, [dir[0] * dot(v, dir), dir[1] * dot(v, dir), dir[2] * dot(v, dir)]);
+          lines.push('Perpendicular  ' + r3(Math.hypot(perp[0], perp[1], perp[2])) + ' mm');
+        } else if (kinds === 'plane-plane') {
+          const ang = Math.acos(Math.min(1, Math.max(-1, Math.abs(dot(a.normal, b.normal))))) * 180 / Math.PI;
+          lines.push('Angle  ' + ang.toFixed(2) + ' deg');
+          if (ang < 0.5) lines.push('Parallel gap  ' + r3(Math.abs(dot(sub(b.p, a.p), a.normal))) + ' mm');
+        } else if (kinds === 'edge-edge') {
+          const da = norm(sub(a.b, a.a)), db = norm(sub(b.b, b.a));
+          const ang = Math.acos(Math.min(1, Math.max(-1, Math.abs(dot(da, db))))) * 180 / Math.PI;
+          lines.push('Angle  ' + ang.toFixed(2) + ' deg');
+          const n = cross(da, db);
+          const nl = Math.hypot(n[0], n[1], n[2]);
+          if (nl > 1e-6) lines.push('Line gap  ' + r3(Math.abs(dot(sub(b.a, a.a), [n[0] / nl, n[1] / nl, n[2] / nl]))) + ' mm');
+        } else if (kinds === 'circle-circle') {
+          headline = 'Center distance  ' + r3(Math.hypot(d[0], d[1], d[2])) + ' mm';
+          lines.push('Diameters  ' + (a.radius * 2).toFixed(3) + ' / ' + (b.radius * 2).toFixed(3) + ' mm');
+        }
+        lines.push('dX ' + r3(d[0]) + '   dY ' + r3(d[1]) + '   dZ ' + r3(d[2]));
+        return { headline, lines, pa, pb };
+      }
+      function clearMeasurement() { pickedFeatures = []; hoverFeature = null; }
+      function drawFeature(f, color, width) {
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = width;
+        if (f.kind === 'point') {
+          const s = projectModel(f.p);
+          ctx.beginPath(); ctx.arc(s[0], s[1], 4.5, 0, Math.PI * 2); ctx.fill();
+        } else if (f.kind === 'edge') {
+          const a = projectModel(f.a), b = projectModel(f.b);
+          ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+        } else if (f.kind === 'circle') {
+          ctx.beginPath();
+          for (let i = 0; i < f.loop.length; i++) {
+            const s = projectModel(measurePoints[f.loop[i]]);
+            if (i === 0) ctx.moveTo(s[0], s[1]); else ctx.lineTo(s[0], s[1]);
+          }
+          ctx.closePath(); ctx.stroke();
+          const c = projectModel(f.center);
+          ctx.beginPath(); ctx.moveTo(c[0] - 5, c[1]); ctx.lineTo(c[0] + 5, c[1]); ctx.moveTo(c[0], c[1] - 5); ctx.lineTo(c[0], c[1] + 5); ctx.stroke();
+        } else if (f.kind === 'plane') {
+          const tri = triangles[f.tri].map((v) => projectModel(v));
+          ctx.globalAlpha = 0.45;
+          ctx.beginPath(); ctx.moveTo(tri[0][0], tri[0][1]); ctx.lineTo(tri[1][0], tri[1][1]); ctx.lineTo(tri[2][0], tri[2][1]); ctx.closePath(); ctx.fill();
+          ctx.globalAlpha = 1;
+          const s = projectModel(f.p);
+          ctx.beginPath(); ctx.arc(s[0], s[1], 3, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+      }
+      function drawMeasureOverlay() {
+        if (!measureModeInput.checked || !lastProjection) { measurePanel.hidden = true; return; }
+        if (hoverFeature) drawFeature(hoverFeature, '#2dd4bf', 2.5);
+        if (pickedFeatures[0]) drawFeature(pickedFeatures[0], '#f0883e', 3);
+        if (pickedFeatures[1]) drawFeature(pickedFeatures[1], '#7ee787', 3);
+        const text = ['Measure: click a point, edge, circle or face'];
+        if (pickedFeatures.length === 2) {
+          const m = measureBetween(pickedFeatures[0], pickedFeatures[1]);
+          const a = projectModel(m.pa), b = projectModel(m.pb);
+          ctx.save();
+          ctx.strokeStyle = '#e6edf3';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([5, 4]);
+          ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+          ctx.setLineDash([]);
+          const label = m.headline.replace(/^[^ ]+ +/, '');
+          ctx.font = '12px ui-monospace, Consolas, monospace';
+          const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+          const wLabel = ctx.measureText(label).width + 10;
+          ctx.fillStyle = 'rgba(13,17,23,0.85)';
+          ctx.fillRect(mid[0] - wLabel / 2, mid[1] - 18, wLabel, 18);
+          ctx.fillStyle = '#e6edf3';
+          ctx.textAlign = 'center';
+          ctx.fillText(label, mid[0], mid[1] - 5);
+          ctx.restore();
+          text.length = 0;
+          text.push('A  ' + featureLabel(pickedFeatures[0]));
+          text.push('B  ' + featureLabel(pickedFeatures[1]));
+          text.push('');
+          text.push(m.headline);
+          for (const l of m.lines) text.push(l);
+        } else if (pickedFeatures.length === 1) {
+          text.length = 0;
+          text.push('A  ' + featureLabel(pickedFeatures[0]));
+          text.push('Pick the second feature');
+        }
+        if (hoverFeature) text.push('', 'Hover  ' + featureLabel(hoverFeature));
+        measurePanel.hidden = false;
+        measurePanel.textContent = text.join('\\n');
       }
       function updateInfo() {
         if (!showInfoInput.checked) { infoBox.hidden = true; return; }
@@ -738,14 +1086,51 @@ function renderHtml(title) {
           rasterizeMesh(rx, ry, rz, zoom, w, h, centerX, centerY, baseZ);
         }
         if (showBoxInput.checked) drawBoundingBox(w, h, rx, ry, rz, zoom, objectX - centerX, objectY - centerY);
+        drawMeasureOverlay();
         updateInfo();
       }
       resizeCanvas();
       window.addEventListener('resize', () => { resizeCanvas(); draw(); });
       canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-      canvas.addEventListener('mousedown', (e) => { isDragging = true; isShiftDrag = e.shiftKey; isRightDrag = e.button === 2; lastX = e.clientX; lastY = e.clientY; });
-      document.addEventListener('mousemove', (e) => { if (!isDragging) return; const dx = e.clientX - lastX; const dy = e.clientY - lastY; if (isRightDrag) { objectX += dx * 0.05; objectY -= dy * 0.05; } else if (isShiftDrag) { panX += dx * 0.5; panY += dy * 0.5; } else { rotY += dx * 0.5; rotX += dy * 0.5; } lastX = e.clientX; lastY = e.clientY; draw(); });
+      canvas.addEventListener('mousedown', (e) => { isDragging = true; dragMoved = 0; isShiftDrag = e.shiftKey; isRightDrag = e.button === 2; lastX = e.clientX; lastY = e.clientY; });
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) {
+          if (measureModeInput.checked) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left, y = e.clientY - rect.top;
+            if (x >= 0 && y >= 0 && x <= rect.width && y <= rect.height) {
+              lastPointer = [x, y];
+              const f = pickFeature(x, y);
+              const changed = JSON.stringify(f && [f.kind, f.tri, f.id]) !== JSON.stringify(hoverFeature && [hoverFeature.kind, hoverFeature.tri, hoverFeature.id]);
+              hoverFeature = f;
+              if (changed) draw();
+            }
+          }
+          return;
+        }
+        const dx = e.clientX - lastX; const dy = e.clientY - lastY;
+        dragMoved += Math.abs(dx) + Math.abs(dy);
+        if (isRightDrag) { objectX += dx * 0.05; objectY -= dy * 0.05; } else if (isShiftDrag) { panX += dx * 0.5; panY += dy * 0.5; } else { rotY += dx * 0.5; rotX += dy * 0.5; }
+        lastX = e.clientX; lastY = e.clientY; draw();
+      });
       document.addEventListener('mouseup', () => { if (isDragging) { isDragging = false; saveView(); } });
+      // A click without dragging selects the snapped feature under the cursor.
+      canvas.addEventListener('click', (e) => {
+        if (!measureModeInput.checked || dragMoved > 3) return;
+        const rect = canvas.getBoundingClientRect();
+        const f = pickFeature(e.clientX - rect.left, e.clientY - rect.top);
+        if (!f) { clearMeasurement(); draw(); return; }
+        if (pickedFeatures.length >= 2) pickedFeatures = [];
+        pickedFeatures.push(f);
+        draw();
+      });
+      measureModeInput.addEventListener('change', () => {
+        canvas.classList.toggle('measuring', measureModeInput.checked);
+        if (!measureModeInput.checked) clearMeasurement();
+        draw();
+      });
+      measureClearBtn.addEventListener('click', () => { clearMeasurement(); draw(); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { clearMeasurement(); draw(); } });
       canvas.addEventListener('wheel', (e) => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.1 : 0.1; zoomInput.value = Math.max(0.1, Math.min(5, parseFloat(zoomInput.value) + delta)); draw(); saveView(); });
       canvas.addEventListener('dblclick', () => { rotX = baseView.rotX; rotY = baseView.rotY; rotZ = baseView.rotZ || 0; panX = baseView.panX; panY = baseView.panY; savedZoom = Number.isFinite(baseView.zoom) ? baseView.zoom : null; applySavedOrFit(); draw(); saveView(); });
       zoomInput.addEventListener('input', () => { draw(); saveView(); });
