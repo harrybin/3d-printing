@@ -52,6 +52,8 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Editing `models/*.stl` directly can desync files from their parametric source script.
 - Fit tweaks should be made in script parameters, then regenerated and revalidated.
 - User-edited measurement docs under `docs/` are authoritative; re-read them before every geometry change.
+- When the user reports a defect that the mesh probes contradict, check **which file they are actually looking at**. This repo is used through git worktrees, so `D:\harrybin\3d-printing\models\*.stl` (the main checkout) can hold a stale working copy while the session worktree is current. Compare `mtime`, facet count, bounds and `euler_number` of both paths before changing any geometry.
+- `euler_number` is a cheap hole detector: a closed part with N through-bores has `2 - 2*N`. An unexpectedly lower value means an extra through-hole, for example a missing floor.
 
 ## Key References
 

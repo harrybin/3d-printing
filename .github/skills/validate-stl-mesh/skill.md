@@ -57,6 +57,17 @@ Mesh statistics say nothing about whether a requested feature was actually built
 
 - Re-run the same probes after every subsequent geometry change and after merges, so an unrelated edit cannot silently remove the feature.
 
+- **Cross-section sweep** for floors, lids and other full-area features: intersect the mesh with thin slabs at increasing z and divide by the slab thickness to get the cross-sectional area. A closed 2 mm floor shows the full outline area up to z = 2.0 and a much smaller wall-only area above it. This pinpoints the exact z where a floor starts and ends and is far more convincing than a single point probe.
+
+## Verify which file the user is looking at (session-verified)
+
+Before acting on a reported defect that the probes contradict, confirm the file identity. Repositories used through git worktrees have the same relative path in several checkouts, and a viewer or slicer may be pinned to a stale one.
+
+- Load every candidate path and print `mtime`, facet count, bounds and `euler_number` side by side.
+- A stale copy usually differs in bounds (a missing new feature) and in `euler_number` (an extra through-hole where a floor is missing).
+- Fix by syncing that checkout, not by changing geometry. Prefer `git stash push` over discarding, so the old working copy stays recoverable.
+- Never conclude that the model is wrong until the file the user opened has been identified.
+
 ## Manufacturing checks (FDM)
 
 If no nozzle size is specified by the user, assume 0.4 mm as the default. If a different nozzle diameter is provided, scale minimum wall thickness to 2x nozzle diameter and functional recommendation to 3x nozzle diameter.
