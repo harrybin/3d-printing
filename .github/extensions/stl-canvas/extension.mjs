@@ -5,7 +5,12 @@ import { homedir } from "node:os";
 import { joinSession, createCanvas, CanvasError } from "@github/copilot-sdk/extension";
 
 const servers = new Map();
-const defaultStlPath = "models\\cone_30mm_ascii.stl";
+function selectDefaultModel() {
+    const files = listWorkspaceStlFiles();
+    const preferred = files.find((name) => /duschscharnier|duschtur|shower|hinge/i.test(name)) || files[0];
+    return preferred ? `models/${preferred}` : "models/cone_30mm_ascii.stl";
+}
+const defaultStlPath = selectDefaultModel();
 const defaultModelFile = defaultStlPath.split(/[\\/]/).pop();
 
 const shadingModes = ["basic", "lambert", "normal", "phong"];
