@@ -27,7 +27,7 @@ from build123d import (
     extrude,
 )
 
-BASE_T = 2.4
+BASE_T = 2.0
 WALL_T = 2.0
 TOTAL_T = 12.5
 HEAD_R = 19.0
@@ -54,7 +54,10 @@ OUTER_HEAD_C_Y = POCKET_HEAD_C_Y
 OUTER_TIP_R = POCKET_TIP_R + HEAD_WALL
 OUTER_TIP_C_Y = POCKET_TIP_C_Y
 
-RIB_H = 2.0
+# Cross ribs and cast pads sit on the 2.0 mm dish floor and reach 2.4 mm total
+# thickness measured from the outer (closed) face, so they are only 0.4 mm proud.
+RIB_TOP_Z = 2.4
+RIB_H = RIB_TOP_Z - BASE_T
 RIB_W = 2.0
 PAD_R = 3.5
 FLOOR_TIP_RIB_Y0 = TIP_Y + 0.25
