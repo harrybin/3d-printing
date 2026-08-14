@@ -10,7 +10,7 @@ Lager-Einsatz. Die Werte stammen aus den Fotos mit Schieblehre bzw. dem
 | Gesamtlange | 80.33 | Nutzermessung | gemessen |
 | Breite Lagerkopf | 38 | Nutzermessung | gemessen |
 | Lange Lagerkopf | 43 | Nutzermessung| gemessen |
-| Gesamtdicke | 12.5 | Nutzermessung | gemessen |
+| Gesamtdicke | 12.5 | Nutzermessung | gemessen (ohne Fuhrungsschienen) |
 | Breite Montagearm | 20 | Nutzermessung | gemessen |
 | Lange Montagearm | 43 | Nutzermessung | gemessen |
 | Durchmesser Montagebohrungen | 4 | Nutzermessung | gemessen |
@@ -23,7 +23,9 @@ Lager-Einsatz. Die Werte stammen aus den Fotos mit Schieblehre bzw. dem
 | Lagertasche, Boden | 2.4 | Nutzermessung | gemessen |
 | Wandstarke Schale und Arm | 2.0 | Nutzermessung | gemessen |
 | Einsatzfuhrung, Ausladung / Lange / Breite | 2.0 / 20.0 / 8.1 | Seitenansicht mit Schieblehre | abgeleitet; ragt oben heraus |
-| Fuhrungssteg im Arm, Hohe / Ausladung / Lange | 5.3 / 2.0 / 20.0 | Nutzermessung + Fotos 201713/202310/202825 | Langssteg an der inneren Armwand (+X), Oberkante unter dem Wandrand |
+| Fuhrungsschienen im Arm, Uberstand / Ausladung / Lange | 5.3 / 2.0 / 20.0 | Nutzermessung + Fotos 202910/201653 (Draufsicht) und 202902 (Seitenansicht) | Paar Langsschienen an beiden inneren Armwanden; sie starten am Kammerboden und ragen 5.3 mm uber den Wandrand hinaus (Oberkante z = 17.8) |
+| Fuhrungsschlitz zwischen den Schienen | 12.0 | Draufsicht 201653/202910, skaliert auf Armbreite 20 | abgeleitet |
+| Fuhrungsschienen, Lage in Y | 9.5 .. 29.5 | Seitenansicht 202902, skaliert auf Armlange 43 | gemessen 8.1 .. 30.5, auf Lange 20.0 gerundet |
 | Tropfen-Kopfradius / Spitzenradius | 19.0 / 10.85 | abgeleitet aus Breite 38 und Lange 43 | gesetzt |
 | Tropfen-Flankenradius | 34.0 | Konturabgleich auf Foto 201713 | ersetzt die geraden Tangenten des fruheren Hull |
 | Zentraloffnung im Einsatz | 17.9 | Nutzermessung | nicht Teil des Ersatzkorpers |
@@ -36,8 +38,9 @@ Lagerkopf mit tropfenformiger Einsatztasche (Kopfradius und Spitzenradius durch
 tangentiale Flankenbogen verbunden, also ohne gerade Abschnitte),
 Kreuzstege und vier Gusspads im Schalenboden, Kammerarm mit durchgehender
 Mittelwand, verschmolzene Schraubdome mit kegeligen Senkungen (ohne Absatz in
-die 4-mm-Bohrung ubergehend) und voll hoher Fuhrungsblock am Taschenauslauf
-mit 2.5 mm Uberstand. Der Bruchbereich ist durch den massiven Block und die
+die 4-mm-Bohrung ubergehend) und zwei Fuhrungsschienen an den inneren Armwanden,
+die vom Kammerboden bis 5.3 mm uber den Wandrand reichen. Der Bruchbereich ist
+durch die massiven Schienen und die
 durchgehende Bodenplatte deutlich steifer als der dunne Originalsteg.
 
 ## Druckvorgabe

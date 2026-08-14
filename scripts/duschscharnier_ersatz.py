@@ -4,8 +4,9 @@ Geometry follows the reference video/photos: circular bearing head with a
 teardrop insert pocket (head and tip radius joined by tangent flank arcs, so
 the outline has no straight sections), hollow chambered mounting
 arm, screw bosses whose conical countersinks blend directly into the bores,
-cross ribs and cast pads in the dish, and the full-height guide block at the
-pocket outlet. All dimensions in millimetres.
+cross ribs and cast pads in the dish, and a pair of longitudinal guide rails on
+the inner arm walls that stand proud of the wall rim. All dimensions in
+millimetres.
 """
 
 import math
@@ -60,19 +61,37 @@ FLOOR_TIP_RIB_Y0 = TIP_Y + 0.25
 FLOOR_TIP_RIB_Y1 = POCKET_HEAD_C_Y + POCKET_R - 0.5
 FLOOR_TIP_RIB_C_Y = (FLOOR_TIP_RIB_Y0 + FLOOR_TIP_RIB_Y1) / 2.0
 FLOOR_TIP_RIB_L = FLOOR_TIP_RIB_Y1 - FLOOR_TIP_RIB_Y0
-# Internal guide: a longitudinal ledge along one inner side wall of the arm.
-# Reference photos (201713 / 202310 / 202825, all normalised to arm-up /
-# head-down) show this shelf on the +X inner wall, sitting inside the arm walls
-# with its top face clearly below the wall rim, so the outer envelope is unchanged.
-GUIDE_H = 5.3
+# Internal guide: a pair of longitudinal rails, one on each inner side wall of
+# the arm, forming a slot that guides the mating part.
+#
+# Top-down photos 201653 and 202910 both show the pair: measured against the
+# 20 mm arm width the sequence across the arm is
+# wall 2.0 | rail 2.0 | slot 12.0 | rail 2.0 | wall 2.0, and each rail casts a
+# hard shadow line along its inner face, so the rails are clearly raised.
+#
+# The side view 202902 (part lying edge-on, open face towards the camera) shows
+# how far they are raised: the rails stand proud of the wall rim by roughly
+# 6 mm over about 28 mm of the arm. That is the "ragt oben heraus" note in the
+# measurement doc, and it matches the user-measured guide height of 5.3 mm when
+# 5.3 mm is read as the exposed height above the rim -- which is exactly what a
+# caliper on the side view returns. The rails therefore run from the chamber
+# floor all the way up and continue GUIDE_PROUD past the rim.
+#
+# They span roughly y 9.5 .. 29.5, i.e. from the head-side screw boss to just
+# past the outer one.
+GUIDE_PROUD = 5.3
 GUIDE_T = 2.0
 GUIDE_L = 20.0
 GUIDE_WALL_BITE = 0.6
+GUIDE_C_Y = 19.5
 GUIDE_INNER_X = ARM_W / 2.0 - WALL_T
 GUIDE_X0 = GUIDE_INNER_X - GUIDE_T
 GUIDE_X1 = GUIDE_INNER_X + GUIDE_WALL_BITE
 GUIDE_C_X = (GUIDE_X0 + GUIDE_X1) / 2.0
 GUIDE_SKETCH_W = GUIDE_X1 - GUIDE_X0
+GUIDE_SLOT_W = 2 * GUIDE_INNER_X - 2 * GUIDE_T
+GUIDE_TOP_Z = TOTAL_T + GUIDE_PROUD
+GUIDE_H = GUIDE_TOP_Z - BASE_T
 
 HOLE_D = 4.0
 CSK_D = 8.5
@@ -177,11 +196,11 @@ def build():
                 Rectangle(4.0, 4.5)
         extrude(amount=INNER_H + 1.0, mode=Mode.SUBTRACT)
 
-        # Internal guide ledge: runs lengthwise along the arm's inner side wall
-        # inside the long chamber, 5.3 mm high measured from the chamber floor.
-        guide_c_y = (chamber_a_y0 + chamber_a_y1) / 2.0
+        # Internal guide: one rail per inner arm wall, together forming the
+        # guide slot. The rails start at the chamber floor and stand
+        # GUIDE_PROUD proud of the wall rim, matching the side view.
         with BuildSketch(Plane.XY.offset(BASE_T)):
-            with Locations((GUIDE_C_X, guide_c_y)):
+            with Locations((GUIDE_C_X, GUIDE_C_Y), (-GUIDE_C_X, GUIDE_C_Y)):
                 Rectangle(GUIDE_SKETCH_W, GUIDE_L)
         extrude(amount=GUIDE_H)
 
