@@ -33,11 +33,10 @@ HEAD_C_Y = TIP_Y + HEAD_R
 HEAD_END_Y = TIP_Y + 43.0
 ARM_W = 20.0
 ARM_END_Y = 40.165
-# Fuse the arm 5 mm into the circular head instead of a near-tangent joint.
-ARM_HEAD_OVERLAP = 5.0
-ARM_START_Y = HEAD_C_Y + HEAD_R - ARM_HEAD_OVERLAP
+ARM_L = 43.0
+ARM_START_Y = ARM_END_Y - ARM_L
+ARM_HEAD_OVERLAP = HEAD_END_Y - ARM_START_Y
 ARM_C_Y = (ARM_START_Y + ARM_END_Y) / 2.0
-ARM_L = ARM_END_Y - ARM_START_Y
 
 INSERT_W = 33.9
 INSERT_L = 38.3
@@ -45,9 +44,9 @@ FIT = 0.20
 POCKET_R = (INSERT_W + 2 * FIT) / 2.0
 POCKET_LEN = INSERT_L + 2 * FIT
 HEAD_WALL = HEAD_R - POCKET_R
-POCKET_HEAD_C_Y = HEAD_C_Y + 2.0
-POCKET_TIP_R = 3.0
+POCKET_TIP_R = 9.0
 POCKET_TIP_C_Y = TIP_Y + HEAD_WALL + POCKET_TIP_R
+POCKET_HEAD_C_Y = POCKET_TIP_C_Y - POCKET_TIP_R + POCKET_LEN - POCKET_R
 OUTER_HEAD_C_Y = POCKET_HEAD_C_Y
 OUTER_TIP_R = POCKET_TIP_R + HEAD_WALL
 OUTER_TIP_C_Y = POCKET_TIP_C_Y
@@ -55,9 +54,13 @@ OUTER_TIP_C_Y = POCKET_TIP_C_Y
 RIB_H = 2.0
 RIB_W = 2.0
 PAD_R = 3.5
+FLOOR_TIP_RIB_Y0 = TIP_Y + 0.25
+FLOOR_TIP_RIB_Y1 = POCKET_HEAD_C_Y + POCKET_R - 0.5
+FLOOR_TIP_RIB_C_Y = (FLOOR_TIP_RIB_Y0 + FLOOR_TIP_RIB_Y1) / 2.0
+FLOOR_TIP_RIB_L = FLOOR_TIP_RIB_Y1 - FLOOR_TIP_RIB_Y0
 GUIDE_W = 8.0
 GUIDE_L = 6.0
-GUIDE_TOP = 2.5
+GUIDE_TOP = 0.0
 
 HOLE_D = 4.0
 CSK_D = 8.5
@@ -86,10 +89,11 @@ ARM_END_RIB_Y1 = ARM_END_Y
 ARM_END_RIB_C_Y = (ARM_END_RIB_Y0 + ARM_END_RIB_Y1) / 2.0
 ARM_END_RIB_L = ARM_END_RIB_Y1 - ARM_END_RIB_Y0
 HEAD_ARM_RIB_W = 3.0
-HEAD_ARM_RIB_L = 12.0
+HEAD_ARM_RIB_L = 9.5
+HEAD_ARM_RIB_POCKET_CLEAR = 0.5
 # Overlap the head-side mounting boss, with clearance to the arm side walls.
 HEAD_ARM_RIB_X = 4.50
-HEAD_ARM_RIB_C_Y = HEAD_C_Y + POCKET_R + WALL_T + HEAD_ARM_RIB_L / 2.0
+HEAD_ARM_RIB_C_Y = POCKET_HEAD_C_Y + POCKET_R + HEAD_ARM_RIB_POCKET_CLEAR + HEAD_ARM_RIB_L / 2.0
 
 
 def build():
@@ -163,8 +167,8 @@ def build():
         with BuildSketch(Plane.XY.offset(BASE_T)):
             with Locations((0.0, POCKET_HEAD_C_Y)):
                 Rectangle(INSERT_W, RIB_W)
-            with Locations((0.0, POCKET_HEAD_C_Y - POCKET_R + POCKET_LEN / 2.0 - 0.5)):
-                Rectangle(RIB_W, POCKET_LEN - 1.0)
+            with Locations((0.0, FLOOR_TIP_RIB_C_Y)):
+                Rectangle(RIB_W, FLOOR_TIP_RIB_L)
             with Locations(*[(sx * 8.0, POCKET_HEAD_C_Y + sy * 8.0) for sx in (-1, 1) for sy in (-1, 1)]):
                 Circle(PAD_R)
         extrude(amount=RIB_H)
