@@ -13,8 +13,11 @@ import math
 from pathlib import Path
 
 from build123d import (
+    Axis,
+    BuildLine,
     BuildPart,
     BuildSketch,
+    CenterArc,
     Circle,
     Cone,
     Cylinder,
@@ -23,8 +26,12 @@ from build123d import (
     Plane,
     Polygon,
     Rectangle,
+    add,
     export_stl,
     extrude,
+    fillet,
+    make_face,
+    mirror,
 )
 
 BASE_T = 2.0
@@ -54,12 +61,16 @@ OUTER_HEAD_C_Y = POCKET_HEAD_C_Y
 OUTER_TIP_R = POCKET_TIP_R + HEAD_WALL
 OUTER_TIP_C_Y = POCKET_TIP_C_Y
 
-# Cross ribs and cast pads sit on the 2.0 mm dish floor and reach 2.4 mm total
-# thickness measured from the outer (closed) face, so they are only 0.4 mm proud.
-RIB_TOP_Z = 2.4
-RIB_H = RIB_TOP_Z - BASE_T
+# Cross ribs and cast pads stand 2.4 mm proud of the 2.0 mm dish floor, so
+# their top face sits 4.4 mm above the outer (closed) face.
+RIB_H = 2.4
+RIB_TOP_Z = BASE_T + RIB_H
 RIB_W = 2.0
 PAD_R = 3.5
+# Slight cast radius where the cavity floor meets the walls, ribs, bosses and
+# guide rails. Kept well below the 2.0 mm floor so the floor stays full
+# thickness in the middle, and small enough that a 0.4 mm layer resolves it.
+FLOOR_FILLET_R = 0.8
 FLOOR_TIP_RIB_Y0 = TIP_Y + 0.25
 FLOOR_TIP_RIB_Y1 = POCKET_HEAD_C_Y + POCKET_R - 0.5
 FLOOR_TIP_RIB_C_Y = (FLOOR_TIP_RIB_Y0 + FLOOR_TIP_RIB_Y1) / 2.0
@@ -138,13 +149,31 @@ FLANK_R = 34.0
 EGG_SEGMENTS = (90, 40, 60)
 
 
-def egg_outline(head_r, tip_r, flank_r, segments=EGG_SEGMENTS):
-    """Three-arc teardrop outline: head arc, flank arcs, tip arc, all tangent.
+def egg_arcs(head_r, tip_r, flank_r):
+    """Add the +X half of the three-arc teardrop to the active BuildLine.
 
-    Returned in global sketch coordinates (head centred on OUTER_HEAD_C_Y, tip
-    pointing towards -Y). Offsetting all three radii by the same wall thickness
+    Head arc, flank arc and tip arc are mutually tangent, so the outline has no
+    straight section. Offsetting all three radii by the same wall thickness
     keeps every arc centre unchanged, so the pocket reuses this construction.
+    The caller mirrors the half about Plane.YZ and closes it into a face.
     """
+    d = OUTER_HEAD_C_Y - OUTER_TIP_C_Y
+    oy = (d * d + (tip_r - head_r) * (2 * flank_r - head_r - tip_r)) / (2 * d)
+    ox = -math.sqrt((flank_r - head_r) ** 2 - oy * oy)
+
+    a1 = math.degrees(math.atan2(-oy, -ox))
+    a2 = math.degrees(math.atan2(d - oy, -ox))
+
+    # The construction above works in a frame whose +t axis points from the
+    # head centre towards the tip. Sketch Y runs the other way, so every angle
+    # flips sign and every centre is mirrored through OUTER_HEAD_C_Y.
+    CenterArc((0.0, OUTER_HEAD_C_Y), head_r, 90.0, -a1 - 90.0)
+    CenterArc((ox, OUTER_HEAD_C_Y - oy), flank_r, -a1, a1 - a2)
+    CenterArc((0.0, OUTER_TIP_C_Y), tip_r, -a2, a2 - 90.0)
+
+
+def egg_outline(head_r, tip_r, flank_r, segments=EGG_SEGMENTS):
+    """Polyline sampling of the same outline, kept for numeric verification."""
     d = OUTER_HEAD_C_Y - OUTER_TIP_C_Y
     oy = (d * d + (tip_r - head_r) * (2 * flank_r - head_r - tip_r)) / (2 * d)
     ox = -math.sqrt((flank_r - head_r) ** 2 - oy * oy)
@@ -168,36 +197,76 @@ def egg_outline(head_r, tip_r, flank_r, segments=EGG_SEGMENTS):
 
 
 def build():
+    def _floor_rounded_tool(sketch_fn, height, radius=FLOOR_FILLET_R):
+        """Cavity cutter whose bottom edge loop carries a convex radius.
+
+        Subtracting it leaves a concave cast radius where the cavity floor
+        meets its walls. OCCT refuses to fillet the fully assembled part (the
+        rail/wall overlaps produce topology it will not touch), but filleting
+        the simple prism before the boolean is robust.
+        """
+        with BuildPart() as tool:
+            with BuildSketch(Plane.XY.offset(BASE_T)):
+                sketch_fn()
+            extrude(amount=height)
+            base = tool.edges().filter_by_position(
+                Axis.Z, BASE_T - 0.01, BASE_T + 0.01
+            )
+            for r in (radius, 0.6, 0.4, 0.25):
+                try:
+                    fillet(base, radius=r)
+                except Exception:
+                    continue
+                if r != radius:
+                    print(f"note: floor radius reduced to {r} mm")
+                break
+            else:
+                print("warning: floor radius skipped for one cavity")
+        return tool.part
+
+    def _pocket_sketch():
+        with BuildLine() as pocket_ln:
+            egg_arcs(POCKET_R, POCKET_TIP_R, FLANK_R - HEAD_WALL)
+            mirror(pocket_ln.line, about=Plane.YZ)
+        # Pass the edges explicitly: build123d resolves the implicit builder
+        # context from the calling frame, which is not the sketch frame here.
+        make_face(pocket_ln.line.edges())
+
+    # Arm chambers left and right of the continuous middle wall.
+    # Start the arm cavity only after the arm-facing end of the pocket so
+    # the teardrop remains closed at both ends.
+    chamber_a_y0 = POCKET_HEAD_C_Y + POCKET_R + WALL_T
+    chamber_a_y1 = MOUNT_Y[0] - OUTER_BOSS_WEB_HALF
+    chamber_b_y0 = MOUNT_Y[0] + OUTER_BOSS_WEB_HALF
+    chamber_b_y1 = ARM_INNER_END_Y
+
+    def _chamber_sketch():
+        with Locations((0.0, (chamber_a_y0 + chamber_a_y1) / 2.0)):
+            Rectangle(INNER_W, chamber_a_y1 - chamber_a_y0)
+        with Locations((0.0, (chamber_b_y0 + chamber_b_y1) / 2.0)):
+            Rectangle(INNER_W, chamber_b_y1 - chamber_b_y0)
+        with Locations((-6.0, 3.5), (6.0, 3.5)):
+            Rectangle(4.0, 4.5)
+
+    # Both cavity cutters are built outside the main part context so their
+    # fillets stay independent of the assembled solid.
+    pocket_tool = _floor_rounded_tool(_pocket_sketch, INNER_H + 1.0)
+    chamber_tool = _floor_rounded_tool(_chamber_sketch, INNER_H + 1.0)
+
     with BuildPart() as part:
         # Outer body: pointed teardrop head, rectangular arm, raised guide.
         with BuildSketch(Plane.XY):
-            Polygon(*egg_outline(HEAD_R, OUTER_TIP_R, FLANK_R), align=None)
+            with BuildLine() as head_ln:
+                egg_arcs(HEAD_R, OUTER_TIP_R, FLANK_R)
+                mirror(head_ln.line, about=Plane.YZ)
+            make_face()
             with Locations((0.0, ARM_C_Y)):
                 Rectangle(ARM_W, ARM_L)
         extrude(amount=TOTAL_T)
-        # Teardrop pocket: same three-arc outline, offset inwards by the wall.
-        with BuildSketch(Plane.XY.offset(BASE_T)):
-            Polygon(
-                *egg_outline(POCKET_R, POCKET_TIP_R, FLANK_R - HEAD_WALL),
-                align=None,
-            )
-        extrude(amount=INNER_H + 1.0, mode=Mode.SUBTRACT)
 
-        # Arm chambers left and right of the continuous middle wall.
-        # Start the arm cavity only after the arm-facing end of the pocket so
-        # the teardrop remains closed at both ends.
-        chamber_a_y0 = POCKET_HEAD_C_Y + POCKET_R + WALL_T
-        chamber_a_y1 = MOUNT_Y[0] - OUTER_BOSS_WEB_HALF
-        chamber_b_y0 = MOUNT_Y[0] + OUTER_BOSS_WEB_HALF
-        chamber_b_y1 = ARM_INNER_END_Y
-        with BuildSketch(Plane.XY.offset(BASE_T)):
-            with Locations((0.0, (chamber_a_y0 + chamber_a_y1) / 2.0)):
-                Rectangle(INNER_W, chamber_a_y1 - chamber_a_y0)
-            with Locations((0.0, (chamber_b_y0 + chamber_b_y1) / 2.0)):
-                Rectangle(INNER_W, chamber_b_y1 - chamber_b_y0)
-            with Locations((-6.0, 3.5), (6.0, 3.5)):
-                Rectangle(4.0, 4.5)
-        extrude(amount=INNER_H + 1.0, mode=Mode.SUBTRACT)
+        # Teardrop pocket: same three-arc outline, offset inwards by the wall.
+        add(pocket_tool, mode=Mode.SUBTRACT)
+        add(chamber_tool, mode=Mode.SUBTRACT)
 
         # Internal guide: one rail per inner arm wall, together forming the
         # guide slot. The rails start at the chamber floor and stand
@@ -252,6 +321,7 @@ def build():
             Cylinder(HOLE_D / 2.0, TOTAL_T + 4.0, mode=Mode.SUBTRACT)
         with Locations((0.0, MOUNT_Y[0], CSK_DEPTH / 2.0), (0.0, MOUNT_Y[1], CSK_DEPTH / 2.0)):
             Cone(bottom_radius=CSK_D / 2.0, top_radius=HOLE_D / 2.0, height=CSK_DEPTH, mode=Mode.SUBTRACT)
+
     return part
 
 

@@ -21,7 +21,8 @@ Lager-Einsatz. Die Werte stammen aus den Fotos mit Schieblehre bzw. dem
 | Grauer Einsatz, Dicke | 7.85 | Nutzermessung | gemessen |
 | Sitzspiel fur Einsatz | 0.20 | FDM-Sliding-Fit | bewusst vorgegeben |
 | Boden Lagertasche und Arm | 2.0 | Nutzermessung | gemessen; durchgehend in Kopf und Arm |
-| Kreuzstege und Gusspads, Oberkante ab Aussenflache | 2.4 | Nutzermessung | liegen auf dem 2.0er Boden, also 2.4 erhaben |
+| Verrundung Bodenkanten und -ecken | 0.8 | Gussvorbild | leichte Hohlkehle am Ubergang Boden/Wand |
+| Kreuzstege und Gusspads, Hohe uber dem Boden | 2.4 | Nutzermessung | 2.4 erhaben auf dem 2.0er Boden, Oberkante bei 4.4 ab Aussenflache |
 | Wandstarke Schale und Arm | 2.0 | Nutzermessung | gemessen |
 | Einsatzfuhrung, Ausladung / Lange / Breite | 2.0 / 20.0 / 8.1 | Seitenansicht mit Schieblehre | abgeleitet; ragt oben heraus |
 | Fuhrungsschienen im Arm, Uberstand / Ausladung / Lange | 5.3 / 2.0 / 20.0 | Nutzermessung + Fotos 202910/201653 (Draufsicht) und 202902 (Seitenansicht) | Paar Langsschienen an beiden inneren Armwanden; sie starten am Kammerboden und ragen 5.3 mm uber den Wandrand hinaus (Oberkante z = 17.8) |
@@ -37,8 +38,8 @@ Der Originalbruch liegt in der schmalen Verbindung zwischen Arm und Lagerkopf.
 Der Ersatz bildet die Gusskonstruktion aus dem Referenzvideo nach: kreisrunder
 Lagerkopf mit tropfenformiger Einsatztasche (Kopfradius und Spitzenradius durch
 tangentiale Flankenbogen verbunden, also ohne gerade Abschnitte),
-Kreuzstege und vier Gusspads im Schalenboden (nur 0.4 mm erhaben, Oberkante bei
-2.4 mm ab der Aussenflache), Kammerarm mit durchgehender
+Kreuzstege und vier Gusspads im Schalenboden (2.4 mm uber dem Boden erhaben,
+Oberkante bei 4.4 mm ab der Aussenflache), Kammerarm mit durchgehender
 Mittelwand, verschmolzene Schraubdome mit kegeligen Senkungen (ohne Absatz in
 die 4-mm-Bohrung ubergehend) und zwei Fuhrungsschienen an den inneren Armwanden,
 die vom Kammerboden bis 5.3 mm uber den Wandrand reichen. Der Bruchbereich ist
