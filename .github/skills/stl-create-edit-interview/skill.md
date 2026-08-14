@@ -54,6 +54,16 @@ Use this skill before creating or editing STL files. It forces key printability 
 - No (set `support_likelihood` = low)
 - Unsure (set `support_likelihood` = medium)
 
+## Recreating an existing part (session-verified)
+
+When the job is a replacement for a real part rather than a fresh design, most of the interview above is already decided by the original. Ask these instead, one at a time:
+
+1. Which geometry is **frozen**? On replacement parts users typically approve the current walls, chamber layout and outer envelope and only want one feature changed. Record the frozen set explicitly and do not touch it, even when a neighbouring feature looks wrong.
+2. Which single feature is in scope for this iteration? Fix one structural discrepancy per round and re-verify before starting the next; users get lost when several features change at once.
+3. Which measurements are caliper-verified versus photo-derived? Caliper values win, and photo-derived values must stay flagged as estimates in the measurement doc.
+
+Then reuse the fit, wall and infill defaults below only for the parts of the geometry that are genuinely new.
+
 ## Best-practice defaults to apply
 
 - Nozzle profile baseline: 0.4 mm

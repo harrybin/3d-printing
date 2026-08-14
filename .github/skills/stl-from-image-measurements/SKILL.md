@@ -114,6 +114,8 @@ Measurement precedence and pitfalls (session-verified):
 - Persist the dimension table as a markdown doc under `docs/` and keep generator parameters in sync with it. The user may edit that doc directly: re-read it before every geometry change.
 - Convert user units carefully (`0,785 cm` = 7.85 mm); challenge physically implausible values (e.g., walls thinner than one extrusion line) before using them.
 - Recreate the **interior structure** of cast/molded parts (chambers, ribs, bosses, pads, guide blocks), not a simplified solid. Simplified solids get rejected when compared against the original.
+- Cast and molded outlines are almost never built from straight tangent lines. If a contour looks like a hull of two circles, expect the original to have a curved flank instead and model it with tangent arcs (see `create-ascii-stl`).
+- Keep scratch analysis renders out of the way, but check `git status` before deleting an analysis folder: it may already contain **tracked** reference images. Restore with `git checkout -- <path>` if you removed some by accident.
 
 ### 5. Apply requested relationships between objects
 
@@ -203,6 +205,47 @@ When the goal is to match a pictured/filmed original, do not rely on mesh statis
 5. For quantitative checks, extract silhouettes (white-on-black render) and compare contours via OpenCV (`cv2.matchShapes`, IoU overlay).
 
 Only report completion after the render-versus-reference loop converges and the user-visible structures match.
+
+### 8c. Deriving a contour from a photo (session-verified)
+
+Automatic silhouette extraction is unreliable on shiny metal parts photographed on a desk: Otsu thresholding and GrabCut both bleed into the cast shadow and pull in neighbouring geometry, and a circle fitted to such a contour came out ~10% too small with the long axis off by 30 degrees. Do not trust an extracted contour without looking at it.
+
+Use the **landmark-calibrate-and-overlay** method instead:
+
+1. Crop to the feature and read off two opposing extreme points that correspond to a **known caliper dimension** (e.g. the two ends of the 38 mm head width).
+2. Derive the frame from those landmarks: `centre` = midpoint, `scale` = pixel distance / known mm, long axis `u` = perpendicular to that chord, side vector `w` = perpendicular to `u`.
+3. Project *candidate model outlines* into the photo with `p_img = centre + scale * (t*u + x*w)` and draw them with `cv2.polylines`. Do not try to project the photo into model space.
+4. Render one image per candidate family and one zoomed crop of the critical region, then judge which candidate sits on the metal edge. Regions in shadow or strong foreshortening are the least reliable - weight the well-lit, least-tilted side.
+5. Feed the winning parameter back into the generator, regenerate, render, and repeat.
+
+This turns an unsolvable segmentation problem into a cheap visual A/B test and keeps user caliper values as the single source of scale.
+
+### 8d. Verifying that a feature actually exists where intended
+
+"I cannot see the feature" has three distinct causes; check them in this order before touching geometry:
+
+1. **The viewer is showing a different file.** Confirm which path the STL canvas resolved (a stale or hardcoded default model path will silently render the wrong part) and force a reload.
+2. **The feature is hidden behind other geometry.** Render a cross-section or an exploded view rather than a single outside view.
+3. **The feature really is misplaced.** Prove it numerically with a **volume probe**: intersect the mesh with a small box covering the expected feature volume and compare volumes.
+
+   ```python
+   b = trimesh.creation.box(extents=np.subtract(hi, lo))
+   b.apply_translation(np.add(lo, hi) / 2)
+   ratio = trimesh.boolean.intersection([mesh, b], engine="manifold").volume / b.volume
+   ```
+
+   Probe the feature itself (expect ~100%), the space directly above it, and the mirrored position on the opposite side. This is also the reliable way to catch a feature built on the wrong side.
+
+   The project `.venv` has no `shapely`/`rtree`, so `mesh.contains()` and `section().to_planar()` raise. The boolean-intersection probe above is the working substitute.
+
+### 8e. Deciding which side a feature belongs on
+
+Left/right judgements from a single photo are unreliable - an internal ledge was implemented mirrored because of this. Before committing to a side:
+
+1. Pick at least three photos that show the feature.
+2. Rotate each one (`cv2.ROTATE_90_CLOCKWISE` etc.) into **one common orientation** defined by unmistakable landmarks (e.g. arm up, head down, cavity facing the camera).
+3. Stack them side by side in a single image and confirm all of them agree.
+4. Map that orientation to model axes explicitly, and note the viewer convention used to check it (vedo top view with camera at +Z and `viewup=+Y` puts +X on screen-right).
 
 ### 9. Show the result in the STL canvas (mandatory)
 

@@ -23,14 +23,17 @@ Lager-Einsatz. Die Werte stammen aus den Fotos mit Schieblehre bzw. dem
 | Lagertasche, Boden | 2.4 | Nutzermessung | gemessen |
 | Wandstarke Schale und Arm | 2.0 | Nutzermessung | gemessen |
 | Einsatzfuhrung, Ausladung / Lange / Breite | 2.0 / 20.0 / 8.1 | Seitenansicht mit Schieblehre | abgeleitet; ragt oben heraus |
-| Führung in Halterwand, Höhe | 5.3 | Nutzermessung | ergänzt; sitzt innerhalb der Wände |
+| Fuhrungssteg im Arm, Hohe / Ausladung / Lange | 5.3 / 2.0 / 20.0 | Nutzermessung + Fotos 201713/202310/202825 | Langssteg an der inneren Armwand (+X), Oberkante unter dem Wandrand |
+| Tropfen-Kopfradius / Spitzenradius | 19.0 / 10.85 | abgeleitet aus Breite 38 und Lange 43 | gesetzt |
+| Tropfen-Flankenradius | 34.0 | Konturabgleich auf Foto 201713 | ersetzt die geraden Tangenten des fruheren Hull |
 | Zentraloffnung im Einsatz | 17.9 | Nutzermessung | nicht Teil des Ersatzkorpers |
 
 ## Verstarkung
 
 Der Originalbruch liegt in der schmalen Verbindung zwischen Arm und Lagerkopf.
 Der Ersatz bildet die Gusskonstruktion aus dem Referenzvideo nach: kreisrunder
-Lagerkopf mit tropfenformiger Einsatztasche (zwei sich schneidende Kreise),
+Lagerkopf mit tropfenformiger Einsatztasche (Kopfradius und Spitzenradius durch
+tangentiale Flankenbogen verbunden, also ohne gerade Abschnitte),
 Kreuzstege und vier Gusspads im Schalenboden, Kammerarm mit durchgehender
 Mittelwand, verschmolzene Schraubdome mit kegeligen Senkungen (ohne Absatz in
 die 4-mm-Bohrung ubergehend) und voll hoher Fuhrungsblock am Taschenauslauf

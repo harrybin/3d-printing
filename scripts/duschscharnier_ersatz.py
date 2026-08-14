@@ -1,12 +1,14 @@
 """Generate the shower-door pivot replacement with the build123d CAD kernel.
 
 Geometry follows the reference video/photos: circular bearing head with a
-teardrop insert pocket (two intersecting circles), hollow chambered mounting
+teardrop insert pocket (head and tip radius joined by tangent flank arcs, so
+the outline has no straight sections), hollow chambered mounting
 arm, screw bosses whose conical countersinks blend directly into the bores,
 cross ribs and cast pads in the dish, and the full-height guide block at the
 pocket outlet. All dimensions in millimetres.
 """
 
+import math
 from pathlib import Path
 
 from build123d import (
@@ -18,10 +20,10 @@ from build123d import (
     Locations,
     Mode,
     Plane,
+    Polygon,
     Rectangle,
     export_stl,
     extrude,
-    make_hull,
 )
 
 BASE_T = 2.4
@@ -58,13 +60,19 @@ FLOOR_TIP_RIB_Y0 = TIP_Y + 0.25
 FLOOR_TIP_RIB_Y1 = POCKET_HEAD_C_Y + POCKET_R - 0.5
 FLOOR_TIP_RIB_C_Y = (FLOOR_TIP_RIB_Y0 + FLOOR_TIP_RIB_Y1) / 2.0
 FLOOR_TIP_RIB_L = FLOOR_TIP_RIB_Y1 - FLOOR_TIP_RIB_Y0
-GUIDE_W = 8.1
-GUIDE_L = 20.0
+# Internal guide: a longitudinal ledge along one inner side wall of the arm.
+# Reference photos (201713 / 202310 / 202825, all normalised to arm-up /
+# head-down) show this shelf on the +X inner wall, sitting inside the arm walls
+# with its top face clearly below the wall rim, so the outer envelope is unchanged.
 GUIDE_H = 5.3
-# Make the guide a wall rib in the arm's internal side wall, not a floor pad.
-GUIDE_X = -ARM_W / 2.0 + WALL_T + GUIDE_W / 2.0 + 0.35
-GUIDE_C_Y = ARM_C_Y
-GUIDE_TOP = 0.0
+GUIDE_T = 2.0
+GUIDE_L = 20.0
+GUIDE_WALL_BITE = 0.6
+GUIDE_INNER_X = ARM_W / 2.0 - WALL_T
+GUIDE_X0 = GUIDE_INNER_X - GUIDE_T
+GUIDE_X1 = GUIDE_INNER_X + GUIDE_WALL_BITE
+GUIDE_C_X = (GUIDE_X0 + GUIDE_X1) / 2.0
+GUIDE_SKETCH_W = GUIDE_X1 - GUIDE_X0
 
 HOLE_D = 4.0
 CSK_D = 8.5
@@ -99,27 +107,59 @@ HEAD_ARM_RIB_POCKET_CLEAR = 0.5
 HEAD_ARM_RIB_X = 4.50
 HEAD_ARM_RIB_C_Y = POCKET_HEAD_C_Y + POCKET_R + HEAD_ARM_RIB_POCKET_CLEAR + HEAD_ARM_RIB_L / 2.0
 
+# Teardrop flank radius. The original casting has no straight section between
+# the head and the tip radius: the two are joined by a large concave-side arc
+# that is internally tangent to both. A hull of the two circles would insert a
+# ~9.5 mm straight tangent line instead, which is clearly visible on the part.
+# 34 mm was picked by overlaying candidate outlines on PXL_20260813_201713762.
+FLANK_R = 34.0
+EGG_SEGMENTS = (90, 40, 60)
+
+
+def egg_outline(head_r, tip_r, flank_r, segments=EGG_SEGMENTS):
+    """Three-arc teardrop outline: head arc, flank arcs, tip arc, all tangent.
+
+    Returned in global sketch coordinates (head centred on OUTER_HEAD_C_Y, tip
+    pointing towards -Y). Offsetting all three radii by the same wall thickness
+    keeps every arc centre unchanged, so the pocket reuses this construction.
+    """
+    d = OUTER_HEAD_C_Y - OUTER_TIP_C_Y
+    oy = (d * d + (tip_r - head_r) * (2 * flank_r - head_r - tip_r)) / (2 * d)
+    ox = -math.sqrt((flank_r - head_r) ** 2 - oy * oy)
+
+    a1 = math.atan2(-oy, -ox)
+    a2 = math.atan2(d - oy, -ox)
+
+    def arc(cx, cy, radius, start, end, count):
+        step = (end - start) / count
+        return [
+            (cx + radius * math.cos(start + i * step), cy + radius * math.sin(start + i * step))
+            for i in range(count + 1)
+        ]
+
+    n_head, n_flank, n_tip = segments
+    half = arc(0.0, 0.0, head_r, -math.pi / 2, a1, n_head)
+    half += arc(ox, oy, flank_r, a1, a2, n_flank)[1:]
+    half += arc(0.0, d, tip_r, a2, math.pi / 2, n_tip)[1:]
+    mirrored = [(-x, t) for x, t in reversed(half[1:-1])]
+    return [(x, OUTER_HEAD_C_Y - t) for x, t in half + mirrored]
+
 
 def build():
     with BuildPart() as part:
         # Outer body: pointed teardrop head, rectangular arm, raised guide.
         with BuildSketch(Plane.XY):
-            with Locations((0.0, OUTER_HEAD_C_Y)):
-                Circle(HEAD_R)
-            with Locations((0.0, OUTER_TIP_C_Y)):
-                Circle(OUTER_TIP_R)
-            make_hull(mode=Mode.REPLACE)
+            Polygon(*egg_outline(HEAD_R, OUTER_TIP_R, FLANK_R), align=None)
             with Locations((0.0, ARM_C_Y)):
                 Rectangle(ARM_W, ARM_L)
         extrude(amount=TOTAL_T)
-        # Teardrop pocket: hull of two intersecting circles, cut to depth.
+        # Teardrop pocket: same three-arc outline, offset inwards by the wall.
         with BuildSketch(Plane.XY.offset(BASE_T)):
-            with Locations((0.0, POCKET_HEAD_C_Y)):
-                Circle(POCKET_R)
-            with Locations((0.0, POCKET_TIP_C_Y)):
-                Circle(POCKET_TIP_R)
-            make_hull(mode=Mode.REPLACE)
-        extrude(amount=INNER_H + GUIDE_TOP + 1.0, mode=Mode.SUBTRACT)
+            Polygon(
+                *egg_outline(POCKET_R, POCKET_TIP_R, FLANK_R - HEAD_WALL),
+                align=None,
+            )
+        extrude(amount=INNER_H + 1.0, mode=Mode.SUBTRACT)
 
         # Arm chambers left and right of the continuous middle wall.
         # Start the arm cavity only after the arm-facing end of the pocket so
@@ -137,15 +177,13 @@ def build():
                 Rectangle(4.0, 4.5)
         extrude(amount=INNER_H + 1.0, mode=Mode.SUBTRACT)
 
-        # Internal guide kept inside the arm walls; no change to the present wall
-        # thickness or outer envelope.
-        # The guide sits as a wall rib in the arm cavity, with its height
-        # perpendicular to the plate face, so it remains inside the wall while
-        # staying clearly visible from the open-side view.
-        with BuildSketch(Plane.YZ.offset(GUIDE_X)):
-            with Locations((GUIDE_C_Y, BASE_T + GUIDE_H / 2.0)):
-                Rectangle(GUIDE_L, GUIDE_H)
-        extrude(amount=GUIDE_W)
+        # Internal guide ledge: runs lengthwise along the arm's inner side wall
+        # inside the long chamber, 5.3 mm high measured from the chamber floor.
+        guide_c_y = (chamber_a_y0 + chamber_a_y1) / 2.0
+        with BuildSketch(Plane.XY.offset(BASE_T)):
+            with Locations((GUIDE_C_X, guide_c_y)):
+                Rectangle(GUIDE_SKETCH_W, GUIDE_L)
+        extrude(amount=GUIDE_H)
 
         # Reconnect the head-side screw boss to both arm walls with ribs.
         with BuildSketch(Plane.XY.offset(BASE_T)):

@@ -39,8 +39,21 @@ Hand-written meshes (raw `Trimesh(vertices, faces)` constructions, manual `solid
 ## Proven toolchain (session-verified)
 
 - For engineering shapes (countersinks, bosses, ribs, hulled contours, fillets), build the solid with **build123d** (OCCT kernel) instead of hand-assembled trimesh primitives. Conical countersinks must blend directly into their bores (`Cone` from sink diameter to bore diameter) so no ledge or material gap remains.
-- Model teardrop/egg outlines as the **hull of two intersecting circles** (`make_hull`), not as ellipse unions.
-- Avoid tangential (knife-edge) contact between contours: it creates a non-manifold edge in the tessellation. Overlap solids by >= 1 mm instead.
+- Model teardrop/egg outlines as a **three-arc construction**, never as `make_hull` of two circles. A convex hull joins the two circles with **straight tangent lines** (for a 19 mm head, a 10.85 mm tip and 12.55 mm centre distance that is a ~9.5 mm long flat), which is immediately visible on the part and gets rejected in photo comparison. Instead add flank arcs of radius `Rf` that are *internally* tangent to both end circles (the flank circle contains both), giving a continuously curved, G1-smooth outline:
+
+  ```
+  D  = distance between head centre C1 and tip centre C2   (tip along +t)
+  oy = (D**2 + (r - R) * (2*Rf - R - r)) / (2*D)
+  ox = -sqrt((Rf - R)**2 - oy**2)          # negative for the +x flank
+  P1 = C1 + R * unit(C1 - O)               # tangent point on the head arc
+  P2 = C2 + r * unit(C2 - O)               # tangent point on the tip arc
+  ```
+
+  Walk head arc -> flank arc around `O` -> tip arc, then mirror for the -x half, and feed the point list to build123d `Polygon(*pts, align=None)`. Larger `Rf` approaches the straight hull; smaller `Rf` bulges more. Pick `Rf` by overlaying candidates on a reference photo.
+
+- **Offset property of the three-arc egg:** shrinking all three radii by the same wall thickness `t` leaves every arc centre unchanged. So one `egg_outline(head_r, tip_r, flank_r)` helper serves both the outer body and the inner pocket (`egg_outline(R - t, r - t, Rf - t)`), and the wall is automatically constant everywhere.
+- Avoid tangential (knife-edge) contact between contours: it creates a non-manifold edge in the tessellation. Overlap solids by >= 1 mm instead. For a ledge that hugs a wall, extend it ~0.5 mm *into* that wall for the same reason.
+- Sketch internal ledges, shelves and floor ribs on the plane they **sit on** (`Plane.XY.offset(floor_z)`) and extrude upwards. Sketching them in a side plane (`Plane.YZ`) and extruding across the cavity silently places a slab in mid-air where it is hidden behind bosses and ribs - a defect that looks like "the feature is missing" in the viewer.
 - OCCT STL exports are often not watertight. Always re-export through trimesh: `vertices = round(vertices, 3)` -> `merge_vertices()` -> `unique_faces()` -> `nondegenerate_faces()` -> verify `is_watertight` -> `export(file_type="stl_ascii")`.
 - Do **not** use pymeshfix on thin-walled or multi-chamber parts: it deletes geometry (`remove_smallest_components`).
 - Keep trimesh + manifold3d for simple prismatic CSG and as the validation layer.
