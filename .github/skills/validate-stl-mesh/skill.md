@@ -37,6 +37,26 @@ Diagnosis guidance when repair does not converge:
 - Never use pymeshfix on thin-walled or multi-chamber parts: its smallest-component removal deletes valid geometry.
 - Coarser rounding than 0.01 mm collapses thin features and creates new open edges; do not exceed it.
 
+## Feature-presence checks (session-verified)
+
+Mesh statistics say nothing about whether a requested feature was actually built in the right place. When a change adds or moves an internal feature, prove it:
+
+- **Volume probe:** intersect the mesh with a box covering the expected feature volume and compare volumes.
+
+  ```python
+  b = trimesh.creation.box(extents=np.subtract(hi, lo))
+  b.apply_translation(np.add(lo, hi) / 2)
+  ratio = trimesh.boolean.intersection([mesh, b], engine="manifold").volume / b.volume
+  ```
+
+  Report three numbers: the feature volume (expect ~100%), the space directly above/beside it (expect low), and the mirrored position on the opposite side (expect low). Equal values on both sides mean the feature is missing or symmetric by accident.
+
+- `mesh.contains()` and `mesh.section(...).to_planar()` require `shapely` and `rtree`, which are **not** in the project `.venv`. Use the boolean-intersection probe above instead of installing them.
+
+- The **Euler number** encodes topology and is a cheap regression guard: a solid with two through-holes must report `-2`. A change in Euler number after a geometry edit means a hole or handle appeared or vanished.
+
+- Re-run the same probes after every subsequent geometry change and after merges, so an unrelated edit cannot silently remove the feature.
+
 ## Manufacturing checks (FDM)
 
 If no nozzle size is specified by the user, assume 0.4 mm as the default. If a different nozzle diameter is provided, scale minimum wall thickness to 2x nozzle diameter and functional recommendation to 3x nozzle diameter.

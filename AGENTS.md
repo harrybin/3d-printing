@@ -44,7 +44,10 @@ If behavior around print constraints, validation policy, or coordinate targeting
 ## Common Pitfalls
 
 - `manifold3d` must be installed, or boolean operations fail.
+- `shapely` and `rtree` are **not** installed, so `mesh.contains()` and `section().to_planar()` raise. Verify feature placement with a boolean volume probe against a small box instead.
 - OCCT exports (build123d) are often not watertight until the trimesh repair re-export runs; tangential knife-edge contours cause non-manifold edges and must be fixed by overlapping solids in the source geometry.
+- `make_hull` of two circles produces straight tangent segments and is the wrong way to build teardrop/egg contours; use tangent flank arcs (see `create-ascii-stl`).
+- Internal ledges must be sketched on the plane they sit on and extruded upwards; sketching them in a side plane hides them mid-cavity and looks like a missing feature.
 - `pymeshfix` deletes geometry on thin-walled multi-chamber parts; do not use it.
 - Editing `models/*.stl` directly can desync files from their parametric source script.
 - Fit tweaks should be made in script parameters, then regenerated and revalidated.
@@ -65,3 +68,6 @@ Recent sessions in this repo skew heavily toward mesh-quality issues. Default be
 1. Regenerate from script, do not patch triangles manually.
 2. Confirm watertight/manifold status and degenerate-face count after each geometry change.
 3. Re-check XY centering convention whenever moving or merging meshes.
+4. Prove new internal features with a volume probe, not just mesh stats, and confirm which file the STL canvas actually rendered before believing "the feature is missing".
+5. Determine feature sides by normalising several photos to one orientation; a single photo is not enough and has already caused a mirrored feature.
+6. Pick contour parameters by projecting candidate outlines onto a landmark-calibrated photo, not by automatic silhouette extraction, which bleeds into shadows.
