@@ -21,7 +21,7 @@ Lager-Einsatz. Die Werte stammen aus den Fotos mit Schieblehre bzw. dem
 | Grauer Einsatz, Dicke | 7.85 | Nutzermessung | gemessen |
 | Sitzspiel fur Einsatz | 0.20 | FDM-Sliding-Fit | bewusst vorgegeben |
 | Boden Lagertasche und Arm | 2.0 | Nutzermessung | gemessen; durchgehend in Kopf und Arm |
-| Verrundung Bodenkanten und -ecken | 0.8 | Gussvorbild | leichte Hohlkehle am Ubergang Boden/Wand |
+| Verrundung untere Aussenkanten | 0.8 | Gussvorbild | umlaufender Radius an der geschlossenen Aussenflache |
 | Kreuzstege und Gusspads, Hohe uber dem Boden | 2.4 | Nutzermessung | 2.4 erhaben auf dem 2.0er Boden, Oberkante bei 4.4 ab Aussenflache |
 | Wandstarke Schale und Arm | 2.0 | Nutzermessung | gemessen |
 | Einsatzfuhrung, Ausladung / Lange / Breite | 2.0 / 20.0 / 8.1 | Seitenansicht mit Schieblehre | abgeleitet; ragt oben heraus |

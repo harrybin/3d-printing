@@ -67,10 +67,10 @@ RIB_H = 2.4
 RIB_TOP_Z = BASE_T + RIB_H
 RIB_W = 2.0
 PAD_R = 3.5
-# Slight cast radius where the cavity floor meets the walls, ribs, bosses and
-# guide rails. Kept well below the 2.0 mm floor so the floor stays full
-# thickness in the middle, and small enough that a 0.4 mm layer resolves it.
-FLOOR_FILLET_R = 0.8
+# Slight cast radius along the lower outside edges of the walls (the z = 0
+# perimeter of the closed face). Kept below the 2.0 mm floor and wall so the
+# closed face stays full size, and large enough to be visible after slicing.
+OUTER_EDGE_R = 0.8
 FLOOR_TIP_RIB_Y0 = TIP_Y + 0.25
 FLOOR_TIP_RIB_Y1 = POCKET_HEAD_C_Y + POCKET_R - 0.5
 FLOOR_TIP_RIB_C_Y = (FLOOR_TIP_RIB_Y0 + FLOOR_TIP_RIB_Y1) / 2.0
@@ -197,31 +197,12 @@ def egg_outline(head_r, tip_r, flank_r, segments=EGG_SEGMENTS):
 
 
 def build():
-    def _floor_rounded_tool(sketch_fn, height, radius=FLOOR_FILLET_R):
-        """Cavity cutter whose bottom edge loop carries a convex radius.
-
-        Subtracting it leaves a concave cast radius where the cavity floor
-        meets its walls. OCCT refuses to fillet the fully assembled part (the
-        rail/wall overlaps produce topology it will not touch), but filleting
-        the simple prism before the boolean is robust.
-        """
+    def _cavity_tool(sketch_fn, height):
+        """Plain prism cutter for a cavity, built outside the main part."""
         with BuildPart() as tool:
             with BuildSketch(Plane.XY.offset(BASE_T)):
                 sketch_fn()
             extrude(amount=height)
-            base = tool.edges().filter_by_position(
-                Axis.Z, BASE_T - 0.01, BASE_T + 0.01
-            )
-            for r in (radius, 0.6, 0.4, 0.25):
-                try:
-                    fillet(base, radius=r)
-                except Exception:
-                    continue
-                if r != radius:
-                    print(f"note: floor radius reduced to {r} mm")
-                break
-            else:
-                print("warning: floor radius skipped for one cavity")
         return tool.part
 
     def _pocket_sketch():
@@ -248,10 +229,9 @@ def build():
         with Locations((-6.0, 3.5), (6.0, 3.5)):
             Rectangle(4.0, 4.5)
 
-    # Both cavity cutters are built outside the main part context so their
-    # fillets stay independent of the assembled solid.
-    pocket_tool = _floor_rounded_tool(_pocket_sketch, INNER_H + 1.0)
-    chamber_tool = _floor_rounded_tool(_chamber_sketch, INNER_H + 1.0)
+    # Cavity cutters are built outside the main part context.
+    pocket_tool = _cavity_tool(_pocket_sketch, INNER_H + 1.0)
+    chamber_tool = _cavity_tool(_chamber_sketch, INNER_H + 1.0)
 
     with BuildPart() as part:
         # Outer body: pointed teardrop head, rectangular arm, raised guide.
@@ -263,6 +243,21 @@ def build():
             with Locations((0.0, ARM_C_Y)):
                 Rectangle(ARM_W, ARM_L)
         extrude(amount=TOTAL_T)
+
+        # Slight cast radius along the lower outside edges of the walls, i.e.
+        # the whole z = 0 perimeter of the closed face. Done immediately after
+        # the outer prism: OCCT refuses to fillet the finished assembly, and no
+        # later feature reaches down to z = 0, so the radius survives.
+        for r in (OUTER_EDGE_R, 0.6, 0.4, 0.25):
+            try:
+                fillet(part.edges().filter_by_position(Axis.Z, -0.01, 0.01), radius=r)
+            except Exception:
+                continue
+            if r != OUTER_EDGE_R:
+                print(f"note: outer bottom radius reduced to {r} mm")
+            break
+        else:
+            print("warning: outer bottom radius skipped")
 
         # Teardrop pocket: same three-arc outline, offset inwards by the wall.
         add(pocket_tool, mode=Mode.SUBTRACT)
