@@ -58,8 +58,12 @@ FLOOR_TIP_RIB_Y0 = TIP_Y + 0.25
 FLOOR_TIP_RIB_Y1 = POCKET_HEAD_C_Y + POCKET_R - 0.5
 FLOOR_TIP_RIB_C_Y = (FLOOR_TIP_RIB_Y0 + FLOOR_TIP_RIB_Y1) / 2.0
 FLOOR_TIP_RIB_L = FLOOR_TIP_RIB_Y1 - FLOOR_TIP_RIB_Y0
-GUIDE_W = 8.0
-GUIDE_L = 6.0
+GUIDE_W = 8.1
+GUIDE_L = 20.0
+GUIDE_H = 5.3
+# Make the guide a wall rib in the arm's internal side wall, not a floor pad.
+GUIDE_X = -ARM_W / 2.0 + WALL_T + GUIDE_W / 2.0 + 0.35
+GUIDE_C_Y = ARM_C_Y
 GUIDE_TOP = 0.0
 
 HOLE_D = 4.0
@@ -108,11 +112,6 @@ def build():
             with Locations((0.0, ARM_C_Y)):
                 Rectangle(ARM_W, ARM_L)
         extrude(amount=TOTAL_T)
-        with BuildSketch(Plane.XY):
-            with Locations((0.0, POCKET_TIP_C_Y + 3.0)):
-                Rectangle(GUIDE_W, GUIDE_L + 2.0)
-        extrude(amount=TOTAL_T + GUIDE_TOP)
-
         # Teardrop pocket: hull of two intersecting circles, cut to depth.
         with BuildSketch(Plane.XY.offset(BASE_T)):
             with Locations((0.0, POCKET_HEAD_C_Y)):
@@ -137,6 +136,16 @@ def build():
             with Locations((-6.0, 3.5), (6.0, 3.5)):
                 Rectangle(4.0, 4.5)
         extrude(amount=INNER_H + 1.0, mode=Mode.SUBTRACT)
+
+        # Internal guide kept inside the arm walls; no change to the present wall
+        # thickness or outer envelope.
+        # The guide sits as a wall rib in the arm cavity, with its height
+        # perpendicular to the plate face, so it remains inside the wall while
+        # staying clearly visible from the open-side view.
+        with BuildSketch(Plane.YZ.offset(GUIDE_X)):
+            with Locations((GUIDE_C_Y, BASE_T + GUIDE_H / 2.0)):
+                Rectangle(GUIDE_L, GUIDE_H)
+        extrude(amount=GUIDE_W)
 
         # Reconnect the head-side screw boss to both arm walls with ribs.
         with BuildSketch(Plane.XY.offset(BASE_T)):
@@ -189,7 +198,7 @@ def build():
 def main():
     part = build()
     out = Path(__file__).resolve().parents[1] / "models" / "duschscharnier_ersatz.stl"
-    export_stl(part.part, str(out))
+    export_stl(part.part, str(out), ascii_format=True)
     print("file:", out)
     bb = part.part.bounding_box()
     print("bounds:", [[round(v, 3) for v in (bb.min.X, bb.min.Y, bb.min.Z)], [round(v, 3) for v in (bb.max.X, bb.max.Y, bb.max.Z)]])
