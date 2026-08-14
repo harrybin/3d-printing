@@ -352,6 +352,10 @@ function renderHtml(title) {
       shadingInput.value = baseView.shading;
       let rawTriangles = [];
       let triangles = [];
+      // Crease-aware per-corner normals, rebuilt whenever the geometry changes.
+      let cornerNormals = null;
+      // Software z-buffer target so walls can never show through each other.
+      let rasterCanvas = null, rasterCtx = null, rasterImage = null, depthBuffer = null;
       let modelBounds = null;
       let currentFile = ${JSON.stringify(defaultModelFile)};
       // Anycubic Kobra S1 build plate: 250 x 250 mm.
@@ -394,6 +398,45 @@ function renderHtml(title) {
           return [x, y, z];
         }));
         modelBounds = computeBounds(triangles) || modelBounds;
+        computeCornerNormals();
+      }
+      // Average face normals per welded vertex, but fall back to the face
+      // normal across creases so 90-degree corners stay crisp.
+      function computeCornerNormals() {
+        const n = triangles.length;
+        const faceN = new Float32Array(n * 3);
+        const acc = new Map();
+        const key = (v) => Math.round(v[0] * 1000) + '|' + Math.round(v[1] * 1000) + '|' + Math.round(v[2] * 1000);
+        for (let i = 0; i < n; i++) {
+          const t = triangles[i];
+          const ax = t[1][0] - t[0][0], ay = t[1][1] - t[0][1], az = t[1][2] - t[0][2];
+          const bx = t[2][0] - t[0][0], by = t[2][1] - t[0][1], bz = t[2][2] - t[0][2];
+          let nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+          const len = Math.hypot(nx, ny, nz) || 1;
+          nx /= len; ny /= len; nz /= len;
+          faceN[i * 3] = nx; faceN[i * 3 + 1] = ny; faceN[i * 3 + 2] = nz;
+          for (let j = 0; j < 3; j++) {
+            const k = key(t[j]);
+            let a = acc.get(k);
+            if (!a) { a = [0, 0, 0]; acc.set(k, a); }
+            a[0] += nx; a[1] += ny; a[2] += nz;
+          }
+        }
+        const out = new Float32Array(n * 9);
+        const creaseCos = Math.cos(40 * Math.PI / 180);
+        for (let i = 0; i < n; i++) {
+          const t = triangles[i];
+          const fx = faceN[i * 3], fy = faceN[i * 3 + 1], fz = faceN[i * 3 + 2];
+          for (let j = 0; j < 3; j++) {
+            const a = acc.get(key(t[j]));
+            let nx = a[0], ny = a[1], nz = a[2];
+            const l = Math.hypot(nx, ny, nz) || 1;
+            nx /= l; ny /= l; nz /= l;
+            if (nx * fx + ny * fy + nz * fz < creaseCos) { nx = fx; ny = fy; nz = fz; }
+            out[i * 9 + j * 3] = nx; out[i * 9 + j * 3 + 1] = ny; out[i * 9 + j * 3 + 2] = nz;
+          }
+        }
+        cornerNormals = out;
       }
       function applyViewPreset(name) {
         const preset = VIEW_PRESETS[name] || VIEW_PRESETS.isometric;
@@ -548,17 +591,90 @@ function renderHtml(title) {
         ctx.lineWidth = 1.5;
         for (const [a, b] of edges) { ctx.beginPath(); ctx.moveTo(corners[a][0], corners[a][1]); ctx.lineTo(corners[b][0], corners[b][1]); ctx.stroke(); }
       }
-      function faceColor(light, nx, ny, nz, len) {
-        const mode = shadingInput.value;
-        if (mode === 'basic') return 'rgb(31,111,235)';
+      // Studio light in view space: upper left, slightly towards the camera.
+      const LIGHT = (() => { const v = [-0.35, 0.45, 0.82]; const l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; })();
+      const HALFWAY = (() => { const v = [LIGHT[0], LIGHT[1], LIGHT[2] + 1]; const l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; })();
+      const SURFACE = [214, 217, 222];
+      function shadeNormal(nx, ny, nz, mode, out) {
+        if (mode === 'basic') { out[0] = 31; out[1] = 111; out[2] = 235; return; }
         if (mode === 'normal') {
-          return 'rgb(' + Math.round(127 + 128 * (nx / len)) + ',' + Math.round(127 + 128 * (ny / len)) + ',' + Math.round(127 + 128 * (nz / len)) + ')';
+          out[0] = 127 + 128 * nx; out[1] = 127 + 128 * ny; out[2] = 127 + 128 * nz; return;
         }
+        const d = nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2];
+        // Ambient plus a weak fill from behind keeps cavities readable.
+        const intensity = 0.30 + 0.78 * Math.max(0, d) + 0.10 * Math.max(0, -d);
+        let r = SURFACE[0] * intensity, g = SURFACE[1] * intensity, b = SURFACE[2] * intensity;
         if (mode === 'phong') {
-          const spec = Math.pow(light, 12) * 160;
-          return 'rgb(' + Math.round(Math.min(255, 31 + 120 * light + spec)) + ',' + Math.round(Math.min(255, 111 + 90 * light + spec)) + ',' + Math.round(Math.min(255, 235 * light + 20 + spec)) + ')';
+          const s = Math.max(0, nx * HALFWAY[0] + ny * HALFWAY[1] + nz * HALFWAY[2]);
+          const spec = Math.pow(s, 30) * 190;
+          r += spec; g += spec; b += spec;
         }
-        return 'rgb(' + Math.round(31 + 120 * light) + ',' + Math.round(111 + 90 * light) + ',' + Math.round(235 * light + 20) + ')';
+        out[0] = r < 255 ? r : 255; out[1] = g < 255 ? g : 255; out[2] = b < 255 ? b : 255;
+      }
+      // Scanline rasterizer with a depth buffer. The old painter's algorithm
+      // sorted whole triangles by their centroid, which let long thin facets
+      // punch through walls and made solid geometry look transparent.
+      function rasterizeMesh(rx, ry, rz, zoom, w, h, centerX, centerY, baseZ) {
+        const dpr = window.devicePixelRatio || 1;
+        const W = Math.max(1, canvas.width), H = Math.max(1, canvas.height);
+        if (!rasterCanvas) { rasterCanvas = document.createElement('canvas'); rasterCtx = rasterCanvas.getContext('2d'); }
+        if (rasterCanvas.width !== W || rasterCanvas.height !== H || !rasterImage) {
+          rasterCanvas.width = W; rasterCanvas.height = H;
+          rasterImage = rasterCtx.createImageData(W, H);
+          depthBuffer = new Float32Array(W * H);
+        }
+        const pix = rasterImage.data;
+        pix.fill(0);
+        depthBuffer.fill(-1e30);
+        const mode = shadingInput.value;
+        const c0 = [0, 0, 0], c1 = [0, 0, 0], c2 = [0, 0, 0];
+        const sx = [0, 0, 0], sy = [0, 0, 0], sz = [0, 0, 0];
+        for (let i = 0; i < triangles.length; i++) {
+          const tri = triangles[i];
+          for (let j = 0; j < 3; j++) {
+            const v = tri[j];
+            const p = projectPoint([v[0] - centerX + objectX, v[1] - centerY + objectY, v[2] - baseZ], rx, ry, rz, w, h, zoom);
+            sx[j] = p[0] * dpr; sy[j] = p[1] * dpr; sz[j] = p[2];
+          }
+          // Screen-space winding: positive area means the facet faces away.
+          const area = (sx[1] - sx[0]) * (sy[2] - sy[0]) - (sx[2] - sx[0]) * (sy[1] - sy[0]);
+          if (area >= 0) continue;
+          const cols = [c0, c1, c2];
+          for (let j = 0; j < 3; j++) {
+            const b = i * 9 + j * 3;
+            const n = rot([cornerNormals[b], cornerNormals[b + 1], cornerNormals[b + 2]], rx, ry, rz);
+            shadeNormal(n[0], n[1], n[2], mode, cols[j]);
+          }
+          let minX = Math.max(0, Math.floor(Math.min(sx[0], sx[1], sx[2])));
+          let maxX = Math.min(W - 1, Math.ceil(Math.max(sx[0], sx[1], sx[2])));
+          let minY = Math.max(0, Math.floor(Math.min(sy[0], sy[1], sy[2])));
+          let maxY = Math.min(H - 1, Math.ceil(Math.max(sy[0], sy[1], sy[2])));
+          if (minX > maxX || minY > maxY) continue;
+          const inv = 1 / area;
+          for (let py = minY; py <= maxY; py++) {
+            const fy = py + 0.5;
+            for (let px = minX; px <= maxX; px++) {
+              const fx = px + 0.5;
+              const w0 = ((sx[1] - fx) * (sy[2] - fy) - (sx[2] - fx) * (sy[1] - fy)) * inv;
+              if (w0 < 0) continue;
+              const w1 = ((sx[2] - fx) * (sy[0] - fy) - (sx[0] - fx) * (sy[2] - fy)) * inv;
+              if (w1 < 0) continue;
+              const w2 = 1 - w0 - w1;
+              if (w2 < 0) continue;
+              const z = w0 * sz[0] + w1 * sz[1] + w2 * sz[2];
+              const idx = py * W + px;
+              if (z <= depthBuffer[idx]) continue;
+              depthBuffer[idx] = z;
+              const o = idx * 4;
+              pix[o] = w0 * c0[0] + w1 * c1[0] + w2 * c2[0];
+              pix[o + 1] = w0 * c0[1] + w1 * c1[1] + w2 * c2[1];
+              pix[o + 2] = w0 * c0[2] + w1 * c1[2] + w2 * c2[2];
+              pix[o + 3] = 255;
+            }
+          }
+        }
+        rasterCtx.putImageData(rasterImage, 0, 0);
+        ctx.drawImage(rasterCanvas, 0, 0, W / dpr, H / dpr);
       }
       function updateInfo() {
         if (!showInfoInput.checked) { infoBox.hidden = true; return; }
@@ -613,38 +729,13 @@ function renderHtml(title) {
         const centerY = modelBounds ? (modelBounds.min.y + modelBounds.max.y) / 2 : 0;
         const baseZ = modelBounds ? modelBounds.min.z : 0;
         if (showAxesInput.checked) drawAxes(w, h, rx, ry, rz, zoom);
-        const projected = triangles.map((t) => t.map((v) => projectPoint([v[0] - centerX + objectX, v[1] - centerY + objectY, v[2] - baseZ], rx, ry, rz, w, h, zoom)));
         if (wireframeInput.checked) {
+          const projected = triangles.map((t) => t.map((v) => projectPoint([v[0] - centerX + objectX, v[1] - centerY + objectY, v[2] - baseZ], rx, ry, rz, w, h, zoom)));
           ctx.strokeStyle = '#58a6ff';
           ctx.lineWidth = 1;
           for (const tri of projected) { ctx.beginPath(); ctx.moveTo(tri[0][0], tri[0][1]); ctx.lineTo(tri[1][0], tri[1][1]); ctx.lineTo(tri[2][0], tri[2][1]); ctx.closePath(); ctx.stroke(); }
-        } else {
-          const faces = [];
-          for (const tri of projected) {
-            // Screen-space winding: negative area means the face points away from us.
-            const area = (tri[1][0] - tri[0][0]) * (tri[2][1] - tri[0][1]) - (tri[2][0] - tri[0][0]) * (tri[1][1] - tri[0][1]);
-            if (area >= 0) continue;
-            faces.push({ tri, depth: (tri[0][2] + tri[1][2] + tri[2][2]) / 3, area });
-          }
-          faces.sort((a, b) => a.depth - b.depth);
-          for (const face of faces) {
-            const tri = face.tri;
-            // Fake lighting from face size vs. its screen footprint so curvature reads as shading.
-            const e1 = [tri[1][0] - tri[0][0], tri[1][1] - tri[0][1], tri[1][2] - tri[0][2]];
-            const e2 = [tri[2][0] - tri[0][0], tri[2][1] - tri[0][1], tri[2][2] - tri[0][2]];
-            const nx = e1[1] * e2[2] - e1[2] * e2[1];
-            const ny = e1[2] * e2[0] - e1[0] * e2[2];
-            const nz = e1[0] * e2[1] - e1[1] * e2[0];
-            const len = Math.hypot(nx, ny, nz) || 1;
-            const light = Math.min(1, Math.max(0.25, 0.35 + 0.75 * Math.abs((nx * -0.4 + ny * -0.5 + nz * -0.75) / len)));
-            ctx.fillStyle = faceColor(light, nx, ny, nz, len);
-            ctx.beginPath();
-            ctx.moveTo(tri[0][0], tri[0][1]);
-            ctx.lineTo(tri[1][0], tri[1][1]);
-            ctx.lineTo(tri[2][0], tri[2][1]);
-            ctx.closePath();
-            ctx.fill();
-          }
+        } else if (triangles.length && cornerNormals) {
+          rasterizeMesh(rx, ry, rz, zoom, w, h, centerX, centerY, baseZ);
         }
         if (showBoxInput.checked) drawBoundingBox(w, h, rx, ry, rz, zoom, objectX - centerX, objectY - centerY);
         updateInfo();
