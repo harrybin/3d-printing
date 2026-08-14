@@ -67,7 +67,21 @@ function writeViewDefaults(view) {
 }
 
 function resolveWorkspaceModelPath(stlPath) {
-    return resolve(process.cwd(), stlPath);
+    const normalized = (stlPath || defaultStlPath).replace(/\\/g, "/");
+    if (/^[A-Za-z]:\//.test(normalized) || normalized.startsWith("/")) {
+        return resolve(normalized);
+    }
+    const relative = normalized.includes("/") ? normalized : `models/${normalized}`;
+    return resolve(process.cwd(), relative);
+}
+
+function resolveRequestedModelPath(inputStlPath) {
+    const requested = inputStlPath || defaultStlPath;
+    const candidate = resolveWorkspaceModelPath(requested);
+    if (existsSync(candidate)) return { requested, modelPath: candidate };
+    const fallback = listWorkspaceStlFiles()[0];
+    if (fallback) return { requested: fallback, modelPath: resolveWorkspaceModelPath(`models/${fallback}`) };
+    return { requested, modelPath: candidate };
 }
 
 function listWorkspaceStlFiles() {
@@ -98,7 +112,7 @@ function modelLabelToPath(label) {
 
 function parseAsciiStl(content) {
     if (!content) {
-        return { facets: 0, vertices: 0, uniqueVertices: 0, bounds: null };
+        return { facets: 0, vertices: 0, uniqueVertices: 0, bounds: null, format: "ascii" };
     }
     const vertexMatches = [...content.matchAll(/vertex\s+([-\d.eE+]+)\s+([-\d.eE+]+)\s+([-\d.eE+]+)/g)];
     const facets = (content.match(/\bfacet normal\b/g) || []).length;
@@ -121,6 +135,93 @@ function parseAsciiStl(content) {
                   size: { x: max[0] - min[0], y: max[1] - min[1], z: max[2] - min[2] },
               }
             : null,
+        format: "ascii",
+    };
+}
+
+function parseBinaryStl(buffer) {
+    if (!buffer || buffer.length < 84) {
+        return { facets: 0, vertices: 0, uniqueVertices: 0, bounds: null, format: "binary" };
+    }
+    const facetCount = buffer.readUInt32LE(80);
+    const triangles = [];
+    let min = [Infinity, Infinity, Infinity];
+    let max = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < facetCount; i += 1) {
+        const offset = 84 + i * 50;
+        if (offset + 48 > buffer.length) break;
+        const v1 = [buffer.readFloatLE(offset + 12), buffer.readFloatLE(offset + 16), buffer.readFloatLE(offset + 20)];
+        const v2 = [buffer.readFloatLE(offset + 24), buffer.readFloatLE(offset + 28), buffer.readFloatLE(offset + 32)];
+        const v3 = [buffer.readFloatLE(offset + 36), buffer.readFloatLE(offset + 40), buffer.readFloatLE(offset + 44)];
+        const tri = [v1, v2, v3];
+        triangles.push(tri);
+        for (const v of tri) {
+            min = [Math.min(min[0], v[0]), Math.min(min[1], v[1]), Math.min(min[2], v[2])];
+            max = [Math.max(max[0], v[0]), Math.max(max[1], v[1]), Math.max(max[2], v[2])];
+        }
+    }
+    const unique = new Set(triangles.flat().map((v) => `${v[0]},${v[1]},${v[2]}`)).size;
+    return {
+        facets: triangles.length,
+        vertices: triangles.length * 3,
+        uniqueVertices: unique,
+        bounds: triangles.length
+            ? {
+                  min: { x: min[0], y: min[1], z: min[2] },
+                  max: { x: max[0], y: max[1], z: max[2] },
+                  size: { x: max[0] - min[0], y: max[1] - min[1], z: max[2] - min[2] },
+              }
+            : null,
+        format: "binary",
+    };
+}
+
+function detectStlFormat(buffer) {
+    if (!buffer || buffer.length < 6) return "binary";
+    const head = buffer.subarray(0, 256).toString("ascii", 0, 256).trimStart();
+    return /^solid\b/i.test(head) ? "ascii" : "binary";
+}
+
+function parseStlBuffer(buffer) {
+    const format = detectStlFormat(buffer);
+    if (format === "ascii") {
+        const text = buffer.toString("utf8");
+        const parsed = parseAsciiStl(text);
+        return { ...parsed, triangles: (text.match(/vertex\s+([-\d.eE+]+)\s+([-\d.eE+]+)\s+([-\d.eE+]+)/g) || []).length ? (() => {
+            const verts = [...text.matchAll(/vertex\s+([-\d.eE+]+)\s+([-\d.eE+]+)\s+([-\d.eE+]+)/g)].map((m) => [+m[1], +m[2], +m[3]]);
+            const tris = [];
+            for (let i = 0; i < verts.length; i += 3) {
+                if (i + 2 < verts.length) tris.push([verts[i], verts[i + 1], verts[i + 2]]);
+            }
+            return tris;
+        })() : [] };
+    }
+    const parsed = parseBinaryStl(buffer);
+    const triangles = [];
+    const facetCount = buffer.readUInt32LE(80);
+    for (let i = 0; i < facetCount; i += 1) {
+        const offset = 84 + i * 50;
+        if (offset + 48 > buffer.length) break;
+        triangles.push([
+            [buffer.readFloatLE(offset + 12), buffer.readFloatLE(offset + 16), buffer.readFloatLE(offset + 20)],
+            [buffer.readFloatLE(offset + 24), buffer.readFloatLE(offset + 28), buffer.readFloatLE(offset + 32)],
+            [buffer.readFloatLE(offset + 36), buffer.readFloatLE(offset + 40), buffer.readFloatLE(offset + 44)],
+        ]);
+    }
+    return { ...parsed, triangles };
+}
+
+function readStlFile(modelPath) {
+    const raw = readFileSync(modelPath);
+    const format = detectStlFormat(raw);
+    const parsed = parseStlBuffer(raw);
+    return {
+        path: modelPath.split(/[\\/]/).pop(),
+        format,
+        stats: { ...parsed, triangles: undefined },
+        content: format === "ascii" ? raw.toString("utf8") : "",
+        triangles: parsed.triangles || [],
+        mtime: statSync(modelPath).mtimeMs,
     };
 }
 
@@ -159,7 +260,11 @@ function renderHtml(title) {
         <select id="fileChooser"><option value="">Loading…</option></select>
       </div>
       <div class="field">
-        <label for="zoom">Zoom</label>
+      <button type="button" id="reloadBtn" title="Reload current STL">Reload</button>
+    </div>
+    <label class="field"><input id="autoReload" type="checkbox"> Auto reload</label>
+    <div class="field">
+      <label for="zoom">Zoom</label>
         <input id="zoom" type="range" min="0.1" max="5" step="0.1" value="1.7">
       </div>
       <div class="field">
@@ -224,6 +329,8 @@ function renderHtml(title) {
       const canvas = document.getElementById('view');
       const ctx = canvas.getContext('2d');
       const fileChooser = document.getElementById('fileChooser');
+      const reloadBtn = document.getElementById('reloadBtn');
+      const autoReloadInput = document.getElementById('autoReload');
       const zoomInput = document.getElementById('zoom');
       const wireframeInput = document.getElementById('wireframe');
       const shadingInput = document.getElementById('shading');
@@ -295,19 +402,29 @@ function renderHtml(title) {
         const meta = document.getElementById('meta');
         return fetch('/api/model?file=' + encodeURIComponent(file) + '&t=' + Date.now()).then(r => r.json()).then(data => {
           if (data.error) { meta.textContent = data.error; return; }
-          const s = data.stats;
+          const s = data.stats || {};
           const b = s.bounds;
+          const trianglesData = Array.isArray(data.triangles) ? data.triangles : [];
+          if (!s.facets || s.facets <= 0 || !trianglesData.length) {
+            const msg = 'Failed to load STL: no facet data found. Check that the file is a valid STL export.';
+            meta.textContent = msg;
+            triangles = [];
+            rawTriangles = [];
+            modelBounds = null;
+            currentFile = file;
+            currentMtime = data.mtime || 0;
+            return;
+          }
           meta.innerHTML = '<span><strong>File:</strong> ' + data.path + '</span>' +
+            '<span><strong>Format:</strong> ' + (s.format === 'binary' ? 'Binary' : 'ASCII') + '</span>' +
             '<span><strong>Facets:</strong> ' + s.facets + '</span>' +
             '<span><strong>Vertices:</strong> ' + s.vertices + '</span>' +
             (b ? '<span><strong>Size (mm):</strong> ' + b.size.x.toFixed(1) + ' x ' + b.size.y.toFixed(1) + ' x ' + b.size.z.toFixed(1) + '</span>' : '');
-          const re = /vertex\\s+([-\\d.eE+]+)\\s+([-\\d.eE+]+)\\s+([-\\d.eE+]+)/g;
-          const verts = [];
-          let m;
-          while ((m = re.exec(data.content)) !== null) verts.push([+m[1], +m[2], +m[3]]);
           triangles = [];
           rawTriangles = [];
-          for (let i = 0; i < verts.length; i += 3) rawTriangles.push([verts[i], verts[i + 1], verts[i + 2]]);
+          for (const tri of trianglesData) {
+            if (Array.isArray(tri) && tri.length === 3) rawTriangles.push(tri);
+          }
           modelBounds = b;
           applyModelRotation();
           currentFile = file;
@@ -331,6 +448,7 @@ function renderHtml(title) {
           refreshFileChooser(files);
           const selected = fileChooser.value;
           if (!selected) return;
+          if (!autoReloadInput.checked) return;
           const mtime = (data.mtimes || {})[selected] || 0;
           if (selected !== currentFile) { loadModel(selected, false); return; }
           if (mtime && mtime !== currentMtime) loadModel(selected, true);
@@ -586,6 +704,16 @@ function renderHtml(title) {
         });
       }).then(() => { setInterval(pollForChanges, 1500); });
       fileChooser.addEventListener('change', () => { if (fileChooser.value) loadModel(fileChooser.value); });
+      reloadBtn.addEventListener('click', () => {
+        const selected = fileChooser.value || currentFile;
+        if (selected) loadModel(selected, false);
+      });
+      autoReloadInput.addEventListener('change', () => {
+        if (autoReloadInput.checked) {
+          const selected = fileChooser.value || currentFile;
+          if (selected) loadModel(selected, false);
+        }
+      });
       draw();
     </script>
   </body>
@@ -630,11 +758,18 @@ async function startServer(modelPath) {
                 const requested = (url.searchParams.get("file") || defaultModelFile).split(/[\\/]/).pop();
                 const resolved = modelLabelToPath(requested);
                 if (!existsSync(resolved)) throw new Error(`Model file not found: models/${requested}`);
-                const content = readFileSync(resolved, "utf8");
-                const stats = parseAsciiStl(content);
+                const raw = readFileSync(resolved);
+                const parsed = parseStlBuffer(raw);
+                const content = detectStlFormat(raw) === "ascii" ? raw.toString("utf8") : "";
                 res.setHeader("Content-Type", "application/json; charset=utf-8");
                 res.setHeader("Cache-Control", "no-store");
-                res.end(JSON.stringify({ path: requested, stats, content, mtime: fileMtime(requested) }));
+                res.end(JSON.stringify({
+                    path: requested,
+                    stats: { ...parsed, triangles: undefined },
+                    triangles: parsed.triangles || [],
+                    content,
+                    mtime: fileMtime(requested),
+                }));
                 return;
             } catch (err) {
                 res.statusCode = 500;
@@ -657,11 +792,10 @@ await joinSession({
         createCanvas({
             id: "stl-canvas",
             displayName: "STL Canvas",
-            description: "Renders and inspects an ASCII STL file from the workspace",
+            description: "Renders and inspects ASCII or binary STL files from the workspace",
             inputSchema: {
                 type: "object",
                 properties: { stlPath: { type: "string", default: defaultStlPath } },
-                required: ["stlPath"],
                 additionalProperties: false,
             },
             actions: [
@@ -699,25 +833,26 @@ await joinSession({
                     inputSchema: {
                         type: "object",
                         properties: { stlPath: { type: "string", default: defaultStlPath } },
-                        required: ["stlPath"],
                         additionalProperties: false,
                     },
                     handler: async (ctx) => {
-                        const modelPath = resolveWorkspaceModelPath(ctx.input.stlPath);
-                        if (!existsSync(modelPath)) throw new CanvasError("stl_not_found", `Model file not found: ${ctx.input.stlPath}`);
-                        return parseAsciiStl(readFileSync(modelPath, "utf8"));
+                        const { requested, modelPath } = resolveRequestedModelPath(ctx.input?.stlPath);
+                        if (!existsSync(modelPath)) throw new CanvasError("stl_not_found", `Model file not found: ${requested}`);
+                        const raw = readFileSync(modelPath);
+                        const parsed = parseStlBuffer(raw);
+                        return { ...parsed, triangles: undefined };
                     },
                 },
             ],
             open: async (ctx) => {
-                const modelPath = resolveWorkspaceModelPath(ctx.input.stlPath);
-                if (!existsSync(modelPath)) throw new CanvasError("stl_not_found", `Model file not found: ${ctx.input.stlPath}`);
+                const { requested, modelPath } = resolveRequestedModelPath(ctx.input?.stlPath);
+                if (!existsSync(modelPath)) throw new CanvasError("stl_not_found", `Model file not found: ${requested}`);
                 let entry = servers.get(ctx.instanceId);
                 if (!entry) {
                     entry = await startServer(modelPath);
                     servers.set(ctx.instanceId, entry);
                 }
-                return { title: `STL: ${ctx.input.stlPath}`, url: entry.url };
+                return { title: `STL: ${requested}`, url: entry.url };
             },
             onClose: async (ctx) => {
                 const entry = servers.get(ctx.instanceId);

@@ -23,6 +23,7 @@ Lager-Einsatz. Die Werte stammen aus den Fotos mit Schieblehre bzw. dem
 | Lagertasche, Boden | 2.4 | Nutzermessung | gemessen |
 | Wandstarke Schale und Arm | 2.0 | Nutzermessung | gemessen |
 | Einsatzfuhrung, Ausladung / Lange / Breite | 2.0 / 20.0 / 8.1 | Seitenansicht mit Schieblehre | abgeleitet; ragt oben heraus |
+| Führung in Halterwand, Höhe | 5.3 | Nutzermessung | ergänzt; sitzt innerhalb der Wände |
 | Zentraloffnung im Einsatz | 17.9 | Nutzermessung | nicht Teil des Ersatzkorpers |
 
 ## Verstarkung
