@@ -11,9 +11,7 @@
     "predev": "npm run sync-models",
     "prebuild": "npm run sync-models"
   },
-  "dependencies": {
-    "three": "^0.167.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "vite": "^5.4.0"
   }

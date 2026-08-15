@@ -454,7 +454,7 @@ function modelUrl(file) {
 
 async function readModelManifest() {
   const res = await fetch(`./models/models.json?t=${Date.now()}`, { cache: 'no-store' });
-  if (!res.ok) throw new Error('models.json nicht gefunden');
+  if (!res.ok) throw new Error('models.json not found');
   const data = await res.json();
   return Array.isArray(data.files) ? data.files : [];
 }
@@ -1077,10 +1077,14 @@ readModelManifest().then((files) => {
   fileChooser.value = files.indexOf(currentFile) >= 0 ? currentFile : files[0];
   knownFiles = files;
   loadModel(fileChooser.value);
+  return true;
 }).catch((err) => {
   fileChooser.innerHTML = '<option value="">Failed to list files</option>';
   document.getElementById('meta').textContent = 'Failed to list files: ' + err;
-}).then(() => { setInterval(pollForChanges, 1500); });
+  return false;
+}).then((loaded) => {
+  if (loaded !== false) setInterval(pollForChanges, 1500);
+});
 fileChooser.addEventListener('change', () => { if (fileChooser.value) loadModel(fileChooser.value); });
 reloadBtn.addEventListener('click', () => {
   const selected = fileChooser.value || currentFile;

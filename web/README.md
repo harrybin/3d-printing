@@ -10,7 +10,7 @@ npm install
 npm run dev
 ```
 
-`npm run dev` und `npm run build` synchronisieren die STL-Dateien aus `/home/runner/work/3d-printing/3d-printing/models/` jetzt automatisch nach `web/public/models/` und erzeugen dabei `models.json`.
+`npm run dev` und `npm run build` synchronisieren die STL-Dateien aus dem Repo-Ordner `models/` jetzt automatisch nach `web/public/models/` und erzeugen dabei `models.json`.
 
 ## Build
 
