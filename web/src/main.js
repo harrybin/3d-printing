@@ -128,6 +128,10 @@ function writeViewDefaults(view) {
 
 function detectStlFormat(buffer) {
   if (!buffer || buffer.byteLength < 6) return 'binary'
+  if (buffer.byteLength >= 84) {
+    const facetCount = new DataView(buffer).getUint32(80, true)
+    if (84 + facetCount * 50 === buffer.byteLength) return 'binary'
+  }
   const head = new TextDecoder().decode(new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 256))).trimStart()
   return /^solid\b/i.test(head) ? 'ascii' : 'binary'
 }
@@ -503,7 +507,7 @@ function loadModel(file, preserveView) {
         modelBounds = null;
         currentFile = file;
         currentMtime = '';
-        return;
+        return false;
       }
       const safeFile = escapeHtml(file);
       meta.innerHTML = '<span><strong>File:</strong> ' + safeFile + '</span>' +
@@ -523,9 +527,13 @@ function loadModel(file, preserveView) {
         currentMtime = version;
         if (!preserveView) applySavedOrFit();
         draw();
+        return true;
       });
     })
-    .catch((err) => { meta.textContent = 'Failed to load model: ' + err; });
+    .catch((err) => {
+      meta.textContent = 'Failed to load model: ' + err;
+      return false;
+    });
 }
 
 function refreshFileChooser(files) {
@@ -1091,8 +1099,7 @@ readModelManifest().then((files) => {
   fileChooser.innerHTML = files.map((name) => '<option value="' + name + '">' + name + '</option>').join('');
   fileChooser.value = files.indexOf(currentFile) >= 0 ? currentFile : files[0];
   knownFiles = files;
-  loadModel(fileChooser.value);
-  return true;
+  return loadModel(fileChooser.value);
 }).catch((err) => {
   fileChooser.innerHTML = '<option value="">Failed to list files</option>';
   document.getElementById('meta').textContent = 'Failed to list files: ' + err;
