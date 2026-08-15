@@ -137,7 +137,7 @@ async function readViewDefaults() {
 
 async function writeViewDefaults(view) {
   if (runtimeMode === 'extension') {
-    const payload = { ...baseView, ...sanitizeView(view) }
+    const payload = { ...configuredFallbackView, ...sanitizeView(view) }
     try {
       const res = await fetch(viewApiUrl, {
         method: 'POST',

@@ -2,7 +2,7 @@
 
 This SPA hosts an STL viewer on GitHub Pages.
 
-The browser viewer implementation is shared with `/home/runner/work/3d-printing/3d-printing/.github/extensions/stl-canvas/viewer-app.mjs` so the Pages SPA and the Copilot extension stay in sync.
+The browser viewer implementation is shared with `.github/extensions/stl-canvas/viewer-app.mjs` so the Pages SPA and the Copilot extension stay in sync.
 
 ## Run locally
 

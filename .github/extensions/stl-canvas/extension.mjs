@@ -2,8 +2,12 @@ import { createServer } from "node:http";
 import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, statSync } from "node:fs";
 import { resolve, join, dirname } from "node:path";
 import { homedir } from "node:os";
+import { fileURLToPath } from "node:url";
 import { joinSession, createCanvas, CanvasError } from "@github/copilot-sdk/extension";
 
+const extensionDir = dirname(fileURLToPath(import.meta.url));
+const viewerAppPath = join(extensionDir, "viewer-app.mjs");
+const viewerCssPath = join(extensionDir, "viewer.css");
 const servers = new Map();
 function selectDefaultModel() {
     const files = listWorkspaceStlFiles();
@@ -230,14 +234,14 @@ function readStlFile(modelPath) {
     };
 }
 
-function renderHtml(title) {
+function renderHtml(title, defaultFile) {
     const config = JSON.stringify({
         dataSource: "extension",
-        defaultModelFile,
+        defaultModelFile: defaultFile,
         viewApiUrl: "/api/view",
         modelsApiUrl: "/api/models",
         modelApiUrl: "/api/model",
-    });
+    }).replace(/<\//g, "<\\/");
     return `<!doctype html>
 <html>
   <head>
@@ -259,13 +263,23 @@ async function startServer(modelPath) {
     const server = createServer((req, res) => {
         const url = new URL(req.url || '/', 'http://127.0.0.1');
         if (url.pathname === '/viewer-app.mjs') {
-            res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
-            res.end(readFileSync(resolve(process.cwd(), '.github/extensions/stl-canvas/viewer-app.mjs'), 'utf8'));
+            try {
+                res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+                res.end(readFileSync(viewerAppPath, 'utf8'));
+            } catch {
+                res.statusCode = 404;
+                res.end('viewer-app.mjs not found');
+            }
             return;
         }
         if (url.pathname === '/viewer.css') {
-            res.setHeader('Content-Type', 'text/css; charset=utf-8');
-            res.end(readFileSync(resolve(process.cwd(), '.github/extensions/stl-canvas/viewer.css'), 'utf8'));
+            try {
+                res.setHeader('Content-Type', 'text/css; charset=utf-8');
+                res.end(readFileSync(viewerCssPath, 'utf8'));
+            } catch {
+                res.statusCode = 404;
+                res.end('viewer.css not found');
+            }
             return;
         }
         if (req.url && req.url.startsWith("/api/view")) {
@@ -325,7 +339,7 @@ async function startServer(modelPath) {
             }
         }
         res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.end(renderHtml("STL Canvas"));
+        res.end(renderHtml("STL Canvas", defaultModelFile));
     });
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
