@@ -199,6 +199,15 @@ function parseStlBuffer(buffer) {
     : parseBinaryStl(buffer)
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
 const baseView = readViewDefaults();
 const VIEW_PRESETS = {
   isometric: { rotX: -60, rotY: 45, rotZ: 0 },
@@ -491,7 +500,8 @@ function loadModel(file, preserveView) {
         currentMtime = '';
         return;
       }
-      meta.innerHTML = '<span><strong>File:</strong> ' + file + '</span>' +
+      const safeFile = escapeHtml(file);
+      meta.innerHTML = '<span><strong>File:</strong> ' + safeFile + '</span>' +
         '<span><strong>Format:</strong> ' + (s.format === 'binary' ? 'Binary' : 'ASCII') + '</span>' +
         '<span><strong>Facets:</strong> ' + s.facets + '</span>' +
         '<span><strong>Vertices:</strong> ' + s.vertices + '</span>' +
@@ -1071,7 +1081,7 @@ readModelManifest().then((files) => {
   if (!files.length) {
     fileChooser.innerHTML = '<option value="">No STL files in models/</option>';
     document.getElementById('meta').textContent = 'No STL files found in models/.';
-    return;
+    return false;
   }
   fileChooser.innerHTML = files.map((name) => '<option value="' + name + '">' + name + '</option>').join('');
   fileChooser.value = files.indexOf(currentFile) >= 0 ? currentFile : files[0];
