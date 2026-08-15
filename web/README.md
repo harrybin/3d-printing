@@ -10,7 +10,7 @@ npm install
 npm run dev
 ```
 
-`npm run dev` und `npm run build` synchronisieren die STL-Dateien aus dem Repo-Ordner `models/` jetzt automatisch nach `web/public/models/` und erzeugen dabei die generierten Dateien `models.json` und `*.stl`.
+`npm run dev` und `npm run build` synchronisieren die STL-Dateien aus dem Repo-Ordner `models/` jetzt automatisch nach `web/public/models/`; dabei wird `models.json` generiert und die `*.stl`-Dateien werden dorthin kopiert.
 
 ## Build
 

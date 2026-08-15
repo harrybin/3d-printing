@@ -87,6 +87,9 @@ const fallbackView = {
   wireframe: false,
   shading: 'lambert',
 }
+const CIRCLE_MIN_RADIUS_MM = 0.2
+const CIRCLE_RADIUS_VARIANCE_RATIO = 0.02
+const CIRCLE_PLANAR_TOLERANCE_MM = 0.02
 
 function sanitizeView(input) {
   const out = {}
@@ -433,7 +436,7 @@ function fitCircle(loop) {
     rSum += r; if (r < rMin) rMin = r; if (r > rMax) rMax = r;
   }
   const r = rSum / n;
-  if (r < 0.2 || rMax - rMin > Math.max(0.02, r * 0.02)) return null;
+  if (r < CIRCLE_MIN_RADIUS_MM || rMax - rMin > Math.max(CIRCLE_PLANAR_TOLERANCE_MM, r * CIRCLE_RADIUS_VARIANCE_RATIO)) return null;
   // Plane fit: normal from the two widest spokes.
   const p0 = measurePoints[loop[0]], p1 = measurePoints[loop[Math.floor(n / 3)]], p2 = measurePoints[loop[Math.floor(2 * n / 3)]];
   const ax = p1[0] - p0[0], ay = p1[1] - p0[1], az = p1[2] - p0[2];
@@ -444,7 +447,7 @@ function fitCircle(loop) {
   nx /= nl; ny /= nl; nz /= nl;
   for (const i of loop) {
     const p = measurePoints[i];
-    if (Math.abs((p[0] - cx) * nx + (p[1] - cy) * ny + (p[2] - cz) * nz) > 0.02) return null;
+    if (Math.abs((p[0] - cx) * nx + (p[1] - cy) * ny + (p[2] - cz) * nz) > CIRCLE_PLANAR_TOLERANCE_MM) return null;
   }
   return { center: [cx, cy, cz], normal: [nx, ny, nz], radius: r, loop };
 }
