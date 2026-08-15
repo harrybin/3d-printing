@@ -95,11 +95,10 @@ volume_mm3: 217.761
 ```
 
 The result is then opened in the new STL Canvas SPA (GitHub Pages), which uses
-the same renderer as the GitHub Copilot App canvas extension. As the main
-showcase model, use `models/duschscharnier_ersatz.stl` with the **Normal**
-shader:
+the same renderer as the GitHub Copilot App canvas extension — shown here with
+the **Normal** shader and fully zoomed to the model:
 
-![STL Canvas SPA preview (Normal shader) of the shower hinge replacement](docs/images/duschscharnier-ersatz-spa-normal.png)
+![STL Canvas SPA preview (Normal shader) of the clip cap](docs/images/lineal-clip-kappe-spa-normal.png)
 
 ### 6. Print orientation
 
