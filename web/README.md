@@ -1,8 +1,8 @@
 # STL Canvas SPA (GitHub Pages)
 
-Diese SPA hostet einen STL-Viewer auf GitHub Pages.
+This SPA hosts an STL viewer on GitHub Pages.
 
-## Lokal starten
+## Run locally
 
 ```bash
 cd web
@@ -10,7 +10,7 @@ npm install
 npm run dev
 ```
 
-`npm run dev` und `npm run build` synchronisieren die STL-Dateien aus dem Repo-Ordner `models/` jetzt automatisch nach `web/public/models/`; dabei wird `models.json` generiert und die `*.stl`-Dateien werden dorthin kopiert.
+`npm run dev` and `npm run build` now automatically sync STL files from the repo's `models/` directory into `web/public/models/`; `models.json` is generated and the `*.stl` files are copied there.
 
 ## Build
 
@@ -21,12 +21,12 @@ npm run build
 
 ## Deployment
 
-Automatisch via GitHub Action bei Änderungen an:
+Automatically via GitHub Actions when these paths change:
 
 - `.github/extensions/stl-canvas/**`
 - `web/**`
 - `models/**`
 
-## Modelle
+## Models
 
-Die Action kopiert STL-Dateien aus dem Repo-Ordner `models/` nach `web/public/models/` während des Builds und erzeugt `models.json`.
+The workflow copies STL files from the repo-root `models/` directory into `web/public/models/` during the build and generates `models.json`.

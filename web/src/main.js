@@ -87,6 +87,7 @@ const fallbackView = {
   wireframe: false,
   shading: 'lambert',
 }
+const VIEW_BACKGROUND = '#0d1117'
 const CIRCLE_MIN_RADIUS_MM = 0.2
 const CIRCLE_RADIUS_VARIANCE_RATIO = 0.02
 const CIRCLE_PLANAR_TOLERANCE_MM = 0.02
@@ -266,6 +267,7 @@ let currentMtime = 0;
 let knownFiles = [];
 let savedZoom = Number.isFinite(baseView.zoom) ? baseView.zoom : null;
 let saveTimer = null;
+let pollTimer = null;
 function saveView() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
@@ -982,7 +984,7 @@ function applySavedOrFit() {
 function draw() {
   const w = canvas.width / window.devicePixelRatio, h = canvas.height / window.devicePixelRatio;
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = '#eceef1';
+  ctx.fillStyle = VIEW_BACKGROUND;
   ctx.fillRect(0, 0, w, h);
   const rx = rotX * Math.PI / 180, ry = rotY * Math.PI / 180, rz = rotZ * Math.PI / 180, zoom = parseFloat(zoomInput.value);
   drawBuildPlate(w, h, rx, ry, rz, zoom);
@@ -1096,7 +1098,7 @@ readModelManifest().then((files) => {
   document.getElementById('meta').textContent = 'Failed to list files: ' + err;
   return false;
 }).then((loaded) => {
-  if (loaded !== false) setInterval(pollForChanges, 1500);
+  if (loaded !== false && pollTimer === null) pollTimer = setInterval(pollForChanges, 1500);
 });
 fileChooser.addEventListener('change', () => { if (fileChooser.value) loadModel(fileChooser.value); });
 reloadBtn.addEventListener('click', () => {
