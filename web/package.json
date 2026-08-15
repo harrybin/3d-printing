@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync-models": "node scripts/sync-models.mjs",
+    "predev": "npm run sync-models",
+    "prebuild": "npm run sync-models"
   },
-  "dependencies": {
-    "three": "^0.167.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "vite": "^5.4.0"
   }

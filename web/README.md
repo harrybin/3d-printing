@@ -1,14 +1,18 @@
 # STL Canvas SPA (GitHub Pages)
 
-Diese SPA hostet einen STL-Viewer auf GitHub Pages.
+This SPA hosts an STL viewer on GitHub Pages.
 
-## Lokal starten
+The browser viewer implementation is shared with `.github/extensions/stl-canvas/viewer-app.mjs` so the Pages SPA and the Copilot extension stay in sync.
+
+## Run locally
 
 ```bash
 cd web
 npm install
 npm run dev
 ```
+
+`npm run dev` and `npm run build` now automatically sync STL files from the repo's `models/` directory into `web/public/models/`; `models.json` is generated and the `*.stl` files are copied there.
 
 ## Build
 
@@ -19,11 +23,12 @@ npm run build
 
 ## Deployment
 
-Automatisch via GitHub Action bei Änderungen an:
+Automatically via GitHub Actions when these paths change:
 
 - `.github/extensions/stl-canvas/**`
 - `web/**`
+- `models/**`
 
-## Modelle
+## Models
 
-Die Action kopiert STL-Dateien aus dem Repo-Ordner `models/` nach `web/public/models/` während des Builds und erzeugt `models.json`.
+The workflow copies STL files from the repo-root `models/` directory into `web/public/models/` during the build and generates `models.json`.
