@@ -5,7 +5,7 @@ const app = document.querySelector('#app')
 app.innerHTML = `
   <div class="wrap">
     <header>
-      <strong>STL Canvas (GitHub Pages)</strong>
+      <strong>STL Canvas</strong>
       <label>Model:
         <select id="modelSelect"></select>
       </label>
