@@ -235,13 +235,13 @@ function readStlFile(modelPath) {
 }
 
 function renderHtml(title, defaultFile) {
-    const config = JSON.stringify({
+    const config = escapeHtml(JSON.stringify({
         dataSource: "extension",
         defaultModelFile: defaultFile,
         viewApiUrl: "/api/view",
         modelsApiUrl: "/api/models",
         modelApiUrl: "/api/model",
-    }).replace(/<\//g, "<\\/");
+    }));
     return `<!doctype html>
 <html>
   <head>
@@ -251,9 +251,10 @@ function renderHtml(title, defaultFile) {
   </head>
   <body>
     <div id="app"></div>
+    <script id="stl-canvas-config" type="application/json">${config}</script>
     <script type="module">
       import { initStlCanvas } from '/viewer-app.mjs';
-      initStlCanvas(${config});
+      initStlCanvas(JSON.parse(document.getElementById('stl-canvas-config').textContent));
     </script>
   </body>
 </html>`;
