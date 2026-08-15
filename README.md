@@ -8,6 +8,8 @@ A collection of ASCII STL models for the Anycubic Kobra S1 Combo + ACE Pro (250 
 |------|-------------|
 | `models/wedge_100x20x40.stl` | 100 × 20 × 40 mm wedge |
 | `models/lineal-clip-kappe.stl` | Snap-fit clip cap for the two holes at the end of a steel ruler ([see example](#example-from-photo-to-printable-stl)) |
+| `models/duschscharnier_ersatz.stl` | Shower-door hinge replacement body generated from `scripts/duschscharnier_ersatz.py` |
+| `models/zylinder_scheibe_2026_2027.stl` | Cylindrical/washer-style reference part |
 
 ## Setup
 
@@ -92,9 +94,12 @@ degenerate: 0
 volume_mm3: 217.761
 ```
 
-The result is then opened in the STL canvas:
+The result is then opened in the new STL Canvas SPA (GitHub Pages), which uses
+the same renderer as the GitHub Copilot App canvas extension. Screenshots below
+use the **Normal** shader:
 
-![STL canvas preview of the generated clip cap](docs/images/lineal-clip-kappe-canvas.png)
+![STL Canvas SPA preview (Normal shader) of the generated clip cap](docs/images/lineal-clip-kappe-spa-normal.png)
+![STL Canvas SPA preview (Normal shader) of the shower hinge replacement](docs/images/duschscharnier-ersatz-spa-normal.png)
 
 ### 6. Print orientation
 
