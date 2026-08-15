@@ -10,6 +10,8 @@ npm install
 npm run dev
 ```
 
+`npm run dev` und `npm run build` synchronisieren die STL-Dateien aus `/home/runner/work/3d-printing/3d-printing/models/` jetzt automatisch nach `web/public/models/` und erzeugen dabei `models.json`.
+
 ## Build
 
 ```bash
@@ -23,6 +25,7 @@ Automatisch via GitHub Action bei Änderungen an:
 
 - `.github/extensions/stl-canvas/**`
 - `web/**`
+- `models/**`
 
 ## Modelle
 

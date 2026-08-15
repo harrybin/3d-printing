@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/extensions/stl-canvas/**'
       - 'web/**'
+      - 'models/**'
       - '.github/workflows/pages-spa.yml'
   workflow_dispatch:
 
