@@ -938,7 +938,7 @@ function drawMeasureOverlay() {
   }
   if (hoverFeature) text.push('', 'Hover  ' + featureLabel(hoverFeature));
   measurePanel.hidden = false;
-  measurePanel.textContent = text.join('\\n');
+  measurePanel.textContent = text.join('\n');
 }
 function updateInfo() {
   if (!showInfoInput.checked) { infoBox.hidden = true; return; }
@@ -956,7 +956,7 @@ function updateInfo() {
     b ? 'size_mm: ' + r(b.size.x) + ' x ' + r(b.size.y) + ' x ' + r(b.size.z) : 'size_mm: n/a',
     b ? 'min: ' + r(b.min.x) + ', ' + r(b.min.y) + ', ' + r(b.min.z) : '',
     b ? 'max: ' + r(b.max.x) + ', ' + r(b.max.y) + ', ' + r(b.max.z) : ''
-  ].filter(Boolean).join('\\n');
+  ].filter(Boolean).join('\n');
 }
 function fitView() {
   if (!modelBounds) return;
