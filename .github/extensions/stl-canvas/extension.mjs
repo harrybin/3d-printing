@@ -234,8 +234,22 @@ function readStlFile(modelPath) {
     };
 }
 
+// JSON embedded in a <script> block: escape the characters that could close the
+// tag. Entity escaping is wrong here because script content is raw text.
+function escapeJsonForScript(json) {
+    return json.replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026");
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
 function renderHtml(title, defaultFile) {
-    const config = escapeHtml(JSON.stringify({
+    const config = escapeJsonForScript(JSON.stringify({
         dataSource: "extension",
         defaultModelFile: defaultFile,
         viewApiUrl: "/api/view",
@@ -246,7 +260,7 @@ function renderHtml(title, defaultFile) {
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>${title}</title>
+    <title>${escapeHtml(title)}</title>
     <link rel="stylesheet" href="/viewer.css" />
   </head>
   <body>
