@@ -49,6 +49,16 @@ Then describe the intent, e.g.:
 
 ### 2. The agent derives measurements from the image
 
+When several reference photos exist, the agent first builds a numbered contact sheet
+so it can pick the right photo instead of opening all of them at full resolution:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\make_contact_sheet.py model-sources
+```
+
+This writes `model-sources/_index.png` plus an index-to-path legend; measurements are
+then taken from the full-resolution tiles that actually show the feature.
+
 The `stl-from-image-measurements` skill scales the image and reports what is measured
 versus inferred:
 

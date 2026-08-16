@@ -24,6 +24,7 @@ Perform all edits with the project Python libraries (venv `.venv`): **trimesh** 
 - Maintain intended units (mm).
 - Flag if edits create non-printable thin features.
 - If a requested transform would create features below the minimum wall thickness, warn the user with the specific offending dimension, propose the maximum safe transform value that preserves printability, and do not apply the transform until the user confirms.
+- If the edit is driven by reference photos, build or refresh the numbered contact sheet first (`python scripts/make_contact_sheet.py <image folder>`), read it once, and open only the tiles that show the feature being changed. See `stl-from-image-measurements` step 0.
 
 ## Printability checks after editing
 

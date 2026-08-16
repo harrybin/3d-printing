@@ -15,13 +15,15 @@ This repository contains parametric STL generation workflows for FDM printing on
   - `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`
 - Regenerate clip model:
   - `.\.venv\Scripts\python.exe scripts\lineal_clip_kappe.py`
+- Build a reference image index:
+  - `.\.venv\Scripts\python.exe scripts\make_contact_sheet.py model-sources`
 - The generator already prints validation stats (facets, bounds, extents, watertight, winding consistency, Euler number, degenerate faces).
 
 There is no separate test suite in this repo at the moment.
 
 ## Architecture Boundaries
 
-- `scripts/`: parametric geometry definitions and boolean operations.
+- `scripts/`: parametric geometry definitions, boolean operations, and reference-image tooling (`make_contact_sheet.py`).
 - `models/`: generated STL outputs (ASCII STL expected).
 - `.github/skills/`: task-specialized behavior used by agents for STL creation, editing, and validation.
 
@@ -40,6 +42,7 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Never hand-write STL facets or manual vertex/triangle lists for complex objects: always generate geometry through the Python libraries in `requirements.txt` (build123d for engineering solids, trimesh + manifold3d for CSG/repair/export, vedo for render checks, opencv for reference comparison).
 - For engineering shapes (countersinks, bosses, ribs, hulled contours), prefer **build123d** for the solid and re-export through trimesh (round vertices to 0.001 mm, merge, dedupe faces) to guarantee a watertight ASCII STL.
 - When recreating parts from photos/videos, run the render-and-compare loop (vedo offscreen renders vs. reference frames) before declaring the model done; see `.github/skills/stl-from-image-measurements/SKILL.md`.
+- Before reading reference photos, build a numbered contact sheet with `python scripts/make_contact_sheet.py <image folder>` and open only the tiles that show the feature in question. Commit the sheet as `<image folder>/_index.png` and cite tile numbers in the measurement doc.
 
 ## Common Pitfalls
 

@@ -32,6 +32,11 @@ Lager-Einsatz. Die Werte stammen aus den Fotos mit Schieblehre bzw. dem
 | Tropfen-Flankenradius | 34.0 | Konturabgleich auf Foto 201713 | ersetzt die geraden Tangenten des fruheren Hull |
 | Zentraloffnung im Einsatz | 17.9 | Nutzermessung | nicht Teil des Ersatzkorpers |
 
+Bildindex: `model-sources/_index.png` (nummeriertes Kontaktblatt aller Referenzfotos).
+Die Kachelnummern verweisen auf die Dateien in `model-sources/`; die Quellenangaben
+oben nennen den Zeitstempel-Teil des Dateinamens, z. B. `202902` = Kachel 16.
+Neu erzeugen mit `python scripts/make_contact_sheet.py model-sources`.
+
 ## Verstarkung
 
 Der Originalbruch liegt in der schmalen Verbindung zwischen Arm und Lagerkopf.

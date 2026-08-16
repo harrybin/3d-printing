@@ -1,6 +1,6 @@
 ---
 name: stl-from-image-measurements
-description: "Create or edit STL files from user-provided images and measurements. Use for identifying objects from photos, researching existing 3D models with subagents, downloading or extracting model properties when possible, recreating missing geometry, combining objects into one STL, applying requested spacing/relations/dimensions, and validating against Anycubic Kobra S1 Combo + ACE Pro print constraints before finalizing."
+description: "Create or edit STL files from user-provided images and measurements. Use for identifying objects from photos, indexing reference photos into a numbered contact sheet before reading them, researching existing 3D models with subagents, downloading or extracting model properties when possible, recreating missing geometry, combining objects into one STL, applying requested spacing/relations/dimensions, and validating against Anycubic Kobra S1 Combo + ACE Pro print constraints before finalizing."
 argument-hint: "Provide the image, target measurements, desired object relationships, and whether this is a new STL or an edit to an existing STL."
 ---
 
@@ -65,6 +65,27 @@ Do not generate or modify STL geometry until these inputs are captured.
 If a measurement is missing, ask for the minimum extra data needed to scale the object reliably. Do not pretend uncertain dimensions are exact.
 
 ## Workflow
+
+### 0. Build a reference image index (contact sheet) first — mandatory
+
+Whenever more than about four documentation images exist, do **not** start by opening them one by one. Opening full-resolution photos is the most expensive thing in this workflow, and most of them do not answer the question at hand.
+
+Build a numbered contact sheet, look at it once, and afterwards open only the tiles that actually show the feature you are working on.
+
+```
+python scripts/make_contact_sheet.py model-sources --out model-sources/_index.png
+```
+
+The script tiles every image in the folder, stamps each tile with its index and file stem, and prints an index-to-path legend. Options: `--cols`, `--tile` (tile edge in px), `--recursive`, `--out`.
+
+Rules:
+
+- Regenerate the sheet whenever new reference images arrive; it is cheap and a stale index causes the wrong photo to be opened.
+- Keep the sheet next to the images (`<image folder>/_index.png`) and commit it, so later sessions inherit the index instead of rebuilding their mental map.
+- Record in the measurement doc which tile number proves which dimension, for example `Foto 16 (202902) Seitenansicht`. That turns "which image showed the rail?" into a lookup instead of a search.
+- Read the sheet to decide **which** images to open, then open those at full resolution for the actual measurement. Never take a measurement off the thumbnail; tile resolution is deliberately too low for that.
+- Do the same for video work: extract frames first, then build a sheet over the frame folder and only open the promising frames.
+- If the object was photographed in more than one orientation, note per tile which side is visible while reading the sheet. This is the cheapest place to catch a mirrored feature before it reaches the geometry.
 
 ### 1. Research before classifying
 
@@ -272,6 +293,7 @@ Before finishing, provide:
 
 - the chosen workflow path: reuse, hybrid, or recreate
 - the evidence used: image cues, researched models, and user measurements
+- the reference image index that was used, and which tile numbers backed which dimension
 - final object dimensions and bounding box in mm
 - final relation measurements between objects in mm
 - printability findings and any accepted risks
