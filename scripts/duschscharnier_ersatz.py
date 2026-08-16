@@ -37,8 +37,13 @@ from build123d import (
 BASE_T = 2.0
 WALL_T = 2.0
 TOTAL_T = 12.5
-HEAD_R = 19.0
-TIP_Y = -40.165
+# The teardrop wall grows outwards only: the arc centres are shared with the
+# pocket, so adding the same amount to head, tip and flank radius and moving the
+# outer tip out by the same amount leaves every inner dimension untouched. The
+# grey insert already fits, so the pocket must not move.
+HEAD_WALL_EXTRA = 0.2
+HEAD_R = 19.0 + HEAD_WALL_EXTRA
+TIP_Y = -40.165 - HEAD_WALL_EXTRA
 HEAD_C_Y = TIP_Y + HEAD_R
 HEAD_END_Y = TIP_Y + 43.0
 ARM_W = 20.0
@@ -76,7 +81,10 @@ PAD_R = 3.5
 # perimeter of the closed face). Kept below the 2.0 mm floor and wall so the
 # closed face stays full size, and large enough to be visible after slicing.
 OUTER_EDGE_R = 0.8
-FLOOR_TIP_RIB_Y0 = TIP_Y + 0.25
+# Anchored on the pocket, not on the outer tip: the rib sits on the pocket floor
+# and must not move when the outer wall gets thicker. It reaches 1.6 mm into the
+# wall so it merges instead of ending in mid-air.
+FLOOR_TIP_RIB_Y0 = POCKET_TIP_C_Y - POCKET_TIP_R - 1.6
 FLOOR_TIP_RIB_Y1 = POCKET_HEAD_C_Y + POCKET_R - 0.5
 FLOOR_TIP_RIB_C_Y = (FLOOR_TIP_RIB_Y0 + FLOOR_TIP_RIB_Y1) / 2.0
 FLOOR_TIP_RIB_L = FLOOR_TIP_RIB_Y1 - FLOOR_TIP_RIB_Y0
@@ -157,7 +165,11 @@ HEAD_ARM_RIB_C_Y = POCKET_HEAD_C_Y + POCKET_R + HEAD_ARM_RIB_POCKET_CLEAR + HEAD
 # that is internally tangent to both. A hull of the two circles would insert a
 # ~9.5 mm straight tangent line instead, which is clearly visible on the part.
 # 34 mm was picked by overlaying candidate outlines on PXL_20260813_201713762.
-FLANK_R = 34.0
+FLANK_R = 34.0 + HEAD_WALL_EXTRA
+# Outer blend between the straight arm flank and the head circle. The re-entrant
+# corner sits where x = ARM_W/2 crosses the head arc.
+WAIST_BLEND_R = 8.0
+WAIST_VERTEX_Y = OUTER_HEAD_C_Y + math.sqrt(HEAD_R ** 2 - (ARM_W / 2.0) ** 2)
 EGG_SEGMENTS = (90, 40, 60)
 
 
@@ -247,13 +259,32 @@ def build():
 
     with BuildPart() as part:
         # Outer body: pointed teardrop head, rectangular arm, raised guide.
-        with BuildSketch(Plane.XY):
+        with BuildSketch(Plane.XY) as outer_sk:
             with BuildLine() as head_ln:
                 egg_arcs(HEAD_R, OUTER_TIP_R, FLANK_R)
                 mirror(head_ln.line, about=Plane.YZ)
             make_face()
             with Locations((0.0, ARM_C_Y)):
                 Rectangle(ARM_W, ARM_L)
+            # Where the straight arm flank runs into the head circle the outline
+            # had a sharp re-entrant corner - a textbook stress riser, and the
+            # spot the user flagged as the next weak point. Blend it into a
+            # haunch so load is carried around the corner instead of into it.
+            waist = outer_sk.vertices().filter_by_position(
+                Axis.Y, WAIST_VERTEX_Y - 0.5, WAIST_VERTEX_Y + 0.5
+            )
+            if len(waist) != 2:
+                raise RuntimeError(f"expected 2 waist vertices, found {len(waist)}")
+            for r in (WAIST_BLEND_R, 6.0, 4.0, 2.5):
+                try:
+                    fillet(waist, radius=r)
+                except Exception:
+                    continue
+                if r != WAIST_BLEND_R:
+                    print(f"note: waist blend reduced to {r} mm")
+                break
+            else:
+                raise RuntimeError("waist blend failed at every radius")
         extrude(amount=TOTAL_T)
 
         # Slight cast radius along the lower outside edges of the walls, i.e.
