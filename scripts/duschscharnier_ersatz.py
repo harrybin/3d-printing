@@ -42,8 +42,13 @@ TIP_Y = -40.165
 HEAD_C_Y = TIP_Y + HEAD_R
 HEAD_END_Y = TIP_Y + 43.0
 ARM_W = 20.0
-ARM_END_Y = 40.165
-ARM_L = 43.0
+# Print vs. chrome original: the arm was 2 mm short between the teardrop and the
+# first bore (42.83 vs 40.87 measured). The arm end and, with it, the bores move
+# outwards; the arm start at the head stays put, so the extra length lands
+# exactly in the span the user measured.
+ARM_EXTRA = 2.0
+ARM_END_Y = 40.165 + ARM_EXTRA
+ARM_L = 43.0 + ARM_EXTRA
 ARM_START_Y = ARM_END_Y - ARM_L
 ARM_HEAD_OVERLAP = HEAD_END_Y - ARM_START_Y
 ARM_C_Y = (ARM_START_Y + ARM_END_Y) / 2.0
@@ -95,9 +100,12 @@ FLOOR_TIP_RIB_L = FLOOR_TIP_RIB_Y1 - FLOOR_TIP_RIB_Y0
 # past the outer one.
 GUIDE_PROUD = 5.3
 GUIDE_T = 2.0
-GUIDE_L = 20.0
+# The rail ends short of the teardrop by 2.5 mm on the print; the arm-side end
+# stays where it is, so the rail only grows towards the head.
+GUIDE_ARM_END_Y = 29.5
+GUIDE_L = 22.5
 GUIDE_WALL_BITE = 0.6
-GUIDE_C_Y = 19.5
+GUIDE_C_Y = GUIDE_ARM_END_Y - GUIDE_L / 2.0
 GUIDE_INNER_X = ARM_W / 2.0 - WALL_T
 GUIDE_X0 = GUIDE_INNER_X - GUIDE_T
 GUIDE_X1 = GUIDE_INNER_X + GUIDE_WALL_BITE
@@ -107,7 +115,11 @@ GUIDE_SLOT_W = 2 * GUIDE_INNER_X - 2 * GUIDE_T
 GUIDE_TOP_Z = TOTAL_T + GUIDE_PROUD
 GUIDE_H = GUIDE_TOP_Z - BASE_T
 
-HOLE_D = 4.0
+# Nominal bore is 4.0 mm like the original. A vertical FDM bore prints undersize,
+# so the model carries a compensation to land at 4 mm on the printed part.
+HOLE_D_NOMINAL = 4.0
+HOLE_SHRINK_COMP = 0.4
+HOLE_D = HOLE_D_NOMINAL + HOLE_SHRINK_COMP
 CSK_D = 8.5
 CSK_DEPTH = 5.0
 # Measured from the outer arm end, towards the teardrop/head.
