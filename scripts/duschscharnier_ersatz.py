@@ -81,11 +81,18 @@ PAD_R = 3.5
 # perimeter of the closed face). Kept below the 2.0 mm floor and wall so the
 # closed face stays full size, and large enough to be visible after slicing.
 OUTER_EDGE_R = 0.8
+# Every end of the floor rib cross must bite into the surrounding wall. A rib
+# that stops short of the wall carries no load, so all four contact points are
+# anchored on the pocket boundary plus this overlap. Stays below the 2.05 mm
+# teardrop wall so the outer surface is untouched.
+RIB_WALL_BITE = 1.6
 # Anchored on the pocket, not on the outer tip: the rib sits on the pocket floor
-# and must not move when the outer wall gets thicker. It reaches 1.6 mm into the
-# wall so it merges instead of ending in mid-air.
-FLOOR_TIP_RIB_Y0 = POCKET_TIP_C_Y - POCKET_TIP_R - 1.6
-FLOOR_TIP_RIB_Y1 = POCKET_HEAD_C_Y + POCKET_R - 0.5
+# and must not move when the outer wall gets thicker.
+FLOOR_TIP_RIB_Y0 = POCKET_TIP_C_Y - POCKET_TIP_R - RIB_WALL_BITE
+FLOOR_TIP_RIB_Y1 = POCKET_HEAD_C_Y + POCKET_R + RIB_WALL_BITE
+# The cross rib sits on the head arc centre line, where the pocket is widest, so
+# its half width is POCKET_R plus the same bite on each side.
+FLOOR_CROSS_RIB_W = 2 * (POCKET_R + RIB_WALL_BITE)
 FLOOR_TIP_RIB_C_Y = (FLOOR_TIP_RIB_Y0 + FLOOR_TIP_RIB_Y1) / 2.0
 FLOOR_TIP_RIB_L = FLOOR_TIP_RIB_Y1 - FLOOR_TIP_RIB_Y0
 # Internal guide: a pair of longitudinal rails, one on each inner side wall of
@@ -339,10 +346,11 @@ def build():
                 Rectangle(HEAD_ARM_RIB_W, HEAD_ARM_RIB_L)
         extrude(amount=INNER_H)
 
-        # Cross ribs and four cast pads on the dish floor.
+        # Cross ribs and four cast pads on the dish floor. Both ribs run into
+        # the wall on every end so they actually brace it.
         with BuildSketch(Plane.XY.offset(BASE_T)):
             with Locations((0.0, POCKET_HEAD_C_Y)):
-                Rectangle(INSERT_W, RIB_W)
+                Rectangle(FLOOR_CROSS_RIB_W, RIB_W)
             with Locations((0.0, FLOOR_TIP_RIB_C_Y)):
                 Rectangle(RIB_W, FLOOR_TIP_RIB_L)
             with Locations(*[(sx * 8.0, POCKET_HEAD_C_Y + sy * 8.0) for sx in (-1, 1) for sy in (-1, 1)]):

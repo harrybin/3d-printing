@@ -23,6 +23,7 @@ Lager-Einsatz. Die Werte stammen aus den Fotos mit Schieblehre bzw. dem
 | Boden Lagertasche und Arm | 2.0 | Nutzermessung | gemessen; durchgehend in Kopf und Arm |
 | Verrundung untere Aussenkanten | 0.8 | Gussvorbild | umlaufender Radius an der geschlossenen Aussenflache |
 | Kreuzstege und Gusspads, Hohe uber dem Boden | 2.4 | Nutzermessung | 2.4 erhaben auf dem 2.0er Boden, Oberkante bei 4.4 ab Aussenflache |
+| Einbindung Kreuzstege in die Wand | 1.6 | Verstarkung 16.08. | alle vier Stegenden laufen 1.6 mm in die Wand statt davor zu enden |
 | Wandstarke Schale (Tropfen) | 2.05 | Verstarkung 16.08. | 1.85 + 0.2, ausschliesslich nach aussen; Taschenkontur unverandert |
 | Wandstarke Arm | 2.0 | Nutzermessung | gemessen |
 | Aussenverrundung Ubergang Arm zu Tropfen | 8.0 | Verstarkung 16.08. | Hohlkehle statt scharfer Innenecke an der Taille (x = +-10, y = -0.37) |
@@ -65,6 +66,11 @@ auffiel:
   gerade Armflanke den Kopfkreis schneidet. Sie ist durch eine Hohlkehle mit
   R 8 ersetzt: die Kerbwirkung entfallt und der Querschnitt an der Taille waechst
   um rund 9.5 mm2.
+- Die Kreuzstege im Schalenboden endeten frei vor der Wand (Langssteg 0.5 mm
+  Luft am Armende, Quersteg 0.2 mm je Seite) und konnten so keine Last in die
+  Wand einleiten. Jetzt laufen alle vier Stegenden 1.6 mm in die Wand hinein.
+  Die Stege stutzen den Einsatz weiterhin nur von unten, die Taschenkontur
+  bleibt unverandert.
 
 ## Druckvorgabe
 
