@@ -12,6 +12,24 @@ Use this skill to evaluate whether an STL is ready for slicing and printing.
 Accept one of the following: (1) a file path to an STL file, (2) raw ASCII STL text pasted inline, or (3) a JSON representation of mesh data with fields: triangles[], normals[], vertices[]. If input format is unrecognized, respond with an error explaining accepted formats.
 If the provided input cannot be parsed or validated (e.g., binary data is not accessible, file is corrupted, or triangle data is missing), return a critical error in the output with the message: "Input could not be parsed - provide ASCII STL text or structured mesh data."
 
+## Tooling shortcut
+
+`scripts/mesh_tool.py` implements the checks on this page as a CLI, so a validation
+run does not need a throwaway script:
+
+```powershell
+python scripts\mesh_tool.py validate models\part.stl     # exits 1 when not print ready
+python scripts\mesh_tool.py info     models\part.stl --json
+python scripts\mesh_tool.py repair   models\part.stl -o models\part.stl
+python scripts\mesh_tool.py probe    models\part.stl --min="-1,-1,0" --max="1,1,2"
+python scripts\mesh_tool.py slices   models\part.stl --step 0.5
+python scripts\mesh_tool.py compare  models\part.stl D:\harrybin\3d-printing\models\part.stl
+```
+
+`repair` applies exactly the recipe below, `probe` the volume probe, `slices` the
+cross-section sweep and `compare` the stale-worktree check. Fall back to an ad-hoc
+script only for checks the CLI does not cover.
+
 ## Geometry integrity checks
 
 - Valid STL syntax - detect format (ASCII vs binary) by header inspection and validate accordingly.

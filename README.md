@@ -130,7 +130,34 @@ If the fit is too tight or too loose, adjust `HOLE_DIA` / `PRESS_CLEAR` in
 | `edit-stl-transform` | Edits existing STL geometry: scale, rotate, translate, merge, split, and origin alignment — while preserving manifold/watertight topology. |
 | `stl-create-edit-interview` | Guided interview run before creating or editing STLs. Determines wall strategy, mesh pattern, infill strategy, and fit intent one question at a time. |
 | `stl-from-image-measurements` | Creates or edits STLs from user photos plus measurements: identifies the object, researches existing models, derives scale from reference objects, and validates against printer constraints. |
+| `research-part-specs` | Sources real published dimensions for an identifiable product before modeling, records origin/source/confidence per value in `docs/`, and forbids invented fit-critical numbers. |
 | `validate-stl-mesh` | Validates an STL for manifold correctness and FDM printability: syntax, triangle count, watertight topology, normal consistency, and bed-fit. |
+| `optimize-stl-for-print` | Optimizes a correct mesh for printing: orientation for load direction, overhang and bridge reduction, hole/elephant-foot compensation, bed layout and filament estimate. |
+
+## Mesh CLI
+
+`scripts/mesh_tool.py` is the shared command-line companion for the skills above.
+It uses `trimesh` + `manifold3d`, always writes ASCII STL, and knows the 250 × 250 mm
+bed and both coordinate conventions.
+
+```powershell
+.\.venv\Scripts\python.exe scripts\mesh_tool.py info     models\lineal-clip-kappe.stl
+.\.venv\Scripts\python.exe scripts\mesh_tool.py validate models\lineal-clip-kappe.stl
+.\.venv\Scripts\python.exe scripts\mesh_tool.py overhang models\lineal-clip-kappe.stl
+.\.venv\Scripts\python.exe scripts\mesh_tool.py measure  models\lineal-clip-kappe.stl --infill 20
+```
+
+| Command | Purpose |
+|---------|---------|
+| `info` / `validate` | mesh stats, watertightness, Euler number, degenerate faces, bed placement |
+| `repair` | lossless repair recipe for OCCT/build123d exports (no `pymeshfix`) |
+| `measure` | bounding box, volume, mass and filament length estimate |
+| `center` / `transform` | bed centering per convention, scale/rotate/translate/fit |
+| `boolean` | union/difference/intersection via the manifold engine |
+| `probe` / `slices` | prove a feature exists (volume probe, cross-section sweep) |
+| `overhang` | unsupported area for the current print orientation |
+| `arrange` | lay several parts out on the build plate |
+| `compare` | compare the same model across worktrees before trusting a bug report |
 
 ## Coordinate Convention
 

@@ -305,7 +305,11 @@ Before finishing, provide:
 When relevant, also use these workspace skills:
 
 - `anycubic-kobra-s1-ace-pro-profile` for printer defaults and constraints
+- `research-part-specs` before modeling a real, identifiable product, so fit-critical
+  dimensions come from a cited spec instead of photo scaling
 - `stl-create-edit-interview` to collect missing print-intent decisions
 - `edit-stl-transform` when modifying an imported STL
 - `create-ascii-stl` when building a new STL from scratch
 - `validate-stl-mesh` before final delivery
+- `optimize-stl-for-print` for orientation, overhang and fit compensation once the
+  geometry is correct

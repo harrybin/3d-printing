@@ -17,13 +17,16 @@ This repository contains parametric STL generation workflows for FDM printing on
   - `.\.venv\Scripts\python.exe scripts\lineal_clip_kappe.py`
 - Build a reference image index:
   - `.\.venv\Scripts\python.exe scripts\make_contact_sheet.py model-sources`
+- Inspect, validate or edit an existing STL:
+  - `.\.venv\Scripts\python.exe scripts\mesh_tool.py validate models\<part>.stl`
+  - `.\.venv\Scripts\python.exe scripts\mesh_tool.py overhang models\<part>.stl`
 - The generator already prints validation stats (facets, bounds, extents, watertight, winding consistency, Euler number, degenerate faces).
 
 There is no separate test suite in this repo at the moment.
 
 ## Architecture Boundaries
 
-- `scripts/`: parametric geometry definitions, boolean operations, and reference-image tooling (`make_contact_sheet.py`).
+- `scripts/`: parametric geometry definitions, boolean operations, reference-image tooling (`make_contact_sheet.py`) and the shared mesh CLI (`mesh_tool.py`).
 - `models/`: generated STL outputs (ASCII STL expected).
 - `.github/skills/`: task-specialized behavior used by agents for STL creation, editing, and validation.
 
@@ -40,6 +43,8 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - For fit-critical features, keep clearances explicit and parameterized (example: `PRESS_CLEAR` in `scripts/lineal_clip_kappe.py`).
 - For mesh booleans, use the manifold engine and keep output watertight.
 - Never hand-write STL facets or manual vertex/triangle lists for complex objects: always generate geometry through the Python libraries in `requirements.txt` (build123d for engineering solids, trimesh + manifold3d for CSG/repair/export, vedo for render checks, opencv for reference comparison).
+- Never invent a fit-critical dimension. Every such number is user-measured, taken from a cited published spec, or explicitly flagged as an estimate needing a test print; record origin, source and confidence in the `docs/` measurement doc (see `research-part-specs`).
+- Print-orientation rotations go into a new file or the slicer. Never overwrite a generator's `models/` output with a rotated copy - that desyncs the mesh from its parametric source.
 - For engineering shapes (countersinks, bosses, ribs, hulled contours), prefer **build123d** for the solid and re-export through trimesh (round vertices to 0.001 mm, merge, dedupe faces) to guarantee a watertight ASCII STL.
 - When recreating parts from photos/videos, run the render-and-compare loop (vedo offscreen renders vs. reference frames) before declaring the model done; see `.github/skills/stl-from-image-measurements/SKILL.md`.
 - Before reading reference photos, build a numbered contact sheet with `python scripts/make_contact_sheet.py <image folder>` and open only the tiles that show the feature in question. Commit the sheet as `<image folder>/_index.png` and cite tile numbers in the measurement doc.
@@ -62,8 +67,11 @@ If behavior around print constraints, validation policy, or coordinate targeting
 
 - Project overview and workflow: [README.md](README.md)
 - Clip generator implementation: [scripts/lineal_clip_kappe.py](scripts/lineal_clip_kappe.py)
+- Shared mesh CLI: [scripts/mesh_tool.py](scripts/mesh_tool.py)
 - Printer/profile constraints: [.github/skills/anycubic-kobra-s1-ace-pro-profile/skill.md](.github/skills/anycubic-kobra-s1-ace-pro-profile/skill.md)
 - STL validation policy: [.github/skills/validate-stl-mesh/skill.md](.github/skills/validate-stl-mesh/skill.md)
+- Print optimization policy: [.github/skills/optimize-stl-for-print/skill.md](.github/skills/optimize-stl-for-print/skill.md)
+- Dimension sourcing policy: [.github/skills/research-part-specs/skill.md](.github/skills/research-part-specs/skill.md)
 - Image-to-STL workflow: [.github/skills/stl-from-image-measurements/SKILL.md](.github/skills/stl-from-image-measurements/SKILL.md)
 
 ## Session-Learned Friction To Avoid
