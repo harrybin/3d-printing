@@ -17,6 +17,23 @@ Perform all edits with the project Python libraries (venv `.venv`): **trimesh** 
 - Merge/split solid groups
 - Basic simplification: remove duplicate vertices and degenerate faces only. Do not perform mesh decimation or polygon reduction.
 
+## Tooling shortcut
+
+`scripts/mesh_tool.py` covers the routine transforms with ASCII STL output and the
+bed conventions already applied:
+
+```powershell
+python scripts\mesh_tool.py transform models\part.stl -o models\part_v2.stl --rotate z,90
+python scripts\mesh_tool.py transform models\part.stl -o models\part_v2.stl --fit 250x250x260
+python scripts\mesh_tool.py center    models\part.stl --drop
+python scripts\mesh_tool.py boolean union models\a.stl models\b.stl -o models\merged.stl
+python scripts\mesh_tool.py arrange   models\a.stl models\b.stl -o models\plate.stl --gap 5
+```
+
+Print-orientation rotations belong in a new file or the slicer, never overwriting a
+generator's output. For anything beyond a transform, change the parametric source
+script and regenerate.
+
 ## Required behavior
 
 - Preserve manifold/watertight topology.
