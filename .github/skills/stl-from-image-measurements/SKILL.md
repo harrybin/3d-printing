@@ -1,7 +1,7 @@
 ---
 name: stl-from-image-measurements
-description: "Create or edit STL files from user-provided images and measurements. Use for identifying objects from photos, indexing reference photos into a numbered contact sheet before reading them, researching existing 3D models with subagents, downloading or extracting model properties when possible, recreating missing geometry, combining objects into one STL, applying requested spacing/relations/dimensions, and validating against Anycubic Kobra S1 Combo + ACE Pro print constraints before finalizing."
-argument-hint: "Provide the image, target measurements, desired object relationships, and whether this is a new STL or an edit to an existing STL."
+description: "Create or edit printable geometry from user-provided images and measurements. Use for identifying objects from photos, indexing reference photos into a numbered contact sheet before reading them, researching existing 3D models with subagents, downloading or extracting model properties when possible, recreating missing geometry, combining objects into one output, applying requested spacing/relations/dimensions, and validating against Anycubic Kobra S1 Combo + ACE Pro print constraints before finalizing."
+argument-hint: "Provide the image, target measurements, desired object relationships, and whether this is a new model or an edit to an existing STL."
 ---
 
 # STL From Image Measurements
@@ -29,13 +29,19 @@ Default policy choices for this skill:
 
 ## Required outcome
 
-Produce an STL result only when all of the following are true:
+Produce a final result (STL or 3MF) only when all of the following are true:
 
 - object identity or shape intent is specific enough to model
 - critical dimensions are known, estimated explicitly, or confirmed by the user
 - requested relations between parts are applied and reported
+- material/color semantics are confirmed when multiple visible materials/zones exist
 - the resulting mesh passes printability checks
 - no known printer restriction is violated without explicit user sign-off
+
+Output format rule:
+
+- use **STL** only for single-material/single-region output intent
+- use **3MF** when the user wants material/color regions preserved in the model
 
 If any of these remain unresolved, stop, explain the blocking ambiguity precisely, and ask only for the missing information.
 
@@ -60,6 +66,8 @@ Do not generate or modify STL geometry until these inputs are captured.
 4. Manufacturing contract
    - intended material if known
    - single-color or ACE Pro multi-color intent
+   - if multiple materials/colors are visible in the reference: whether these must stay distinct in the model
+   - required final format based on that decision (STL vs 3MF)
    - whether supports are acceptable
 
 If a measurement is missing, ask for the minimum extra data needed to scale the object reliably. Do not pretend uncertain dimensions are exact.
@@ -91,6 +99,17 @@ Rules:
 
 Before committing to a geometry strategy, research available models and reference data. Do not classify the job until research is complete. The classification decision is made exclusively in step 3.
 
+### 1b. High-accuracy photo branch (use when precision matters)
+
+When the job is fit-critical and the user can provide additional photos, request a capture set that follows photogrammetry-safe basics:
+
+- capture multiple viewpoints around the object (front/side/oblique, not one single angle)
+- keep strong overlap between adjacent shots so feature correspondence is stable
+- include at least one known scale reference in the same plane as the feature being measured
+- avoid harsh shadows/reflections and heavy perspective skew on fit-critical areas
+
+Use these images to cross-check uncertain dimensions before finalizing fit-critical features.
+
 ### 2. Research with subagents first
 
 Before recreating geometry from scratch, use a read-only subagent to research possible existing 3D models or reference data.
@@ -108,13 +127,27 @@ If a downloadable model is available from an accessible source, use it only when
 
 If a model's license prohibits modification or redistribution, do not use it as a base. Inform the user of the restriction, name the model and its license, and automatically fall back to recreate-from-reference using only the dimensional data as reference evidence.
 
-### 3. Decide whether to reuse or recreate
+### 3. Shape-first classification and strategy selection (mandatory)
 
-This is the single authoritative classification point. Use this branch logic:
+Do not start with fine segmentation. First classify the object as a whole, then choose the cheapest reliable strategy:
+
+- `standard-primitive`: mostly rectangles, circles, triangles, cylinders, slots, regular bores.
+- `glyph-or-logo`: number, letter, symbol, or typographic/special-font outline.
+- `recognizable-part-family`: known engineering part where published dimensions or existing models exist.
+- `organic-or-mixed`: irregular shape with no trustworthy direct template.
+
+Then branch:
 
 - `reuse-existing-model`: if an exact or near-exact model exists and can be used safely, import it and edit it.
-- `hybrid-reuse-and-edit`: if a model exists but key dimensions or feature relations differ, use it as a shape reference and transform or rebuild the mismatched regions.
+- `hybrid-reuse-and-edit`: if a model exists but key dimensions or feature relations differ, use it as a shape reference and transform or rebuild only mismatched regions.
 - `recreate-from-reference`: if no trustworthy model exists, build the geometry from measured primitives and image-derived proportions.
+- `segment-and-compose`: if no direct whole-shape reuse exists, decompose into simple segments and build them incrementally.
+
+Glyph/number rule (example: "5"):
+
+- if the glyph is clearly recognizable, create the whole glyph envelope first (2D outline -> base solid), then add/refine the organic or local segments
+- do not begin by modeling isolated small segments without a confirmed whole glyph
+- for logos/text from photos, prefer a cleaned high-contrast contour and vector-like outline extraction before extrusion, then add local shape corrections
 
 Choose the cheapest path that can still satisfy dimensional accuracy and printability. Do not force reuse when it would create hidden inaccuracies that are harder to fix than rebuilding.
 
@@ -152,7 +185,16 @@ Examples:
 
 After applying relations, report the final relative positions in mm so the user can verify intent.
 
-### 6. Compose or edit the STL
+### 5b. Material semantics gate (mandatory)
+
+If the reference indicates multiple materials, inserts, coatings, or color regions in the target object:
+
+1. Ask the user whether these regions should remain distinct in the delivered model.
+2. If yes, preserve them as separate solids/regions and switch the final deliverable format to **3MF**.
+3. If no, document that the output is intentionally merged and proceed with STL-compatible geometry.
+4. Never finalize as STL when distinct material/color semantics are explicitly required.
+
+### 6. Compose or edit the output geometry
 
 Use the project libraries for all geometry work — never hand-write STL facets or manually computed triangle meshes for complex objects: **build123d** for engineering solids (sketches, hulls, countersinks, bosses, ribs), **trimesh + manifold3d** for simple CSG, repair, and export, **vedo** for render verification, **opencv-python-headless** for frame extraction and silhouette comparison.
 
@@ -196,7 +238,7 @@ If the user specifies a different nozzle size, scale wall baselines to 2x nozzle
 
 ### 8. Validate the final mesh
 
-Do not finalize the STL unless all of these pass:
+Do not finalize the output unless all of these pass:
 
 - watertight/manifold mesh
 - no self-intersections
@@ -205,6 +247,7 @@ Do not finalize the STL unless all of these pass:
 - bounding box matches intended physical dimensions in mm
 - object-to-object relations match the requested measurements
 - placement convention is explicit or auto-detected correctly for a 250 mm x 250 mm bed
+- output format matches the confirmed material/color semantics (STL for merged, 3MF for preserved regions)
 
 If validation fails, stop and report:
 
@@ -270,10 +313,11 @@ Left/right judgements from a single photo are unreliable - an internal ledge was
 
 ### 9. Show the result in the STL canvas (mandatory)
 
-After the STL is written or updated on disk, always display it in the STL canvas. This applies to newly created STLs and to edits of existing STLs, and it must not be skipped even if the user did not ask for a preview.
+After the output is written or updated on disk, always provide a canvas preview path. This applies to new outputs and edits, and it must not be skipped even if the user did not ask for a preview.
 
-- Save the STL under the workspace `models/` folder (the canvas only resolves workspace-relative paths).
-- Call `open_canvas` with `canvasId: "stl-canvas"` and `input.stlPath` set to the workspace-relative path, e.g. `models/assembly.stl`.
+- Save outputs under the workspace `models/` folder (the canvas only resolves workspace-relative paths).
+- For STL outputs, call `open_canvas` with `canvasId: "stl-canvas"` and `input.stlPath` set to the workspace-relative path, e.g. `models/assembly.stl`.
+- For 3MF outputs, report the 3MF path explicitly and preview an STL counterpart when available.
 - Use a stable `instanceId` such as `stl-preview` so repeated previews refresh the same panel; use a distinct `instanceId` per file when multiple STLs are produced.
 - Optionally call the `read_stats` action and report facets and bounds alongside the preview.
 - If the canvas fails to open (extension unavailable or `stl_not_found`), report the failure and the file path explicitly instead of silently continuing.
@@ -292,13 +336,16 @@ After the STL is written or updated on disk, always display it in the STL canvas
 Before finishing, provide:
 
 - the chosen workflow path: reuse, hybrid, or recreate
+- the shape-first classification used (primitive, glyph/logo, recognizable part family, organic/mixed)
+- whether segment-and-compose was used, and in which sequence segments were added
 - the evidence used: image cues, researched models, and user measurements
 - the reference image index that was used, and which tile numbers backed which dimension
 - final object dimensions and bounding box in mm
 - final relation measurements between objects in mm
+- the material-semantics decision and resulting output format choice (STL or 3MF)
 - printability findings and any accepted risks
 - whether the mesh was centered or origin-aligned and by which convention
-- confirmation that the STL was opened in the STL canvas, including the previewed path
+- confirmation that the final file was opened in the STL canvas, including the previewed path
 
 ## Recommended companion skills
 

@@ -48,7 +48,17 @@ Use this skill before creating or editing STL files. It forces key printability 
    - No
    - Yes: separate bodies per color + seam hiding boundaries
 
-8. Does the part have overhangs greater than 45°?
+8. If multiple materials/colors are visible in the real object: should those regions stay distinct in the model?
+   - No: merge into one printable body/material intent
+   - Yes: preserve as distinct solids/regions
+
+9. Output format decision?
+   - STL (only if single-material/single-region intent)
+   - 3MF (required when distinct material/color regions must be preserved)
+
+   If answer 8 is "Yes", force output_format = 3mf.
+
+10. Does the part have overhangs greater than 45°?
 
 - Yes (set `support_likelihood` = high)
 - No (set `support_likelihood` = low)
@@ -102,6 +112,8 @@ Produce a concise parameter set:
 - fit_clearance_mm
 - support_likelihood
 - multi_color_plan
+- material_semantics_plan
+- output_format
 
 Record mesh/lattice wall pattern in `wall_pattern` and internal infill pattern in `infill_pattern` separately.
 

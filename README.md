@@ -126,10 +126,10 @@ If the fit is too tight or too loose, adjust `HOLE_DIA` / `PRESS_CLEAR` in
 | Skill | Description |
 |-------|-------------|
 | `anycubic-kobra-s1-ace-pro-profile` | Printer defaults and constraints (bed size, nozzle, temperatures, wall minimums) for the Anycubic Kobra S1 Combo + ACE Pro. Referenced by other skills when authoring or editing STL files. |
-| `create-ascii-stl` | Generates new ASCII STL files using print-safe defaults. Collects dimensions, material, use case, and multi-color requirements before producing any geometry. |
+| `create-ascii-stl` | Generates new printable geometry with print-safe defaults. Collects dimensions, material, use case, and material/color-semantics intent before producing geometry; enforces 3MF when distinct material/color regions must be preserved. |
 | `edit-stl-transform` | Edits existing STL geometry: scale, rotate, translate, merge, split, and origin alignment — while preserving manifold/watertight topology. |
-| `stl-create-edit-interview` | Guided interview run before creating or editing STLs. Determines wall strategy, mesh pattern, infill strategy, and fit intent one question at a time. |
-| `stl-from-image-measurements` | Creates or edits STLs from user photos plus measurements: identifies the object, researches existing models, derives scale from reference objects, and validates against printer constraints. |
+| `stl-create-edit-interview` | Guided interview run before creating or editing STL/3MF outputs. Determines wall strategy, mesh pattern, infill strategy, fit intent, and material-semantics/output-format decisions one question at a time. |
+| `stl-from-image-measurements` | Creates or edits STL/3MF outputs from user photos plus measurements: identifies the whole shape first, researches existing models, applies reuse-vs-segmentation strategy, derives scale from reference objects, and validates against printer constraints. |
 | `research-part-specs` | Sources real published dimensions for an identifiable product before modeling, records origin/source/confidence per value in `docs/`, and forbids invented fit-critical numbers. |
 | `validate-stl-mesh` | Validates an STL for manifold correctness and FDM printability: syntax, triangle count, watertight topology, normal consistency, and bed-fit. |
 | `optimize-stl-for-print` | Optimizes a correct mesh for printing: orientation for load direction, overhang and bridge reduction, hole/elephant-foot compensation, bed layout and filament estimate. |

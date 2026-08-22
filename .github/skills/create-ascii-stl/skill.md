@@ -27,12 +27,15 @@ Hand-written meshes (raw `Trimesh(vertices, faces)` constructions, manual `solid
 - Material (PLA/PETG/ABS/ASA/TPU)
 - Use case (display, fit-test, functional load-bearing)
 - Multi-color requirement (ACE Pro): yes/no
-- Do not generate any STL output until all four inputs are confirmed. If any input is missing, ask for it explicitly before proceeding.
+- If multiple materials/colors are visible in the target object: whether these regions must remain distinct in the final model
+- Final output format intent (STL vs 3MF) based on that material/color decision
+- Do not generate any final output until all required inputs are confirmed. If any input is missing, ask for it explicitly before proceeding.
 
 ## Hard constraints
 
 - Use **millimeters**.
-- Output valid ASCII STL (`solid ... endsolid`) unless binary is explicitly requested.
+- Output valid ASCII STL (`solid ... endsolid`) for single-material/single-region outputs.
+- If the user requires distinct material/color regions, use **3MF** as the final deliverable format instead of STL.
 - Triangles only, with outward normals and manifold mesh.
 - Keep the model centered or explicitly origin-aligned as requested.
 
@@ -82,21 +85,25 @@ Hand-written meshes (raw `Trimesh(vertices, faces)` constructions, manual `solid
 - Prefer separate solids/bodies for color regions.
 - Put color boundaries on natural geometry breaks.
 - Avoid tiny isolated color islands (reduces purge waste and print time).
+- If color/material regions must be preserved in the output file, finalize as 3MF, not STL.
 
 ## Output checklist
 
-- ASCII STL is syntactically correct.
+- Output format is correct for intent (STL for merged single-region output, 3MF for preserved material/color regions).
+- ASCII STL is syntactically correct when STL is the selected output format.
 - Triangle count and bounding box are reported.
 - Printability risks are reported (thin walls, steep overhangs, tiny details).
-- If the requested geometry cannot be made printable within the stated constraints without fundamental redesign, explain the specific conflict and propose an alternative geometry before generating the STL.
-- The finished STL was opened in the STL canvas and the previewed path is reported.
+- If the requested geometry cannot be made printable within the stated constraints without fundamental redesign, explain the specific conflict and propose an alternative geometry before generating the output.
+- For STL outputs: the finished STL was opened in the STL canvas and the previewed path is reported.
+- For 3MF outputs: the written 3MF path is reported, and an STL counterpart preview is shown when available.
 
-## Mandatory canvas preview after writing the STL
+## Mandatory canvas preview after writing the output
 
-Every newly created STL file must be shown in the STL canvas immediately after it is written to disk. This step is not optional and must not be skipped, even if the user did not ask for a preview.
+Every newly created output file must be previewed immediately after it is written to disk. This step is not optional and must not be skipped, even if the user did not ask for a preview.
 
-- Write the STL into the workspace `models/` folder first (the canvas only resolves workspace-relative paths).
-- Then call `open_canvas` with `canvasId: "stl-canvas"` and `input.stlPath` set to the workspace-relative path, e.g. `models/bracket.stl`.
+- Write the output into the workspace `models/` folder first (the canvas only resolves workspace-relative paths).
+- For STL outputs, call `open_canvas` with `canvasId: "stl-canvas"` and `input.stlPath` set to the workspace-relative path, e.g. `models/bracket.stl`.
+- For 3MF outputs, report the written 3MF path explicitly and preview an STL counterpart if one was also produced for inspection.
 - Use a stable `instanceId` such as `stl-preview`, so repeated previews refresh the same panel instead of opening new ones.
 - Optionally call the `read_stats` action on that instance and report facets and bounds together with the preview.
 - If the canvas fails to open (extension unavailable or `stl_not_found`), report the failure and the file path explicitly instead of silently continuing.
