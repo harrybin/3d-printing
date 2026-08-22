@@ -133,6 +133,7 @@ If the fit is too tight or too loose, adjust `HOLE_DIA` / `PRESS_CLEAR` in
 | `research-part-specs` | Sources real published dimensions for an identifiable product before modeling, records origin/source/confidence per value in `docs/`, and forbids invented fit-critical numbers. |
 | `validate-stl-mesh` | Validates an STL for manifold correctness and FDM printability: syntax, triangle count, watertight topology, normal consistency, and bed-fit. |
 | `optimize-stl-for-print` | Optimizes a correct mesh for printing: orientation for load direction, overhang and bridge reduction, hole/elephant-foot compensation, bed layout and filament estimate. |
+| `skills/README.md` | Bibliotheksindex für wiederverwendbare Vorgehensweisen: welche Regeln in welchen Skills gepflegt werden und wie neue Erkenntnisse einsortiert werden. |
 
 ## Mesh CLI
 
