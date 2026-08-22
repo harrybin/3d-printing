@@ -1,12 +1,12 @@
 ---
 name: stl-from-image-measurements
 description: "Create or edit printable geometry from user-provided images and measurements. Use for identifying objects from photos, indexing reference photos into a numbered contact sheet before reading them, researching existing 3D models with subagents, downloading or extracting model properties when possible, recreating missing geometry, combining objects into one output, applying requested spacing/relations/dimensions, and validating against Anycubic Kobra S1 Combo + ACE Pro print constraints before finalizing."
-argument-hint: "Provide the image, target measurements, desired object relationships, and whether this is a new model or an edit to an existing STL."
+argument-hint: "Provide the image, target measurements, desired object relationships, and whether this is a new model or an edit to an existing STL or 3MF."
 ---
 
 # STL From Image Measurements
 
-Use this skill when the user provides an image plus measurements and wants a new STL or a modified STL that matches the pictured objects and their requested dimensions or placement.
+Use this skill when the user provides an image plus measurements and wants a new STL or 3MF, or a modified STL or 3MF, that matches the pictured objects and their requested dimensions or placement.
 
 This workflow is mandatory for tasks that involve:
 

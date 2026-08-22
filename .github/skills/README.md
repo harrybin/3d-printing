@@ -124,7 +124,7 @@ Before adopting a new library into the permanent repo workflow:
 - manifold3d: https://pypi.org/project/manifold3d/
 - numpy-stl: https://pypi.org/project/numpy-stl/
 - pymeshlab: https://pypi.org/project/pymeshlab/
-- Open3D: http://www.open3d.org/
+- Open3D: https://www.open3d.org/
 - NumPy: https://numpy.org/
 - SciPy: https://scipy.org/
 - SymPy: https://www.sympy.org/
