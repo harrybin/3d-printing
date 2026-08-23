@@ -154,10 +154,22 @@ def blend_solid(body_sdf: RevolveSDF, cavity_sdf: RevolveSDF, limb_nodes,
     # a positive shell guarantees marching cubes closes the surface
     field = np.pad(field, 1, mode="constant", constant_values=far)
 
-    verts, faces, _, _ = measure.marching_cubes(field, level=0.0,
-                                                spacing=(pitch,) * 3)
-    verts += lo - pitch
-    mesh = trimesh.Trimesh(vertices=verts, faces=faces, process=True)
-    mesh.merge_vertices()
-    mesh.fix_normals()
-    return mesh
+    # A grid point that lands exactly on the iso-surface, or a spot where the
+    # blend is tangent to itself, makes marching cubes emit a non-manifold
+    # pinch.  Nudging the level by a few thousandths of a millimetre breaks the
+    # tangency without measurably changing the geometry, so retry until the
+    # surface is a proper volume.
+    # Only *non-negative* offsets are allowed: a positive level erodes the blend
+    # further, which is always safe.  A negative level would dilate it and let
+    # the blend eat into the egg cavity.
+    for level in (0.0, 0.004, 0.011, 0.025, 0.05, 0.09):
+        verts, faces, _, _ = measure.marching_cubes(field, level=level,
+                                                    spacing=(pitch,) * 3)
+        verts = verts + (lo - pitch)
+        mesh = trimesh.Trimesh(vertices=verts, faces=faces, process=True)
+        mesh.merge_vertices()
+        mesh.fix_normals()
+        if mesh.is_watertight and mesh.is_winding_consistent:
+            return mesh
+
+    raise RuntimeError("blend surface stays non-manifold at every iso level")

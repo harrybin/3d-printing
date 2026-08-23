@@ -73,7 +73,32 @@ fließenden Kragen bildet.
 | 3 | 30.4 | −3.0 | 9.8 | 3.4 | **Ellbogen** |
 | 4 | 30.2 | −5.5 | 6.0 | 3.0 | Unterarm (fällt nahezu senkrecht) |
 | 5 | 29.6 | −7.0 | 3.6 | 2.8 | Handgelenk |
-| 6 | 29.2 | −8.5 | 3.2 | 3.2 | Hand – stützt auf dem Tisch ab |
+| 6 | 29.2 | −8.5 | 2.45 | 3.3 | Handballen (`sx` 1.10, `sz` 0.85) – flach aufliegend |
+
+## Bodenkontakt (Fersen und Handballen)
+
+Fersen und Handballen sollen **aufsitzen**, nicht in einem Punkt tangieren.
+Dafür werden sie bewusst ein Stück **unter** die Tischebene modelliert und der
+Gliedmaßenkörper anschließend mit `build_ground_cutter()` bei `z = 0`
+abgeschnitten. Aus der Kugelkalotte wird so eine echte ebene Fläche.
+
+| Größe | Wert |
+| --- | ---: |
+| Eintauchtiefe Handballen | 0.35 mm |
+| Eintauchtiefe Ferse | 0.48 mm |
+| `GROUND_SINK` (Warnschwelle) | 0.60 mm |
+| Aufstandsfläche gesamt (4 Stück) | 37.3 mm² |
+
+Der Schnitt wird **nur auf die Gliedmaßen** angewendet, vor der Vereinigung mit
+dem Korpus. Der Korpus hat bei `z = 0` bereits eine eigene ebene Standfläche;
+ein Schnitt durch die fertige Figur würde dort koplanare Flächen erzeugen. Die
+Aufstandsflächen liegen bei `r ≥ 30 mm` und überlappen die Ø34-Standfläche des
+Korpus nicht, deshalb ist der Schnitt gefahrlos.
+
+`limb_check()` meldet die Eintauchtiefe je Gliedmaße und warnt, wenn eine
+Gliedmaße den Tisch **gar nicht** erreicht oder tiefer als `GROUND_SINK`
+eintaucht (dann wird die Fläche unschön groß).
+
 
 Kragen tritt 4.46 mm aus der Becherwand aus. Die Schulter liegt bewusst tief
 (z ≤ 15.2), damit die Verrundung (siehe unten) den Becherrand nicht anhebt.
@@ -83,26 +108,44 @@ linke Seite entsteht durch Spiegeln von `x`.
 
 ## Beine (humanoid, parametrisch)
 
-| Knoten | x | y | z | Radius | Bedeutung |
-| --- | ---: | ---: | ---: | ---: | --- |
-| 0 | 7.2 | −10.2 | 6.2 | 6.00 | Übergangskehle (tief in der runden Unterseite) |
-| 1 | 8.4 | −12.4 | 6.0 | 5.80 | innerer Kragen |
-| 2 | 9.6 | −15.0 | 5.9 | 5.45 | äußerer Kragen – Durchbruch durch die Wand |
-| 3 | 10.6 | −18.4 | 5.9 | 5.00 | Hüfte |
-| 4 | 11.0 | −24.0 | 6.6 | 4.80 | Oberschenkel |
-| 5 | 11.4 | −30.5 | 7.4 | 4.60 | **Knie** (angewinkelt) |
-| 6 | 11.5 | −37.0 | 5.3 | 4.10 | Schienbein |
-| 7 | 11.5 | −42.5 | 3.8 | 3.60 | Knöchel |
-| 8 | 11.5 | −44.0 | 8.0 | 4.20 | Rist (Fuß steht senkrecht) |
-| 9 | 11.5 | −44.3 | 12.5 | 4.40 | Fußspitze |
+| Knoten | x | y | z | Radius | sx | sy | sz | Bedeutung |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 0 | 7.2 | −10.2 | 6.2 | 6.00 | 1.00 | 1.00 | 1.00 | Übergangskehle (tief in der runden Unterseite) |
+| 1 | 8.4 | −12.4 | 6.0 | 5.80 | 1.00 | 1.00 | 1.00 | innerer Kragen |
+| 2 | 9.6 | −15.0 | 5.9 | 5.45 | 1.00 | 1.00 | 1.00 | äußerer Kragen – Durchbruch durch die Wand |
+| 3 | 10.6 | −18.4 | 5.9 | 5.00 | 1.00 | 1.00 | 1.00 | Hüfte |
+| 4 | 11.0 | −24.0 | 6.6 | 4.80 | 1.00 | 1.00 | 1.00 | Oberschenkel |
+| 5 | 11.4 | −30.5 | 7.4 | 4.60 | 1.00 | 1.00 | 1.00 | **Knie** (angewinkelt) |
+| 6 | 11.5 | −37.0 | 5.3 | 4.10 | 1.00 | 1.00 | 1.00 | Schienbein |
+| 7 | 11.5 | −41.4 | 4.3 | 3.00 | 1.00 | 0.95 | 1.00 | **Knöchel** – schlanke Taille |
+| 8 | 11.5 | −44.4 | 3.05 | 3.40 | 1.05 | 1.00 | 1.00 | **Ferse** – taucht unter den Tisch, wird abgeschnitten |
+| 9 | 11.5 | −45.6 | 8.6 | 3.40 | 1.15 | 0.80 | 0.95 | Fußballen – breit, aber flacher |
+| 10 | 11.5 | −45.9 | 11.4 | 2.60 | 1.18 | 0.60 | 0.75 | Zehen – schmal auslaufender Keil |
+
+### Fußform
+
+Referenz: Nutzerfoto eines Fußes im Profil (liegendes Bein, Ferse am Boden).
+Daraus abgeleitet und als Designentscheidung umgesetzt:
+
+- Der Fuß ist **kein senkrechter Zylinder** mehr, sondern eine L-Form:
+  Schienbein → schlanker Knöchel → Ferse am Boden → Fuß steigt nach vorn-oben
+  → Zehen.
+- Der Querschnitt ist ab dem Knöchel **nicht mehr rund**. Die drei
+  Skalierungsfaktoren `sx, sy, sz` je Knoten verformen die Sweep-Kugel zum
+  Ellipsoid: quer breiter (`sx` bis 1.18), in Gehrichtung dünner (`sy` bis
+  0.60). Das ergibt die Verjüngung eines echten Fußes.
+- Nicht verwechseln mit „oben flach drücken": ein gleichmäßig gestauchter
+  Zehenballen sieht aus, als wäre etwas daraufgefallen. Der Radius muss zur
+  Spitze hin **abnehmen** (3.40 → 2.60), nur dann liest es sich als Zehen.
 
 Kragen tritt 4.88 mm aus der Korpuswand aus. Die Radienstaffelung
 5.00 → 5.45 → 5.80 → 6.00 wächst zum Körper hin **beschleunigt**; genau das
 erzeugt den konkaven, fließenden Übergang statt einer aufgesetzten Kugel.
 
 Spline-Parameter: `SPLINE_SAMPLES = 8` Stützstellen je Knotenintervall,
-`SPHERE_SUBDIV = 3`. Radien werden auf den Eingangsbereich geklemmt, sonst
-überschwingt die Spline an der scharfen Knöchelbiegung.
+`SPHERE_SUBDIV = 3`. Radien **und** Skalierungsfaktoren werden auf den
+Eingangsbereich geklemmt, sonst überschwingt die Spline an der scharfen
+Knöchelbiegung.
 
 Alle Werte sind Designentscheidungen. `limb_check()` im Generator meldet, wie
 tief die Spline unter die Tischebene taucht (muss 0 sein, sonst schwebt der
@@ -163,6 +206,18 @@ echte Kehlen.
 | `BLEND_EROSION` | 0.08 mm | hält den Blend abseits der Kehlen im Mesh |
 | `BLEND_PITCH` | 0.30 mm | Marching-Cubes-Raster |
 
+Ein Gitterpunkt, der exakt auf der Iso-Fläche liegt, erzeugt einen
+nicht-manifolden Pinch-Punkt, den manifold3d mit *„Not all meshes are
+volumes!"* ablehnt. `blend_solid()` wiederholt den Marching-Cubes-Schritt
+deshalb mit leicht verschobenem Level, bis die Fläche ein sauberes Volumen ist.
+Die Offsets sind bewusst **nur nicht-negativ**: ein positives Level erodiert
+zusätzlich (immer unbedenklich), ein negatives würde den Blend aufweiten und
+in die Eiermulde fressen – verifiziert mit 5.6 mm³ Materialeintrag.
+
+Volumenprobe gegen die Mulde: 2.2 mm³ beim exakten Prüfkörper, **0.0 mm³**
+bei 0.05 mm geschrumpftem Prüfkörper – reine Oberflächentoleranz des
+Marching-Cubes-Netzes, kein echtes Eindringen.
+
 Zusatzvolumen durch die Kehlen: 18 438 → 18 758 mm³ (+320 mm³).
 Die Kehle an der Schulter hebt den Becherrand lokal um 0.16 mm an
 (Gesamthöhe 22.07 → 22.23 mm).
@@ -174,8 +229,13 @@ Abhängigkeit: `scikit-image` (Marching Cubes) in `requirements.txt`.
 `python scripts/mesh_tool.py validate models/egg-cup-man-body.stl`
 
 Aktueller Stand: watertight, manifold, `euler_number` 2, 1 Komponente,
-0 degenerierte Facetten, 101 030 Facetten,
-Bauraum 67.9 × 71.9 × 22.2 mm (passt auf 250 × 250 mm).
+104 544 Facetten, Bauraum 67.9 × 71.6 × 22.2 mm (passt auf 250 × 250 mm).
+
+Das Netz enthält 4 Splitter-Dreiecke mit ~3·10⁻¹³ mm² Fläche aus dem
+Marching-Cubes-Schritt. Sie sind **topologisch notwendig**: entfernt man sie
+nach Fläche, fällt das Netz auf `euler_number` −33 und ist nicht mehr
+wasserdicht (verifiziert). `mesh_tool validate` meldet PASS, Slicer stören sie
+nicht – also stehen lassen.
 
 ## TODO nach Testdruck
 

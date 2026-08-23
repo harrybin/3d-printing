@@ -164,7 +164,10 @@ def build_cavity(margin: float = CAVITY_MARGIN) -> trimesh.Trimesh:
 # ---------------------------------------------------------------------------
 # Humanoid limbs - parametric sphere sweeps with real joints
 # ---------------------------------------------------------------------------
-# Each limb is a chain of nodes (x, y, z, radius) in body coordinates:
+# Each limb is a chain of nodes (x, y, z, radius, sx, sy, sz) in body
+# coordinates.  The three scale factors turn the swept sphere into an ellipsoid;
+# they are what makes the toe pad flat and wide instead of a round dome.  For a
+# plain round section all three are 1.0.  Body coordinates are:
 # the body axis is at the origin, the table is z = 0 and the figure looks
 # towards -Y.  The chain is resampled with a Catmull-Rom spline (positions and
 # radii) and then swept with spheres, so joints read as smooth bends instead of
@@ -176,43 +179,48 @@ def build_cavity(margin: float = CAVITY_MARGIN) -> trimesh.Trimesh:
 # makes the transition to the body look faired instead of glued on.
 
 ARM_NODES = [
-    (20.6, 0.0, 15.2, 5.0),    # root flare - buried in the cup wall
-    (23.6, -0.2, 14.8, 4.4),   # collar - breaks through the wall
-    (26.6, -1.0, 13.2, 3.8),   # shoulder
-    (30.4, -3.0, 9.8, 3.4),    # elbow
-    (30.2, -5.5, 6.0, 3.0),    # forearm - drops almost vertically
-    (29.6, -7.0, 3.6, 2.8),    # wrist
-    (29.2, -8.5, 3.2, 3.2),    # hand - props on the table
+    (20.6, 0.0, 15.2, 5.0, 1.0, 1.0, 1.0),    # root flare - buried in the wall
+    (23.6, -0.2, 14.8, 4.4, 1.0, 1.0, 1.0),   # collar - breaks through the wall
+    (26.6, -1.0, 13.2, 3.8, 1.0, 1.0, 1.0),   # shoulder
+    (30.4, -3.0, 9.8, 3.4, 1.0, 1.0, 1.0),    # elbow
+    (30.2, -5.5, 6.0, 3.0, 1.0, 1.0, 1.0),    # forearm - nearly vertical
+    (29.6, -7.0, 3.6, 2.8, 1.00, 1.00, 1.00),   # wrist
+    (29.2, -8.5, 2.45, 3.3, 1.10, 1.00, 0.85),  # palm - flattened, rests flat
 ]
 
 LEG_NODES = [
-    (7.2, -10.2, 6.2, 6.0),    # root flare - buried in the rounded lower body
-    (8.4, -12.4, 6.0, 5.8),    # inner collar
-    (9.6, -15.0, 5.9, 5.45),   # outer collar - breaks through the wall
-    (10.6, -18.4, 5.9, 5.0),   # hip
-    (11.0, -24.0, 6.6, 4.8),   # thigh rising towards the knee
-    (11.4, -30.5, 7.4, 4.6),   # knee - the bend of the sitting pose
-    (11.5, -37.0, 5.3, 4.1),   # shin dropping back to the table
-    (11.5, -42.5, 3.8, 3.6),   # ankle
-    (11.5, -44.0, 8.0, 4.2),   # instep - the foot stands upright
-    (11.5, -44.3, 12.5, 4.4),  # toe cap
+    (7.2, -10.2, 6.2, 6.0, 1.0, 1.0, 1.0),    # root flare - deep in the body
+    (8.4, -12.4, 6.0, 5.8, 1.0, 1.0, 1.0),    # inner collar
+    (9.6, -15.0, 5.9, 5.45, 1.0, 1.0, 1.0),   # outer collar
+    (10.6, -18.4, 5.9, 5.0, 1.0, 1.0, 1.0),   # hip
+    (11.0, -24.0, 6.6, 4.8, 1.0, 1.0, 1.0),   # thigh rising to the knee
+    (11.4, -30.5, 7.4, 4.6, 1.0, 1.0, 1.0),   # knee - bend of the sitting pose
+    (11.5, -37.0, 5.3, 4.1, 1.00, 1.00, 1.00),   # shin dropping to the table
+    (11.5, -41.4, 4.3, 3.0, 1.00, 0.95, 1.00),   # ankle - visible waist
+    (11.5, -44.4, 3.05, 3.4, 1.05, 1.00, 1.00),  # heel - dips below the table
+    (11.5, -45.6, 8.6, 3.4, 1.15, 0.80, 0.95),   # ball of the foot
+    (11.5, -45.9, 11.4, 2.6, 1.18, 0.60, 0.75),  # toes - narrow, thin wedge
 ]
 
 SPHERE_SUBDIV = 3  # icosphere subdivisions used for the limb sweeps
 SPLINE_SAMPLES = 8  # spline samples per node interval
 
 
-def _sphere(centre, radius: float) -> trimesh.Trimesh:
-    s = trimesh.creation.icosphere(subdivisions=SPHERE_SUBDIV, radius=radius)
-    s.apply_translation(np.asarray(centre, dtype=float))
+def _blob(node) -> trimesh.Trimesh:
+    """Ellipsoid for one splined node ``(x, y, z, r, sx, sy, sz)``."""
+    s = trimesh.creation.icosphere(subdivisions=SPHERE_SUBDIV,
+                                   radius=float(node[3]))
+    s.apply_scale([float(node[4]), float(node[5]), float(node[6])])
+    s.apply_translation(np.asarray(node[:3], dtype=float))
     return s
 
 
 def spline_nodes(nodes, samples: int = SPLINE_SAMPLES) -> np.ndarray:
-    """Catmull-Rom resampling of a limb chain, radii included.
+    """Catmull-Rom resampling of a limb chain, radii and scales included.
 
-    Radii are clipped to the input range so the spline cannot overshoot into a
-    negative or ballooning radius at a sharp bend (the ankle in particular).
+    Radii and scale factors are clipped to their input range so the spline
+    cannot overshoot into a negative or ballooning section at a sharp bend (the
+    ankle in particular).
     """
     P = np.asarray(nodes, dtype=float)
     ext = np.vstack([2.0 * P[0] - P[1], P, 2.0 * P[-1] - P[-2]])
@@ -229,7 +237,8 @@ def spline_nodes(nodes, samples: int = SPLINE_SAMPLES) -> np.ndarray:
     out.append(P[-1])
 
     res = np.asarray(out, dtype=float)
-    res[:, 3] = np.clip(res[:, 3], P[:, 3].min(), P[:, 3].max())
+    for col in range(3, 7):
+        res[:, col] = np.clip(res[:, col], P[:, col].min(), P[:, col].max())
     return res
 
 
@@ -239,22 +248,40 @@ def limb_segments(nodes, sign: int) -> list:
     pts[:, 0] *= sign
     segments = []
     for a, b in zip(pts[:-1], pts[1:]):
-        pair = trimesh.util.concatenate([_sphere(a[:3], a[3]), _sphere(b[:3], b[3])])
+        pair = trimesh.util.concatenate([_blob(a), _blob(b)])
         segments.append(pair.convex_hull)
     return segments
 
 
+GROUND_SINK = 0.60  # how far a limb may dip below the table before it is cut
+
+
+def build_ground_cutter() -> trimesh.Trimesh:
+    """Half space below the table, used to give heels and palms a flat sole."""
+    cut = trimesh.creation.box(extents=(400.0, 400.0, 200.0))
+    cut.apply_translation([0.0, 0.0, -100.0])
+    return cut
+
+
 def limb_check(nodes, name: str) -> None:
-    """Warn if the splined limb dips below the table or misses the body."""
+    """Report ground contact, cavity intrusion and collar protrusion."""
     pts = spline_nodes(nodes)
-    worst = float(np.min(pts[:, 2] - pts[:, 3]))
-    if worst < -0.01:
-        print(f"  WARNING {name}: spline sinks {-worst:.2f} mm below the table")
+    sink = -float(np.min(pts[:, 2] - pts[:, 3] * pts[:, 6]))
+    if sink > GROUND_SINK:
+        print(f"  WARNING {name}: spline sinks {sink:.2f} mm below the table "
+              f"- more than GROUND_SINK, the contact patch gets too large")
+    elif sink > 0.0:
+        print(f"  {name}: dips {sink:.2f} mm below the table "
+              f"- cut off into a flat contact patch")
+    else:
+        print(f"  WARNING {name}: never reaches the table "
+              f"({-sink:.2f} mm of air) - it will not support the figure")
 
     intrusion = 0.0
-    for x, y, z, r in pts:
+    for x, y, z, r, sx, sy, _sz in pts:
         if CAV_FLOOR_Z <= z <= RIM_Z:
-            gap = float(cavity_radius(z)) - (float(np.hypot(x, y)) - r)
+            rad = r * max(sx, sy)
+            gap = float(cavity_radius(z)) - (float(np.hypot(x, y)) - rad)
             intrusion = max(intrusion, gap)
     if intrusion > 0.0:
         print(f"  note {name}: reaches {intrusion:.2f} mm into the cavity "
@@ -262,12 +289,13 @@ def limb_check(nodes, name: str) -> None:
 
     root = nodes[0]
     protrusion = -np.inf
-    for x, y, z, r in pts:
+    for x, y, z, r, sx, sy, _sz in pts:
         z_cap = min(float(z), BELLY_TOP_Z)
         wall = float(belly_radius(z_cap)) if z < BELLY_TOP_Z else CUP_R
         if float(np.hypot(x, y)) > wall:
             break  # past the wall - this is the free limb, not the collar
-        protrusion = max(protrusion, float(np.hypot(x, y)) + r - wall)
+        protrusion = max(protrusion,
+                         float(np.hypot(x, y)) + r * max(sx, sy) - wall)
     print(f"  {name} root: flare R={root[3]:.2f}, "
           f"collar sticks out {protrusion:+.2f} mm past the body wall")
 
@@ -280,6 +308,10 @@ def assemble(body, limbs) -> trimesh.Trimesh:
     """Trim the limbs against the egg cavity, union, then add the fillets."""
     limb_solid = tb.union(limbs, engine="manifold")
     limb_solid = tb.difference([limb_solid, build_cavity()], engine="manifold")
+    # heels and palms are modelled slightly *below* the table and then cut off,
+    # so they end in a real flat contact patch instead of touching in a point
+    limb_solid = tb.difference([limb_solid, build_ground_cutter()],
+                               engine="manifold")
 
     figure = tb.union([body, limb_solid], engine="manifold")
 
@@ -287,6 +319,16 @@ def assemble(body, limbs) -> trimesh.Trimesh:
     figure = tb.union([figure, fillet], engine="manifold")
     figure.merge_vertices()
     figure.fix_normals()
+
+    # the marching-cubes surface can leave a single zero-area triangle behind;
+    # drop it, but only if the mesh survives it
+    if figure.faces.shape[0] != figure.nondegenerate_faces().sum():
+        clean = figure.copy()
+        clean.update_faces(clean.nondegenerate_faces())
+        clean.merge_vertices()
+        clean.fix_normals()
+        if clean.is_watertight and clean.euler_number == 2:
+            figure = clean
 
     # drop the whole figure onto the bed and centre it in XY
     figure.apply_translation([0.0, 0.0, -float(figure.bounds[0][2])])
@@ -324,14 +366,17 @@ def build_fillet(bounds: np.ndarray) -> trimesh.Trimesh:
         for nodes in (ARM_NODES, LEG_NODES):
             pts = spline_nodes(nodes).copy()
             pts[:, 0] *= sign
-            limb_nodes.append(pts)
+            # the blend field only knows round capsules; use the *inscribed*
+            # radius so a flattened section (the toe pad) is never re-inflated
+            pts[:, 3] *= pts[:, 4:7].min(axis=1)
+            limb_nodes.append(pts[:, :4])
 
     fillet = sdf_blend.blend_solid(body_sdf, cavity_sdf, limb_nodes, bounds,
                                    BLEND_RADIUS, BLEND_EROSION, BLEND_PITCH)
+    # A closed marching-cubes surface may still report a pinch point; blend_solid
+    # already retries at nudged iso levels until it is a proper volume.
     print(f"  fillet mesh: {len(fillet.faces)} facets, "
           f"watertight={fillet.is_watertight}, bodies={fillet.body_count}")
-    if not fillet.is_watertight:
-        raise RuntimeError("blend surface is open - grid does not enclose it")
     return fillet
 
 
