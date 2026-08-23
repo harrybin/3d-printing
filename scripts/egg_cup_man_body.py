@@ -25,10 +25,15 @@ Print orientation: as generated - the figure already sits flat on the bed.
 """
 
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import numpy as np
 import trimesh
 import trimesh.boolean as tb
+
+import sdf_blend
 
 # ---------------------------------------------------------------------------
 # Measured original dimensions (all mm) - high confidence, read from the STL
@@ -171,9 +176,9 @@ def build_cavity(margin: float = CAVITY_MARGIN) -> trimesh.Trimesh:
 # makes the transition to the body look faired instead of glued on.
 
 ARM_NODES = [
-    (20.6, 0.0, 16.0, 5.0),    # root flare - buried in the cup wall
-    (23.6, -0.2, 15.4, 4.4),   # collar - breaks through the wall
-    (26.6, -1.0, 13.6, 3.8),   # shoulder
+    (20.6, 0.0, 15.2, 5.0),    # root flare - buried in the cup wall
+    (23.6, -0.2, 14.8, 4.4),   # collar - breaks through the wall
+    (26.6, -1.0, 13.2, 3.8),   # shoulder
     (30.4, -3.0, 9.8, 3.4),    # elbow
     (30.2, -5.5, 6.0, 3.0),    # forearm - drops almost vertically
     (29.6, -7.0, 3.6, 2.8),    # wrist
@@ -272,11 +277,14 @@ def limb_check(nodes, name: str) -> None:
 # ---------------------------------------------------------------------------
 
 def assemble(body, limbs) -> trimesh.Trimesh:
-    """Trim the limbs against the egg cavity, then union everything."""
+    """Trim the limbs against the egg cavity, union, then add the fillets."""
     limb_solid = tb.union(limbs, engine="manifold")
     limb_solid = tb.difference([limb_solid, build_cavity()], engine="manifold")
 
     figure = tb.union([body, limb_solid], engine="manifold")
+
+    fillet = build_fillet(figure.bounds)
+    figure = tb.union([figure, fillet], engine="manifold")
     figure.merge_vertices()
     figure.fix_normals()
 
@@ -285,6 +293,46 @@ def assemble(body, limbs) -> trimesh.Trimesh:
     centre = figure.bounds.mean(axis=0)
     figure.apply_translation([-centre[0], -centre[1], 0.0])
     return figure
+
+
+# ---------------------------------------------------------------------------
+# Faired junctions
+# ---------------------------------------------------------------------------
+# A union always leaves a crease where two surfaces cross.  The fillet solid is
+# a marching-cubes mesh of smin(body, limbs) that has been eroded by
+# BLEND_EROSION: away from the junctions it lies just inside the exact surface
+# and adds nothing, at the junctions it bulges out and supplies the fairing.
+
+BLEND_RADIUS = 4.00  # smooth-minimum radius - size of the fillet
+BLEND_EROSION = 0.08  # keeps the blend inside the exact surfaces elsewhere
+BLEND_PITCH = 0.30  # marching-cubes voxel size
+
+
+def build_fillet(bounds: np.ndarray) -> trimesh.Trimesh:
+    # the tables must span the whole grid, otherwise map_coordinates clamps and
+    # invents solid material out at the hands and feet
+    r_max = float(np.hypot(np.abs(bounds[:, 0]).max(),
+                           np.abs(bounds[:, 1]).max())) + 6.0
+    body_sdf = sdf_blend.RevolveSDF(body_profile(), r_max,
+                                    bounds[0][2] - 6.0, bounds[1][2] + 6.0)
+    cavity_sdf = sdf_blend.RevolveSDF(cavity_profile(0.0), r_max,
+                                      bounds[0][2] - 6.0,
+                                      RIM_Z + CAVITY_CLEAR_H + 6.0)
+
+    limb_nodes = []
+    for sign in (+1, -1):
+        for nodes in (ARM_NODES, LEG_NODES):
+            pts = spline_nodes(nodes).copy()
+            pts[:, 0] *= sign
+            limb_nodes.append(pts)
+
+    fillet = sdf_blend.blend_solid(body_sdf, cavity_sdf, limb_nodes, bounds,
+                                   BLEND_RADIUS, BLEND_EROSION, BLEND_PITCH)
+    print(f"  fillet mesh: {len(fillet.faces)} facets, "
+          f"watertight={fillet.is_watertight}, bodies={fillet.body_count}")
+    if not fillet.is_watertight:
+        raise RuntimeError("blend surface is open - grid does not enclose it")
+    return fillet
 
 
 # ---------------------------------------------------------------------------

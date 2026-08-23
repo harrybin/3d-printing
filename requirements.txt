@@ -2,6 +2,7 @@ trimesh
 manifold3d
 numpy
 scipy
+scikit-image
 networkx
 pillow
 matplotlib

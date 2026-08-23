@@ -67,15 +67,16 @@ fließenden Kragen bildet.
 
 | Knoten | x | y | z | Radius | Bedeutung |
 | --- | ---: | ---: | ---: | ---: | --- |
-| 0 | 20.6 | 0.0 | 16.0 | 5.0 | Übergangskehle (tief in der Becherwand) |
-| 1 | 23.6 | −0.2 | 15.4 | 4.4 | Kragen – Durchbruch durch die Wand |
-| 2 | 26.6 | −1.0 | 13.6 | 3.8 | Schulter |
+| 0 | 20.6 | 0.0 | 15.2 | 5.0 | Übergangskehle (tief in der Becherwand) |
+| 1 | 23.6 | −0.2 | 14.8 | 4.4 | Kragen – Durchbruch durch die Wand |
+| 2 | 26.6 | −1.0 | 13.2 | 3.8 | Schulter |
 | 3 | 30.4 | −3.0 | 9.8 | 3.4 | **Ellbogen** |
 | 4 | 30.2 | −5.5 | 6.0 | 3.0 | Unterarm (fällt nahezu senkrecht) |
 | 5 | 29.6 | −7.0 | 3.6 | 2.8 | Handgelenk |
 | 6 | 29.2 | −8.5 | 3.2 | 3.2 | Hand – stützt auf dem Tisch ab |
 
-Kragen tritt 4.46 mm aus der Becherwand aus.
+Kragen tritt 4.46 mm aus der Becherwand aus. Die Schulter liegt bewusst tief
+(z ≤ 15.2), damit die Verrundung (siehe unten) den Becherrand nicht anhebt.
 
 Alle Werte sind Designentscheidungen (Konfidenz: n/a, keine Passmaße). Die
 linke Seite entsteht durch Spiegeln von `x`.
@@ -127,12 +128,54 @@ Muldenoberfläche und liefert ein nicht wasserdichtes Mesh (`euler_number` 37,
 Volumenprobe (`intersection(Gliedmaßen, Mulde)`):
 ungeschnitten 333.6 mm³ → nach dem Schnitt **0.0 mm³**.
 
+## Verrundung der Anbindungen (SDF-Fillet)
+
+Eine boolesche Vereinigung hinterlässt an der Schnittkurve **immer** eine harte
+Kante. Kein Kragen und keine Radienstaffelung kann das beheben – dafür braucht
+es einen echten konkaven Fillet, und der lässt sich nur implizit erzeugen.
+
+`scripts/sdf_blend.py` baut deshalb ein Distanzfeld:
+
+1. Korpus und Mulde sind Rotationskörper, ihre SDF hängt nur von `(r, z)` ab.
+   `RevolveSDF` legt dafür eine 2D-Tabelle mit 0.15 mm Raster an und
+   interpoliert bilinear (Fehler ≈ 0.005 mm).
+2. Die ≈240 Kapseln einer Gliedmaße werden mit einem **harten** `np.minimum`
+   verknüpft. Das ist entscheidend: ein `smin` zwischen zwei Kapseln derselben
+   Gliedmaße bläht sie über ihre ganze Länge um bis zu `BLEND_RADIUS/4` auf.
+3. `smin` wird genau **einmal** angewendet – zwischen Korpusfeld und fertigem
+   Gliedmaßenfeld. Nur dort entsteht die Kehle.
+4. Das Feld wird um `BLEND_EROSION` erodiert. Abseits der Anbindungen liegt der
+   Blend-Körper dadurch knapp **innerhalb** des exakten Meshes und trägt nichts
+   bei; an den Anbindungen wölbt sich die Kehle weiter heraus und liefert die
+   Verrundung.
+5. Die Mulde wird **um denselben Betrag geweitet** wieder abgezogen, damit der
+   Blend die Eiermulde nie verkleinern kann.
+6. Das Feld wird bei `z = 0` gekappt – die Kehle wölbt sich sonst bis 0.83 mm
+   unter die Tischebene und hebt beim Absenken auf z = 0 die ganze Figur an.
+
+Ergebnis: `figure = union(exaktes Mesh, Blend-Körper)`. Becherwand,
+Randverrundung und Eiermulde bleiben exakt erhalten, die Anbindungen bekommen
+echte Kehlen.
+
+| Parameter | Wert | Zweck |
+| --- | ---: | --- |
+| `BLEND_RADIUS` | 4.00 mm | Reichweite der Kehle |
+| `BLEND_EROSION` | 0.08 mm | hält den Blend abseits der Kehlen im Mesh |
+| `BLEND_PITCH` | 0.30 mm | Marching-Cubes-Raster |
+
+Zusatzvolumen durch die Kehlen: 18 438 → 18 758 mm³ (+320 mm³).
+Die Kehle an der Schulter hebt den Becherrand lokal um 0.16 mm an
+(Gesamthöhe 22.07 → 22.23 mm).
+
+Abhängigkeit: `scikit-image` (Marching Cubes) in `requirements.txt`.
+
 ## Validierung
 
 `python scripts/mesh_tool.py validate models/egg-cup-man-body.stl`
 
 Aktueller Stand: watertight, manifold, `euler_number` 2, 1 Komponente,
-0 degenerierte Facetten, Bauraum 67.9 × 71.9 × 22.1 mm (passt auf 250 × 250 mm).
+0 degenerierte Facetten, 101 030 Facetten,
+Bauraum 67.9 × 71.9 × 22.2 mm (passt auf 250 × 250 mm).
 
 ## TODO nach Testdruck
 
