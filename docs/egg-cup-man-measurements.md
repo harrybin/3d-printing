@@ -63,12 +63,12 @@ zweier Kugeln verbunden, die gemeinsame Kugel bleibt als Gelenk sichtbar.
 
 | Knoten | x | y | z | Radius | Bedeutung |
 | --- | ---: | ---: | ---: | ---: | --- |
-| 1 | 21.0 | 0.0 | 17.8 | 4.2 | Schulter (in der Becherwand) |
-| 2 | 26.5 | −0.5 | 14.5 | 3.4 | Oberarm |
-| 3 | 29.8 | −2.5 | 9.5 | 3.5 | **Ellbogen** |
-| 4 | 29.0 | −8.0 | 5.5 | 2.9 | Unterarm |
-| 5 | 27.2 | −13.0 | 3.4 | 2.7 | Handgelenk |
-| 6 | 26.2 | −16.0 | 3.6 | 3.5 | Hand |
+| 1 | 25.4 | 0.0 | 17.8 | 4.0 | Schulter (nur in der Wand, nicht in der Mulde) |
+| 2 | 28.4 | −0.5 | 14.5 | 3.3 | Oberarm |
+| 3 | 31.2 | −2.5 | 9.5 | 3.4 | **Ellbogen** |
+| 4 | 30.4 | −8.0 | 5.5 | 2.9 | Unterarm |
+| 5 | 28.4 | −13.0 | 3.4 | 2.7 | Handgelenk |
+| 6 | 27.4 | −16.0 | 3.6 | 3.5 | Hand |
 
 Alle Werte sind Designentscheidungen (Konfidenz: n/a, keine Passmaße). Die
 linke Seite entsteht durch Spiegeln von `x`. Der Schulterknoten liegt innerhalb
@@ -87,15 +87,34 @@ der Becherwand, damit die Boolean-Union eine geschlossene Naht ergibt.
 | 7 | 11.4 | −44.3 | 12.5 | 4.4 | Fußspitze |
 
 Alle Werte sind Designentscheidungen. `limb_check()` im Generator prüft, dass
-kein Knoten unter die Tischebene sinkt und dass der Wurzelknoten innerhalb der
-Korpuswand liegt.
+kein Knoten unter die Tischebene sinkt und dass der Wurzelknoten die Korpuswand
+erreicht.
+
+## Freihalten der Eiermulde
+
+Die Gliedmaßen dürfen nicht in den Ei-Hohlraum hineinragen. Dafür wird ein
+Rotationskörper der Mulde (`build_cavity()`) erzeugt und **von den Gliedmaßen**
+abgezogen, bevor sie mit dem Korpus vereinigt werden.
+
+| Parameter | Wert | Zweck |
+| --- | ---: | --- |
+| `CAVITY_MARGIN` | 0.20 mm | Übermaß des Cutters – verhindert koplanare Flächen |
+| `CAVITY_CLEAR_H` | 5.00 mm | Reichweite des Cutters über den Rand hinaus |
+
+Der Cutter wird bewusst **nur** auf die Gliedmaßen angewendet. Ein Abzug vom
+fertigen Körper erzeugt koplanare Flächen mit der bereits vorhandenen
+Muldenoberfläche und liefert ein nicht wasserdichtes Mesh (`euler_number` 37,
+70 degenerierte Facetten – verifiziert).
+
+Volumenprobe (`intersection(Gliedmaßen, Mulde)`):
+ungeschnitten 333.6 mm³ → nach dem Schnitt **0.0 mm³**.
 
 ## Validierung
 
 `python scripts/mesh_tool.py validate models/egg-cup-man-body.stl`
 
 Aktueller Stand: watertight, manifold, `euler_number` 2, 1 Komponente,
-0 degenerierte Facetten, Bauraum 66.6 × 71.9 × 22.1 mm (passt auf 250 × 250 mm).
+0 degenerierte Facetten, Bauraum 69.2 × 71.9 × 22.1 mm (passt auf 250 × 250 mm).
 
 ## TODO nach Testdruck
 

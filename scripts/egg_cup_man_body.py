@@ -131,6 +131,31 @@ def build_body() -> trimesh.Trimesh:
     return body
 
 
+CAVITY_CLEAR_H = 5.0  # how far the cavity cutter reaches above the rim
+CAVITY_MARGIN = 0.20  # cutter oversize, keeps limbs clear of the cavity wall
+
+
+def cavity_profile(margin: float = CAVITY_MARGIN) -> np.ndarray:
+    """Closed (r, z) profile of the egg cavity as a *solid* cutter.
+
+    The cutter is used on the limbs only, never on the body, and is grown by
+    ``margin`` so no limb surface ends up coplanar with the cavity wall.
+    """
+    pts: list[tuple[float, float]] = [(0.0, CAV_FLOOR_Z - margin)]
+    for z in np.linspace(CAV_FLOOR_Z - margin, RIM_Z, ARC_STEPS):
+        pts.append((float(cavity_radius(z)) + margin, float(z)))
+    pts.append((CAV_A + margin, RIM_Z + CAVITY_CLEAR_H))
+    pts.append((0.0, RIM_Z + CAVITY_CLEAR_H))
+    return np.asarray(pts, dtype=float)
+
+
+def build_cavity(margin: float = CAVITY_MARGIN) -> trimesh.Trimesh:
+    cav = trimesh.creation.revolve(cavity_profile(margin), sections=SEGMENTS)
+    cav.merge_vertices()
+    cav.fix_normals()
+    return cav
+
+
 # ---------------------------------------------------------------------------
 # Humanoid limbs - parametric sphere sweeps with real joints
 # ---------------------------------------------------------------------------
@@ -142,12 +167,12 @@ def build_body() -> trimesh.Trimesh:
 # ankle).  Radii are chosen so the limbs rest on the table without floating.
 
 ARM_NODES = [
-    (21.0, 0.0, 17.8, 4.2),    # shoulder - sunk into the cup wall
-    (26.5, -0.5, 14.5, 3.4),   # upper arm
-    (29.8, -2.5, 9.5, 3.5),    # elbow
-    (29.0, -8.0, 5.5, 2.9),    # forearm
-    (27.2, -13.0, 3.4, 2.7),   # wrist
-    (26.2, -16.0, 3.6, 3.5),   # hand
+    (25.4, 0.0, 17.8, 4.0),    # shoulder - bites into the wall, not the cavity
+    (28.4, -0.5, 14.5, 3.3),   # upper arm
+    (31.2, -2.5, 9.5, 3.4),    # elbow
+    (30.4, -8.0, 5.5, 2.9),    # forearm
+    (28.4, -13.0, 3.4, 2.7),   # wrist
+    (27.4, -16.0, 3.6, 3.5),   # hand
 ]
 
 LEG_NODES = [
@@ -180,16 +205,23 @@ def limb_segments(nodes, sign: int) -> list:
 
 
 def limb_check(nodes, name: str) -> None:
-    """Warn if a limb node floats above the table or misses the body."""
+    """Warn if a limb node floats above the table, misses the body or would
+    poke into the egg cavity."""
     for x, y, z, r in nodes:
         if z - r < -0.01:
             print(f"  WARNING {name}: node z={z} r={r} sinks below the table")
-    hip = nodes[0]
-    z_cap = min(hip[2], BELLY_TOP_Z)
-    wall = float(belly_radius(z_cap)) if hip[2] < BELLY_TOP_Z else CUP_R
-    dist = float(np.hypot(hip[0], hip[1]))
-    if dist >= wall:
-        print(f"  WARNING {name}: root at r={dist:.2f} is outside the wall r={wall:.2f}")
+        if CAV_FLOOR_Z <= z <= RIM_Z:
+            reach = float(np.hypot(x, y)) - r
+            cav = float(cavity_radius(z))
+            if reach < cav:
+                print(f"  note {name}: node at z={z} reaches r={reach:.2f} "
+                      f"into the cavity (r={cav:.2f}) - trimmed by the cavity cut")
+    root = nodes[0]
+    z_cap = min(root[2], BELLY_TOP_Z)
+    wall = float(belly_radius(z_cap)) if root[2] < BELLY_TOP_Z else CUP_R
+    dist = float(np.hypot(root[0], root[1]))
+    if dist - root[3] >= wall:
+        print(f"  WARNING {name}: root does not reach the wall (r={wall:.2f})")
 
 
 # ---------------------------------------------------------------------------
@@ -197,8 +229,11 @@ def limb_check(nodes, name: str) -> None:
 # ---------------------------------------------------------------------------
 
 def assemble(body, limbs) -> trimesh.Trimesh:
-    """Union body and all limb segments into one watertight figure."""
-    figure = tb.union([body, *limbs], engine="manifold")
+    """Trim the limbs against the egg cavity, then union everything."""
+    limb_solid = tb.union(limbs, engine="manifold")
+    limb_solid = tb.difference([limb_solid, build_cavity()], engine="manifold")
+
+    figure = tb.union([body, limb_solid], engine="manifold")
     figure.merge_vertices()
     figure.fix_normals()
 
