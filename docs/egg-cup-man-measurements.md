@@ -2,15 +2,15 @@
 
 Quelle: https://www.printables.com/model/1631406-funny-egg-cup-man-with-legs-cute-breakfast-egg-holder  
 Modell-ID: 1631406  
-Status: Maße sind **Schätzungen** aus dem Kontext des Originals; kein direkter Zugriff auf STL-Dateien.  
-Alle Werte müssen durch einen Testdruck bestätigt und dann hier aktualisiert werden.
+Status: Körper-STL liegt vor (`models/egg-cup-man-body.stl`); Außenmaße aus Mesh-Bounds entnommen.  
+Innenmaße (Ei-Aufnahme, Zapfen) sind weiterhin Schätzungen und müssen durch Testdruck bestätigt werden.
 
 ## Korpus (Body)
 
 | Merkmal | Maß (mm) | Quelle | Konfidenz |
 | --- | ---: | --- | --- |
-| Gesamthöhe Korpus | 65 | Schätzung aus typischem Eierbecher-Maßstab | niedrig |
-| Max. Außendurchmesser (Mitte) | 50 | Schätzung | niedrig |
+| Gesamthöhe Korpus | 60 | STL Bounds (Z-Extent) | hoch |
+| Max. Außendurchmesser (Mitte) | 50 | STL Bounds (X/Y-Extent) | hoch |
 | Ei-Aufnahme Innendurchmesser oben | 38 | Standard-Eierbecher (Hühnerei ⌀ ~42 mm, Spielraum) | mittel |
 | Ei-Aufnahme Tiefe | 22 | Schätzung | niedrig |
 | Wandstärke Becher | 3.0 | FDM-Richtwert | mittel |
@@ -24,7 +24,7 @@ Alle Werte müssen durch einen Testdruck bestätigt und dann hier aktualisiert w
 | Arm-Zapfen-Durchmesser | 6.0 | Schätzung | niedrig |
 | Arm-Zapfen-Tiefe (Eingriff) | 6.0 | Schätzung | niedrig |
 | Arm-Zapfen Z-Höhe (ab Korpusboden) | 42 | ca. 2/3 der Körperhöhe | niedrig |
-| Seitlicher Versatz (Mitte Korpus) | 25 | Hälfte des max. Durchmessers | niedrig |
+| Seitlicher Versatz (Mitte Korpus) | 25 | STL Bounds (X-Halbbreite) | hoch |
 | Press-Fit Spiel | 0.20 | Standard-Profil 0.4 mm Düse | mittel |
 
 ## Beine
