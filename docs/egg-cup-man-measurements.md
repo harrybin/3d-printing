@@ -1,8 +1,10 @@
 # Egg-Cup Man – Maßdokumentation
 
-Quelle der Maße: `model-sources/egg-cup-man-original.stl` (vom Nutzer geliefertes
-Original-Druckplattenfile mit Korpus, 2 Armen und 2 Beinen).
-Alle Werte wurden numerisch aus dem Mesh ausgelesen, nicht geschätzt.
+Quelle der Korpusmaße: `model-sources/egg-cup-man-original.stl` (vom Nutzer
+geliefertes Original-Druckplattenfile mit Korpus, 2 Armen und 2 Beinen).
+Alle Korpuswerte wurden numerisch aus dem Mesh ausgelesen, nicht geschätzt.
+Arme und Beine sind inzwischen frei parametrisch neu modelliert (humanoid mit
+Ellbogen und Knien) und stammen nicht mehr aus dem Original.
 
 Generator: [`scripts/egg_cup_man_body.py`](../scripts/egg_cup_man_body.py)
 Ausgabe: `models/egg-cup-man-body.stl` – **eine** wasserdichte, sitzende Figur
@@ -11,8 +13,9 @@ Ausgabe: `models/egg-cup-man-body.stl` – **eine** wasserdichte, sitzende Figur
 ## Pose
 
 Das Eiermännchen **sitzt**: Der Becher steht mit seiner runden Unterseite auf dem
-Tisch, beide Beine liegen flach nach vorne (−Y), die Füße stehen am vorderen Ende
-senkrecht hoch. Die Arme hängen seitlich (±X) unterhalb des Randes herab.
+Tisch, beide Beine reichen mit angewinkeltem Knie nach vorne (−Y), die Füße
+stehen am vorderen Ende senkrecht hoch. Die Arme hängen seitlich (±X) mit
+angewinkeltem Ellbogen herab.
 
 ## Korpus (Becher)
 
@@ -52,45 +55,52 @@ die gerade Wand, damit keine Kante und **kein Bauch nach außen** entsteht:
 die Figur ohne Stützen druckbar ist. Ein kleinerer Fuß sieht runder aus, treibt
 den Überhang aber schnell über 60°.
 
-## Arme
+## Arme (humanoid, parametrisch)
 
-| Merkmal | Maß (mm) | Quelle | Konfidenz |
-| --- | ---: | --- | --- |
-| Länge (Z-Extent im Quellfile) | 19.99 | STL-Mesh | hoch |
-| Breite (X) | 12.30 | STL-Mesh | hoch |
-| Dicke (Y) | 6.07 | STL-Mesh | hoch |
-| Schulterfläche (flach, Normale −X) | 15.8 mm² | Flächenanalyse | hoch |
-| Ansatzhöhe über Tisch `ARM_Z` | 1.00 | Designentscheidung | – |
-| Eindringtiefe in die Wand `ARM_BITE` | 1.50 | Designentscheidung (Union-Naht) | – |
+Die Arme sind **keine** Kopien aus dem Original mehr, sondern werden als
+Kugel-Sweep erzeugt: aufeinanderfolgende Knoten werden über die konvexe Hülle
+zweier Kugeln verbunden, die gemeinsame Kugel bleibt als Gelenk sichtbar.
 
-Die Arme werden unverändert aus dem Original übernommen und nur gespiegelt
-platziert.
+| Knoten | x | y | z | Radius | Bedeutung |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 1 | 21.0 | 0.0 | 17.8 | 4.2 | Schulter (in der Becherwand) |
+| 2 | 26.5 | −0.5 | 14.5 | 3.4 | Oberarm |
+| 3 | 29.8 | −2.5 | 9.5 | 3.5 | **Ellbogen** |
+| 4 | 29.0 | −8.0 | 5.5 | 2.9 | Unterarm |
+| 5 | 27.2 | −13.0 | 3.4 | 2.7 | Handgelenk |
+| 6 | 26.2 | −16.0 | 3.6 | 3.5 | Hand |
 
-## Beine
+Alle Werte sind Designentscheidungen (Konfidenz: n/a, keine Passmaße). Die
+linke Seite entsteht durch Spiegeln von `x`. Der Schulterknoten liegt innerhalb
+der Becherwand, damit die Boolean-Union eine geschlossene Naht ergibt.
 
-| Merkmal | Maß (mm) | Quelle | Konfidenz |
-| --- | ---: | --- | --- |
-| Beinlänge (liegend, Y-Extent) | 23.00 | STL-Mesh | hoch |
-| Beinbreite (X) | 10.57 | STL-Mesh | hoch |
-| Beindicke liegend (Z) | ca. 6.0 | STL-Mesh | hoch |
-| Fußhöhe (senkrecht stehend) | 16.56 | STL-Mesh | hoch |
-| X-Spread Beine (Mitte–Mitte) | 18.92 (±9.46) | Original-Plattenlayout | hoch |
-| Kontakthöhe am Korpus `LEG_CONTACT_Z` | 3.00 | Designentscheidung | – |
-| Eindringtiefe in den Korpus `LEG_BITE` | 2.50 | Designentscheidung (Union-Naht) | – |
+## Beine (humanoid, parametrisch)
 
-Die Beine werden unverändert aus dem Original übernommen, in −Y gespiegelt
-(Blickrichtung nach vorn) und so weit in die neue runde Unterseite geschoben,
-dass die Boolean-Union eine geschlossene Naht ergibt.
+| Knoten | x | y | z | Radius | Bedeutung |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 1 | 9.5 | −14.0 | 5.5 | 5.2 | Hüfte (in der runden Unterseite) |
+| 2 | 10.4 | −22.0 | 6.4 | 4.9 | Oberschenkel |
+| 3 | 11.2 | −29.5 | 7.4 | 4.7 | **Knie** (angewinkelt) |
+| 4 | 11.4 | −36.5 | 5.2 | 4.2 | Schienbein |
+| 5 | 11.4 | −42.5 | 3.6 | 3.6 | Knöchel |
+| 6 | 11.4 | −44.0 | 8.0 | 4.2 | Rist (Fuß steht senkrecht) |
+| 7 | 11.4 | −44.3 | 12.5 | 4.4 | Fußspitze |
+
+Alle Werte sind Designentscheidungen. `limb_check()` im Generator prüft, dass
+kein Knoten unter die Tischebene sinkt und dass der Wurzelknoten innerhalb der
+Korpuswand liegt.
 
 ## Validierung
 
 `python scripts/mesh_tool.py validate models/egg-cup-man-body.stl`
 
 Aktueller Stand: watertight, manifold, `euler_number` 2, 1 Komponente,
-0 degenerierte Facetten, Bauraum 68.1 × 60.9 × 22.1 mm (passt auf 250 × 250 mm).
+0 degenerierte Facetten, Bauraum 66.6 × 71.9 × 22.1 mm (passt auf 250 × 250 mm).
 
 ## TODO nach Testdruck
 
 - [ ] Ei-Aufnahme gegen echtes Hühnerei testen (Ø ~42 mm)
 - [ ] Standfestigkeit der Ø34-Standfläche prüfen; ggf. `FOOT_R` erhöhen
 - [ ] Überhang an der Unterseite im Druck kontrollieren (46.5°)
+- [ ] Kniebogen: Unterseite schwebt ca. 2.7 mm über dem Tisch – im Druck auf
+      Stützbedarf prüfen

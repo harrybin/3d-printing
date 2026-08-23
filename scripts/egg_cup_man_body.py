@@ -1,24 +1,27 @@
-"""Generate the Egg-Cup Man print plate (body + 2 arms + 2 legs).
+"""Generate the sitting Egg-Cup Man as one watertight solid.
 
-The body (torso / egg cup) is rebuilt **parametrically** from the measured
-geometry of the original model plate `model-sources/egg-cup-man-original.stl`
-and then reshaped so the lower half becomes noticeably more spherical
-("kugeliger") while the upper cup region - where the arms attach - stays
-dimensionally identical to the original.
+The torso (egg cup) is rebuilt **parametrically** from the measured geometry of
+the original model plate `model-sources/egg-cup-man-original.stl`, with the
+lower half rounded inwards so it reads as a ball bottom.  The upper cup region
+- rim, wall and egg cavity - stays dimensionally identical to the original.
 
-Arms are taken over unchanged from the original plate.  Legs are taken over
-from the original plate but their flat mating face is re-cut against the new
-bulged belly so they still sit flush on the rounder body.
+Arms and legs are generated as humanoid sphere sweeps with real ball joints
+(shoulder / elbow / wrist and hip / knee / ankle) instead of the straight stubs
+of the original plate.
+
+Pose: the figure sits.  The cup stands on the table, both legs reach forward
+(-Y) with a bent knee and the feet standing upright, and the arms hang down at
+the sides with a bent elbow.
 
 Measured reference values (see docs/egg-cup-man-measurements.md):
     outer cup radius        23.24 mm   (diameter 46.48)
-    total height            21.98 mm
+    total cup height        21.98 mm
     egg cavity              ellipsoid a=21.10, b=23.30, centre z=21.60
     cavity floor            z = 2.60
     rim round-over          R = 1.07 centred at (r=22.17, z=21.00)
     original bottom fillet  R = 3.00, wall becomes vertical at z = 3.00
 
-Print orientation: flat foot on the bed, egg cavity pointing up.
+Print orientation: as generated - the figure already sits flat on the bed.
 """
 
 from pathlib import Path
@@ -51,19 +54,9 @@ RIM_RC = (CUP_R + CAV_A) / 2.0  # 22.17 - centre radius of the round-over
 BELLY_TOP_Z = 14.00  # height where the round-off starts (vertical tangent)
 FOOT_R = 17.00  # radius of the flat stand face at z = 0 - keeps overhang < 50 deg
 
-# ---------------------------------------------------------------------------
-# Leg fitting
-# ---------------------------------------------------------------------------
-LEG_SPREAD_X = 9.46  # +/-X centre distance of the two legs (from original plate)
-LEG_CONTACT_Z = 3.00  # height where the flat leg meets the rounded lower body
-LEG_BITE = 2.50  # how deep the leg is pushed into the body before the union
-ARM_Z = 1.00  # height of the arm's lowest point above the table
-ARM_BITE = 1.50  # how deep the arm shoulder is pushed into the cup wall
-
 SEGMENTS = 128
 ARC_STEPS = 48
 
-SRC_PLATE = Path(__file__).resolve().parents[1] / "model-sources" / "egg-cup-man-original.stl"
 OUT_STL = Path(__file__).resolve().parents[1] / "models" / "egg-cup-man-body.stl"
 
 
@@ -139,82 +132,73 @@ def build_body() -> trimesh.Trimesh:
 
 
 # ---------------------------------------------------------------------------
-# Original plate parts
+# Humanoid limbs - parametric sphere sweeps with real joints
 # ---------------------------------------------------------------------------
+# Each limb is a chain of nodes (x, y, z, radius) in body coordinates:
+# the body axis is at the origin, the table is z = 0 and the figure looks
+# towards -Y.  Consecutive nodes are joined by the convex hull of their two
+# spheres, which yields a smooth tapered segment; the shared sphere at each
+# node stays visible as a ball joint (shoulder, elbow, wrist / hip, knee,
+# ankle).  Radii are chosen so the limbs rest on the table without floating.
 
-def load_original_parts() -> dict:
-    """Split the original plate into body / arms / legs by their footprint."""
-    plate = trimesh.load(SRC_PLATE, force="mesh")
-    parts = list(plate.split(only_watertight=False))
+ARM_NODES = [
+    (21.0, 0.0, 17.8, 4.2),    # shoulder - sunk into the cup wall
+    (26.5, -0.5, 14.5, 3.4),   # upper arm
+    (29.8, -2.5, 9.5, 3.5),    # elbow
+    (29.0, -8.0, 5.5, 2.9),    # forearm
+    (27.2, -13.0, 3.4, 2.7),   # wrist
+    (26.2, -16.0, 3.6, 3.5),   # hand
+]
 
-    body_idx = int(np.argmax([p.volume for p in parts]))
-    rest = [p for i, p in enumerate(parts) if i != body_idx]
+LEG_NODES = [
+    (9.5, -14.0, 5.5, 5.2),    # hip - sunk into the rounded lower body
+    (10.4, -22.0, 6.4, 4.9),   # thigh rising towards the knee
+    (11.2, -29.5, 7.4, 4.7),   # knee - the bend of the sitting pose
+    (11.4, -36.5, 5.2, 4.2),   # shin dropping back to the table
+    (11.4, -42.5, 3.6, 3.6),   # ankle
+    (11.4, -44.0, 8.0, 4.2),   # instep - the foot stands upright
+    (11.4, -44.3, 12.5, 4.4),  # toe cap
+]
 
-    # arms are the slim ones (Y extent ~6 mm), legs have a long foot (~23 mm)
-    arms = [p for p in rest if p.extents[1] < 12.0]
-    legs = [p for p in rest if p.extents[1] >= 12.0]
-    if len(arms) != 2 or len(legs) != 2:
-        raise RuntimeError(f"unexpected plate layout: {len(arms)} arms, {len(legs)} legs")
-
-    return {"body": parts[body_idx], "arms": arms, "legs": legs}
-
-
-def _to_origin(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
-    """Copy with min-corner at the origin."""
-    out = mesh.copy()
-    out.apply_translation(-out.bounds[0])
-    return out
-
-
-def place_leg(leg: trimesh.Trimesh, sign: int) -> trimesh.Trimesh:
-    """Move a leg into its sitting assembly position.
-
-    The egg-cup man sits: the cup stands on the table, both legs lie flat on
-    the table pointing forward (-Y) and the foot rises vertically at the far
-    end.  On the source plate the leg already has that pose, but pointing +Y,
-    so it is mirrored and pushed LEG_BITE into the rounded lower body.
-    """
-    work = leg.copy()
-    work.apply_scale([sign, -1.0, 1.0])  # face forward, mirror left/right
-    work.fix_normals()
-    work = _to_origin(work)
-
-    # after mirroring the hip end is the max-Y end, the foot sits at y = 0
-    hip_y = float(work.bounds[1][1])
-    x_off = sign * LEG_SPREAD_X - work.extents[0] / 2.0
-
-    # contact radius halfway up the flat part of the leg
-    r_contact = float(belly_radius(LEG_CONTACT_Z))
-    y_body = float(np.sqrt(max(r_contact ** 2 - (sign * LEG_SPREAD_X) ** 2, 0.0)))
-
-    work.apply_translation([x_off, -(y_body - LEG_BITE) - hip_y, 0.0])
-    return work
+SPHERE_SUBDIV = 3  # icosphere subdivisions used for the limb sweeps
 
 
-def place_arm(arm: trimesh.Trimesh, sign: int) -> trimesh.Trimesh:
-    """Move an arm into its assembly position on the upper cup wall.
+def _sphere(centre, radius: float) -> trimesh.Trimesh:
+    s = trimesh.creation.icosphere(subdivisions=SPHERE_SUBDIV, radius=radius)
+    s.apply_translation(np.asarray(centre, dtype=float))
+    return s
 
-    The arm's flat shoulder face (its min-X face, at shoulder height 15-20 mm)
-    is pushed ARM_BITE into the straight cup wall.  ``sign`` mirrors the arm
-    onto the opposite side.
-    """
-    work = _to_origin(arm)
-    work.apply_translation([CUP_R - ARM_BITE, -work.extents[1] / 2.0, ARM_Z])
 
-    if sign < 0:
-        work.apply_scale([-1.0, 1.0, 1.0])
-        work.fix_normals()
+def limb_segments(nodes, sign: int) -> list:
+    """Convex-hull segments of one limb, mirrored to the given side."""
+    pts = [(sign * n[0], n[1], n[2], n[3]) for n in nodes]
+    segments = []
+    for a, b in zip(pts[:-1], pts[1:]):
+        pair = trimesh.util.concatenate([_sphere(a[:3], a[3]), _sphere(b[:3], b[3])])
+        segments.append(pair.convex_hull)
+    return segments
 
-    return work
+
+def limb_check(nodes, name: str) -> None:
+    """Warn if a limb node floats above the table or misses the body."""
+    for x, y, z, r in nodes:
+        if z - r < -0.01:
+            print(f"  WARNING {name}: node z={z} r={r} sinks below the table")
+    hip = nodes[0]
+    z_cap = min(hip[2], BELLY_TOP_Z)
+    wall = float(belly_radius(z_cap)) if hip[2] < BELLY_TOP_Z else CUP_R
+    dist = float(np.hypot(hip[0], hip[1]))
+    if dist >= wall:
+        print(f"  WARNING {name}: root at r={dist:.2f} is outside the wall r={wall:.2f}")
 
 
 # ---------------------------------------------------------------------------
 # Assembly
 # ---------------------------------------------------------------------------
 
-def assemble(body, arms, legs) -> trimesh.Trimesh:
-    """Union body, arms and legs into one watertight figure."""
-    figure = tb.union([body, *legs, *arms], engine="manifold")
+def assemble(body, limbs) -> trimesh.Trimesh:
+    """Union body and all limb segments into one watertight figure."""
+    figure = tb.union([body, *limbs], engine="manifold")
     figure.merge_vertices()
     figure.fix_normals()
 
@@ -254,15 +238,17 @@ def max_overhang_deg() -> float:
 
 
 def main() -> None:
-    original = load_original_parts()
     body = build_body()
 
-    legs = [place_leg(original["legs"][0], +1),
-            place_leg(original["legs"][0], -1)]
-    arms = [place_arm(original["arms"][0], +1),
-            place_arm(original["arms"][0], -1)]
+    limb_check(ARM_NODES, "arm")
+    limb_check(LEG_NODES, "leg")
 
-    figure = assemble(body, arms, legs)
+    limbs = []
+    for sign in (+1, -1):
+        limbs += limb_segments(ARM_NODES, sign)
+        limbs += limb_segments(LEG_NODES, sign)
+
+    figure = assemble(body, limbs)
 
     OUT_STL.parent.mkdir(parents=True, exist_ok=True)
     figure.export(OUT_STL, file_type="stl_ascii")
