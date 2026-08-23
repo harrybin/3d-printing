@@ -15,7 +15,8 @@ Ausgabe: `models/egg-cup-man-body.stl` – **eine** wasserdichte, sitzende Figur
 Das Eiermännchen **sitzt**: Der Becher steht mit seiner runden Unterseite auf dem
 Tisch, beide Beine reichen mit angewinkeltem Knie nach vorne (−Y), die Füße
 stehen am vorderen Ende senkrecht hoch. Die Arme hängen seitlich (±X) mit
-angewinkeltem Ellbogen herab.
+angewinkeltem Ellbogen herab; die Unterarme fallen nahezu senkrecht, sodass die
+Hände seitlich auf dem Tisch abstützen.
 
 ## Korpus (Becher)
 
@@ -64,11 +65,11 @@ zweier Kugeln verbunden, die gemeinsame Kugel bleibt als Gelenk sichtbar.
 | Knoten | x | y | z | Radius | Bedeutung |
 | --- | ---: | ---: | ---: | ---: | --- |
 | 1 | 25.4 | 0.0 | 17.8 | 4.0 | Schulter (nur in der Wand, nicht in der Mulde) |
-| 2 | 28.4 | −0.5 | 14.5 | 3.3 | Oberarm |
-| 3 | 31.2 | −2.5 | 9.5 | 3.4 | **Ellbogen** |
-| 4 | 30.4 | −8.0 | 5.5 | 2.9 | Unterarm |
-| 5 | 28.4 | −13.0 | 3.4 | 2.7 | Handgelenk |
-| 6 | 27.4 | −16.0 | 3.6 | 3.5 | Hand |
+| 2 | 28.6 | −1.0 | 14.0 | 3.3 | Oberarm |
+| 3 | 30.6 | −3.5 | 9.8 | 3.4 | **Ellbogen** |
+| 4 | 30.2 | −5.5 | 6.0 | 3.0 | Unterarm (fällt nahezu senkrecht) |
+| 5 | 29.6 | −7.0 | 3.6 | 2.8 | Handgelenk |
+| 6 | 29.2 | −8.5 | 3.2 | 3.2 | Hand – stützt auf dem Tisch ab |
 
 Alle Werte sind Designentscheidungen (Konfidenz: n/a, keine Passmaße). Die
 linke Seite entsteht durch Spiegeln von `x`. Der Schulterknoten liegt innerhalb
@@ -114,7 +115,7 @@ ungeschnitten 333.6 mm³ → nach dem Schnitt **0.0 mm³**.
 `python scripts/mesh_tool.py validate models/egg-cup-man-body.stl`
 
 Aktueller Stand: watertight, manifold, `euler_number` 2, 1 Komponente,
-0 degenerierte Facetten, Bauraum 69.2 × 71.9 × 22.1 mm (passt auf 250 × 250 mm).
+0 degenerierte Facetten, Bauraum 68.0 × 71.9 × 22.1 mm (passt auf 250 × 250 mm).
 
 ## TODO nach Testdruck
 

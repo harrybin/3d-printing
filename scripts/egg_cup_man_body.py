@@ -168,11 +168,11 @@ def build_cavity(margin: float = CAVITY_MARGIN) -> trimesh.Trimesh:
 
 ARM_NODES = [
     (25.4, 0.0, 17.8, 4.0),    # shoulder - bites into the wall, not the cavity
-    (28.4, -0.5, 14.5, 3.3),   # upper arm
-    (31.2, -2.5, 9.5, 3.4),    # elbow
-    (30.4, -8.0, 5.5, 2.9),    # forearm
-    (28.4, -13.0, 3.4, 2.7),   # wrist
-    (27.4, -16.0, 3.6, 3.5),   # hand
+    (28.6, -1.0, 14.0, 3.3),   # upper arm
+    (30.6, -3.5, 9.8, 3.4),    # elbow
+    (30.2, -5.5, 6.0, 3.0),    # forearm - drops almost vertically
+    (29.6, -7.0, 3.6, 2.8),    # wrist
+    (29.2, -8.5, 3.2, 3.2),    # hand - props on the table
 ]
 
 LEG_NODES = [
