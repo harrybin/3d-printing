@@ -36,6 +36,33 @@ Hände seitlich auf dem Tisch abstützen.
 Der Ellipsoid-Fit der Kavität weicht über die gesamte Höhe um < 0.25 mm vom
 gemessenen Mesh ab.
 
+## Geänderte Becherhöhe und Muldenform (Nutzerwunsch)
+
+Zwei bewusste Abweichungen von den Originalmaßen oben. Die Tabelle darüber
+bleibt die Messung des Originals; hier steht, was der Generator daraus macht.
+
+| Merkmal | Original | Neu | Quelle |
+| --- | ---: | ---: | --- |
+| Gesamthöhe Becher `CUP_TOP_Z` | 22.07 | 26.00 | Nutzervorgabe |
+| Beginn Randwulst `RIM_Z` | 21.00 | 24.93 | abgeleitet (`CUP_TOP_Z − 1.07`) |
+| Kavität: Mittelpunkt `CAV_ZC` | 21.60 | 25.53 | abgeleitet (`RIM_Z + 0.60`) |
+| Kavität: Halbachse `b` `CAV_B` | 23.30 | 23.917 | gelöst aus `CAV_FLOOR_R` |
+| Kavität: flacher Boden `CAV_FLOOR_R` | 12.21 (Ø 24.4) | 6.00 (Ø 12.0) | Nutzervorgabe |
+| Kavität: Boden-Höhe `CAV_FLOOR_Z` | 2.60 | 2.60 | unverändert |
+| Armhub `ARM_LIFT` | – | +3.93 | abgeleitet (`RIM_Z − 21.00`) |
+
+* Die zusätzlichen 3.93 mm sind **gerade Becherwand**. Die kugelige Unterseite
+  (`BELLY_TOP_Z`, `FOOT_R`, max. Wandüberhang 46.5°) bleibt exakt wie zuvor.
+* Der Muldenboden bleibt auf z = 2.60, die Mulde wird also **tiefer**. `CAV_B`
+  wird aus `CAV_FLOOR_R` gelöst (`b = (CAV_ZC − CAV_FLOOR_Z) / sqrt(1 −
+  (CAV_FLOOR_R/CAV_A)²)`), damit die flache Bodenfläche auf den halben
+  Durchmesser schrumpft und die Rundung ein echtes Ei besser umschließt.
+* Der Muldenrand bleibt bei r ≈ 21.09, die Wandstärke am Rand also bei 2.14 mm.
+* Arme: Wurzel, Kragen, Schulter und Ellbogen wandern um `ARM_LIFT` mit nach
+  oben, Handgelenk (z 3.60) und Handballen (z 2.45) bleiben liegen – der
+  Unterarm wird also um denselben Betrag **länger**, die Hände stützen weiter
+  flach auf dem Tisch (Eintauchtiefe 0.35 mm, unverändert).
+
 ## Geänderte Unterseite (kugelige Abrundung)
 
 Das Original hatte eine gerade Zylinderwand mit einer R3-Fase am Boden. Neu
@@ -220,7 +247,7 @@ Marching-Cubes-Netzes, kein echtes Eindringen.
 
 Zusatzvolumen durch die Kehlen: 18 438 → 18 758 mm³ (+320 mm³).
 Die Kehle an der Schulter hebt den Becherrand lokal um 0.16 mm an
-(Gesamthöhe 22.07 → 22.23 mm).
+(Gesamthöhe 26.00 → 26.16 mm).
 
 Abhängigkeit: `scikit-image` (Marching Cubes) in `requirements.txt`.
 
@@ -229,7 +256,7 @@ Abhängigkeit: `scikit-image` (Marching Cubes) in `requirements.txt`.
 `python scripts/mesh_tool.py validate models/egg-cup-man-body.stl`
 
 Aktueller Stand: watertight, manifold, `euler_number` 2, 1 Komponente,
-104 544 Facetten, Bauraum 67.9 × 71.6 × 22.2 mm (passt auf 250 × 250 mm).
+103 576 Facetten, Bauraum 67.9 × 71.6 × 26.2 mm (passt auf 250 × 250 mm).
 
 Das Netz enthält 4 Splitter-Dreiecke mit ~3·10⁻¹³ mm² Fläche aus dem
 Marching-Cubes-Schritt. Sie sind **topologisch notwendig**: entfernt man sie

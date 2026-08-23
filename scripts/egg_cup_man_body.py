@@ -21,6 +21,16 @@ Measured reference values (see docs/egg-cup-man-measurements.md):
     rim round-over          R = 1.07 centred at (r=22.17, z=21.00)
     original bottom fillet  R = 3.00, wall becomes vertical at z = 3.00
 
+Two deliberate deviations from those measurements (user request):
+    * the cup is raised to CUP_TOP_Z = 26.00 mm (was 22.07).  The ball bottom
+      stays exactly as it was; the extra height is straight cup wall, and the
+      arms are lifted and lengthened by the same amount so the hands still
+      rest flat on the table.
+    * the flat floor of the egg cavity is halved to CAV_FLOOR_R = 6.00 mm
+      radius (was 12.21).  The cavity ellipsoid is re-solved for that floor,
+      so the bowl bottom is rounder and hugs a real egg instead of leaving it
+      standing on a wide flat disc.
+
 Print orientation: as generated - the figure already sits flat on the bed.
 """
 
@@ -41,12 +51,23 @@ import sdf_blend
 
 CUP_R = 23.24  # outer radius of the cup wall
 CAV_A = 21.10  # egg cavity ellipsoid: radial semi-axis
-CAV_B = 23.30  # egg cavity ellipsoid: vertical semi-axis
-CAV_ZC = 21.60  # egg cavity ellipsoid: centre height
-CAV_FLOOR_Z = 2.60  # flat floor of the egg cavity
-RIM_Z = 21.00  # height where the rim round-over starts
 RIM_R = (CUP_R - CAV_A) / 2.0  # 1.07 - radius of the rim round-over
 RIM_RC = (CUP_R + CAV_A) / 2.0  # 22.17 - centre radius of the round-over
+
+CUP_TOP_Z = 26.00  # raised cup height (original body topped out at 22.07)
+RIM_Z = CUP_TOP_Z - RIM_R  # height where the rim round-over starts
+CAV_ZC = RIM_Z + 0.60  # egg cavity centre, same offset above the rim as before
+CAV_FLOOR_Z = 2.60  # flat floor of the egg cavity - unchanged, cavity deepens
+CAV_FLOOR_R = 6.00  # radius of that flat floor - half of the original 12.21
+
+
+def _cav_b() -> float:
+    """Vertical semi-axis so the cavity narrows to CAV_FLOOR_R at the floor."""
+    t = float(np.sqrt(1.0 - (CAV_FLOOR_R / CAV_A) ** 2))
+    return (CAV_ZC - CAV_FLOOR_Z) / t
+
+
+CAV_B = _cav_b()  # egg cavity ellipsoid: vertical semi-axis
 
 # ---------------------------------------------------------------------------
 # New lower body shape - the only intentional change to the original body
@@ -178,13 +199,18 @@ def build_cavity(margin: float = CAVITY_MARGIN) -> trimesh.Trimesh:
 # breaks through the body wall it widens the limb into a collar, which is what
 # makes the transition to the body look faired instead of glued on.
 
+ARM_LIFT = RIM_Z - 21.00  # rim rise over the original 22 mm cup
+_ELBOW_Z = 9.8 + ARM_LIFT  # shoulder chain rides up with the rim
+_WRIST_Z = 3.6  # wrist and palm stay on the table - the forearm lengthens
+_FOREARM_Z = _WRIST_Z + 0.387 * (_ELBOW_Z - _WRIST_Z)
+
 ARM_NODES = [
-    (20.6, 0.0, 15.2, 5.0, 1.0, 1.0, 1.0),    # root flare - buried in the wall
-    (23.6, -0.2, 14.8, 4.4, 1.0, 1.0, 1.0),   # collar - breaks through the wall
-    (26.6, -1.0, 13.2, 3.8, 1.0, 1.0, 1.0),   # shoulder
-    (30.4, -3.0, 9.8, 3.4, 1.0, 1.0, 1.0),    # elbow
-    (30.2, -5.5, 6.0, 3.0, 1.0, 1.0, 1.0),    # forearm - nearly vertical
-    (29.6, -7.0, 3.6, 2.8, 1.00, 1.00, 1.00),   # wrist
+    (20.6, 0.0, 15.2 + ARM_LIFT, 5.0, 1.0, 1.0, 1.0),   # root flare - in the wall
+    (23.6, -0.2, 14.8 + ARM_LIFT, 4.4, 1.0, 1.0, 1.0),  # collar - through the wall
+    (26.6, -1.0, 13.2 + ARM_LIFT, 3.8, 1.0, 1.0, 1.0),  # shoulder
+    (30.4, -3.0, _ELBOW_Z, 3.4, 1.0, 1.0, 1.0),         # elbow
+    (30.2, -5.5, _FOREARM_Z, 3.0, 1.0, 1.0, 1.0),       # forearm - nearly vertical
+    (29.6, -7.0, _WRIST_Z, 2.8, 1.00, 1.00, 1.00),      # wrist
     (29.2, -8.5, 2.45, 3.3, 1.10, 1.00, 0.85),  # palm - flattened, rests flat
 ]
 
@@ -426,6 +452,12 @@ def main() -> None:
 
     print(f"round-off starts:   z = {BELLY_TOP_Z:.2f} mm (tangent to the wall)")
     print(f"ellipse semi-axis:  b = {BELLY_B:.3f} mm")
+    print(f"cup top:            z = {CUP_TOP_Z:.2f} mm (rim start {RIM_Z:.2f})")
+    print(f"cavity ellipsoid:   a = {CAV_A:.2f}, b = {CAV_B:.3f}, "
+          f"zc = {CAV_ZC:.2f}")
+    print(f"cavity floor:       dia {2 * float(cavity_radius(CAV_FLOOR_Z)):.2f}"
+          f" mm at z = {CAV_FLOOR_Z:.2f}")
+    print(f"arm lift:           {ARM_LIFT:.2f} mm (forearm lengthened to match)")
     print(f"foot radius:        {FOOT_R:.3f} mm (diameter {2 * FOOT_R:.1f})")
     print(f"max outer radius:   {CUP_R:.3f} mm (unchanged)")
     print(f"max wall overhang:  {max_overhang_deg():.1f} deg from vertical")
