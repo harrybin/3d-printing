@@ -161,31 +161,40 @@ def build_cavity(margin: float = CAVITY_MARGIN) -> trimesh.Trimesh:
 # ---------------------------------------------------------------------------
 # Each limb is a chain of nodes (x, y, z, radius) in body coordinates:
 # the body axis is at the origin, the table is z = 0 and the figure looks
-# towards -Y.  Consecutive nodes are joined by the convex hull of their two
-# spheres, which yields a smooth tapered segment; the shared sphere at each
-# node stays visible as a ball joint (shoulder, elbow, wrist / hip, knee,
-# ankle).  Radii are chosen so the limbs rest on the table without floating.
+# towards -Y.  The chain is resampled with a Catmull-Rom spline (positions and
+# radii) and then swept with spheres, so joints read as smooth bends instead of
+# faceted hinges.
+#
+# The first node of every limb is a *root flare*: it sits deep inside the body
+# and is noticeably fatter than the joint that follows.  Where that fat sphere
+# breaks through the body wall it widens the limb into a collar, which is what
+# makes the transition to the body look faired instead of glued on.
 
 ARM_NODES = [
-    (25.4, 0.0, 17.8, 4.0),    # shoulder - bites into the wall, not the cavity
-    (28.6, -1.0, 14.0, 3.3),   # upper arm
-    (30.6, -3.5, 9.8, 3.4),    # elbow
+    (20.6, 0.0, 16.0, 5.0),    # root flare - buried in the cup wall
+    (23.6, -0.2, 15.4, 4.4),   # collar - breaks through the wall
+    (26.6, -1.0, 13.6, 3.8),   # shoulder
+    (30.4, -3.0, 9.8, 3.4),    # elbow
     (30.2, -5.5, 6.0, 3.0),    # forearm - drops almost vertically
     (29.6, -7.0, 3.6, 2.8),    # wrist
     (29.2, -8.5, 3.2, 3.2),    # hand - props on the table
 ]
 
 LEG_NODES = [
-    (9.5, -14.0, 5.5, 5.2),    # hip - sunk into the rounded lower body
-    (10.4, -22.0, 6.4, 4.9),   # thigh rising towards the knee
-    (11.2, -29.5, 7.4, 4.7),   # knee - the bend of the sitting pose
-    (11.4, -36.5, 5.2, 4.2),   # shin dropping back to the table
-    (11.4, -42.5, 3.6, 3.6),   # ankle
-    (11.4, -44.0, 8.0, 4.2),   # instep - the foot stands upright
-    (11.4, -44.3, 12.5, 4.4),  # toe cap
+    (7.2, -10.2, 6.2, 6.0),    # root flare - buried in the rounded lower body
+    (8.4, -12.4, 6.0, 5.8),    # inner collar
+    (9.6, -15.0, 5.9, 5.45),   # outer collar - breaks through the wall
+    (10.6, -18.4, 5.9, 5.0),   # hip
+    (11.0, -24.0, 6.6, 4.8),   # thigh rising towards the knee
+    (11.4, -30.5, 7.4, 4.6),   # knee - the bend of the sitting pose
+    (11.5, -37.0, 5.3, 4.1),   # shin dropping back to the table
+    (11.5, -42.5, 3.8, 3.6),   # ankle
+    (11.5, -44.0, 8.0, 4.2),   # instep - the foot stands upright
+    (11.5, -44.3, 12.5, 4.4),  # toe cap
 ]
 
 SPHERE_SUBDIV = 3  # icosphere subdivisions used for the limb sweeps
+SPLINE_SAMPLES = 8  # spline samples per node interval
 
 
 def _sphere(centre, radius: float) -> trimesh.Trimesh:
@@ -194,9 +203,35 @@ def _sphere(centre, radius: float) -> trimesh.Trimesh:
     return s
 
 
+def spline_nodes(nodes, samples: int = SPLINE_SAMPLES) -> np.ndarray:
+    """Catmull-Rom resampling of a limb chain, radii included.
+
+    Radii are clipped to the input range so the spline cannot overshoot into a
+    negative or ballooning radius at a sharp bend (the ankle in particular).
+    """
+    P = np.asarray(nodes, dtype=float)
+    ext = np.vstack([2.0 * P[0] - P[1], P, 2.0 * P[-1] - P[-2]])
+
+    out = []
+    for i in range(len(P) - 1):
+        p0, p1, p2, p3 = ext[i], ext[i + 1], ext[i + 2], ext[i + 3]
+        for t in np.linspace(0.0, 1.0, samples, endpoint=False):
+            t2, t3 = t * t, t * t * t
+            out.append(0.5 * (2.0 * p1
+                              + (-p0 + p2) * t
+                              + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2
+                              + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t3))
+    out.append(P[-1])
+
+    res = np.asarray(out, dtype=float)
+    res[:, 3] = np.clip(res[:, 3], P[:, 3].min(), P[:, 3].max())
+    return res
+
+
 def limb_segments(nodes, sign: int) -> list:
-    """Convex-hull segments of one limb, mirrored to the given side."""
-    pts = [(sign * n[0], n[1], n[2], n[3]) for n in nodes]
+    """Convex-hull segments of one splined limb, mirrored to the given side."""
+    pts = spline_nodes(nodes).copy()
+    pts[:, 0] *= sign
     segments = []
     for a, b in zip(pts[:-1], pts[1:]):
         pair = trimesh.util.concatenate([_sphere(a[:3], a[3]), _sphere(b[:3], b[3])])
@@ -205,23 +240,31 @@ def limb_segments(nodes, sign: int) -> list:
 
 
 def limb_check(nodes, name: str) -> None:
-    """Warn if a limb node floats above the table, misses the body or would
-    poke into the egg cavity."""
-    for x, y, z, r in nodes:
-        if z - r < -0.01:
-            print(f"  WARNING {name}: node z={z} r={r} sinks below the table")
+    """Warn if the splined limb dips below the table or misses the body."""
+    pts = spline_nodes(nodes)
+    worst = float(np.min(pts[:, 2] - pts[:, 3]))
+    if worst < -0.01:
+        print(f"  WARNING {name}: spline sinks {-worst:.2f} mm below the table")
+
+    intrusion = 0.0
+    for x, y, z, r in pts:
         if CAV_FLOOR_Z <= z <= RIM_Z:
-            reach = float(np.hypot(x, y)) - r
-            cav = float(cavity_radius(z))
-            if reach < cav:
-                print(f"  note {name}: node at z={z} reaches r={reach:.2f} "
-                      f"into the cavity (r={cav:.2f}) - trimmed by the cavity cut")
+            gap = float(cavity_radius(z)) - (float(np.hypot(x, y)) - r)
+            intrusion = max(intrusion, gap)
+    if intrusion > 0.0:
+        print(f"  note {name}: reaches {intrusion:.2f} mm into the cavity "
+              f"- trimmed by the cavity cut")
+
     root = nodes[0]
-    z_cap = min(root[2], BELLY_TOP_Z)
-    wall = float(belly_radius(z_cap)) if root[2] < BELLY_TOP_Z else CUP_R
-    dist = float(np.hypot(root[0], root[1]))
-    if dist - root[3] >= wall:
-        print(f"  WARNING {name}: root does not reach the wall (r={wall:.2f})")
+    protrusion = -np.inf
+    for x, y, z, r in pts:
+        z_cap = min(float(z), BELLY_TOP_Z)
+        wall = float(belly_radius(z_cap)) if z < BELLY_TOP_Z else CUP_R
+        if float(np.hypot(x, y)) > wall:
+            break  # past the wall - this is the free limb, not the collar
+        protrusion = max(protrusion, float(np.hypot(x, y)) + r - wall)
+    print(f"  {name} root: flare R={root[3]:.2f}, "
+          f"collar sticks out {protrusion:+.2f} mm past the body wall")
 
 
 # ---------------------------------------------------------------------------

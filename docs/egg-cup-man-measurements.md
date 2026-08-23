@@ -59,37 +59,54 @@ den Überhang aber schnell über 60°.
 ## Arme (humanoid, parametrisch)
 
 Die Arme sind **keine** Kopien aus dem Original mehr, sondern werden als
-Kugel-Sweep erzeugt: aufeinanderfolgende Knoten werden über die konvexe Hülle
-zweier Kugeln verbunden, die gemeinsame Kugel bleibt als Gelenk sichtbar.
+Kugel-Sweep erzeugt. Die Knotenkette wird zuvor mit einer Catmull-Rom-Spline
+(Position **und** Radius) nachabgetastet, damit die Gelenke als weiche Biegung
+statt als Knick erscheinen. Der jeweils erste Knoten ist eine **Übergangskehle**:
+eine dickere Kugel tief im Körper, deren Durchbruch durch die Wand einen
+fließenden Kragen bildet.
 
 | Knoten | x | y | z | Radius | Bedeutung |
 | --- | ---: | ---: | ---: | ---: | --- |
-| 1 | 25.4 | 0.0 | 17.8 | 4.0 | Schulter (nur in der Wand, nicht in der Mulde) |
-| 2 | 28.6 | −1.0 | 14.0 | 3.3 | Oberarm |
-| 3 | 30.6 | −3.5 | 9.8 | 3.4 | **Ellbogen** |
+| 0 | 20.6 | 0.0 | 16.0 | 5.0 | Übergangskehle (tief in der Becherwand) |
+| 1 | 23.6 | −0.2 | 15.4 | 4.4 | Kragen – Durchbruch durch die Wand |
+| 2 | 26.6 | −1.0 | 13.6 | 3.8 | Schulter |
+| 3 | 30.4 | −3.0 | 9.8 | 3.4 | **Ellbogen** |
 | 4 | 30.2 | −5.5 | 6.0 | 3.0 | Unterarm (fällt nahezu senkrecht) |
 | 5 | 29.6 | −7.0 | 3.6 | 2.8 | Handgelenk |
 | 6 | 29.2 | −8.5 | 3.2 | 3.2 | Hand – stützt auf dem Tisch ab |
 
+Kragen tritt 4.46 mm aus der Becherwand aus.
+
 Alle Werte sind Designentscheidungen (Konfidenz: n/a, keine Passmaße). Die
-linke Seite entsteht durch Spiegeln von `x`. Der Schulterknoten liegt innerhalb
-der Becherwand, damit die Boolean-Union eine geschlossene Naht ergibt.
+linke Seite entsteht durch Spiegeln von `x`.
 
 ## Beine (humanoid, parametrisch)
 
 | Knoten | x | y | z | Radius | Bedeutung |
 | --- | ---: | ---: | ---: | ---: | --- |
-| 1 | 9.5 | −14.0 | 5.5 | 5.2 | Hüfte (in der runden Unterseite) |
-| 2 | 10.4 | −22.0 | 6.4 | 4.9 | Oberschenkel |
-| 3 | 11.2 | −29.5 | 7.4 | 4.7 | **Knie** (angewinkelt) |
-| 4 | 11.4 | −36.5 | 5.2 | 4.2 | Schienbein |
-| 5 | 11.4 | −42.5 | 3.6 | 3.6 | Knöchel |
-| 6 | 11.4 | −44.0 | 8.0 | 4.2 | Rist (Fuß steht senkrecht) |
-| 7 | 11.4 | −44.3 | 12.5 | 4.4 | Fußspitze |
+| 0 | 7.2 | −10.2 | 6.2 | 6.00 | Übergangskehle (tief in der runden Unterseite) |
+| 1 | 8.4 | −12.4 | 6.0 | 5.80 | innerer Kragen |
+| 2 | 9.6 | −15.0 | 5.9 | 5.45 | äußerer Kragen – Durchbruch durch die Wand |
+| 3 | 10.6 | −18.4 | 5.9 | 5.00 | Hüfte |
+| 4 | 11.0 | −24.0 | 6.6 | 4.80 | Oberschenkel |
+| 5 | 11.4 | −30.5 | 7.4 | 4.60 | **Knie** (angewinkelt) |
+| 6 | 11.5 | −37.0 | 5.3 | 4.10 | Schienbein |
+| 7 | 11.5 | −42.5 | 3.8 | 3.60 | Knöchel |
+| 8 | 11.5 | −44.0 | 8.0 | 4.20 | Rist (Fuß steht senkrecht) |
+| 9 | 11.5 | −44.3 | 12.5 | 4.40 | Fußspitze |
 
-Alle Werte sind Designentscheidungen. `limb_check()` im Generator prüft, dass
-kein Knoten unter die Tischebene sinkt und dass der Wurzelknoten die Korpuswand
-erreicht.
+Kragen tritt 4.88 mm aus der Korpuswand aus. Die Radienstaffelung
+5.00 → 5.45 → 5.80 → 6.00 wächst zum Körper hin **beschleunigt**; genau das
+erzeugt den konkaven, fließenden Übergang statt einer aufgesetzten Kugel.
+
+Spline-Parameter: `SPLINE_SAMPLES = 8` Stützstellen je Knotenintervall,
+`SPHERE_SUBDIV = 3`. Radien werden auf den Eingangsbereich geklemmt, sonst
+überschwingt die Spline an der scharfen Knöchelbiegung.
+
+Alle Werte sind Designentscheidungen. `limb_check()` im Generator meldet, wie
+tief die Spline unter die Tischebene taucht (muss 0 sein, sonst schwebt der
+Becher), wie weit sie in die Mulde ragt und wie weit der Kragen aus der Wand
+tritt.
 
 ## Freihalten der Eiermulde
 
@@ -115,7 +132,7 @@ ungeschnitten 333.6 mm³ → nach dem Schnitt **0.0 mm³**.
 `python scripts/mesh_tool.py validate models/egg-cup-man-body.stl`
 
 Aktueller Stand: watertight, manifold, `euler_number` 2, 1 Komponente,
-0 degenerierte Facetten, Bauraum 68.0 × 71.9 × 22.1 mm (passt auf 250 × 250 mm).
+0 degenerierte Facetten, Bauraum 67.9 × 71.9 × 22.1 mm (passt auf 250 × 250 mm).
 
 ## TODO nach Testdruck
 
