@@ -1,9 +1,10 @@
 """Generate the rounded-bottom body (torso) of the Egg-Cup Man.
 
-The torso is shaped like a rounded teardrop / pear:
-- Lower half: an oblate ellipsoid, flattened at the bottom to give a stable flat
-  stand (cut at z = FLATTEN_Z from the ellipsoid centre).
-- Upper half: a cylinder/cone transitioning into the egg-cup cavity.
+The torso is shaped like a rounded pear / egg:
+- The body is built as a revolution profile:
+    * Bottom: a hemisphere-like rounded cap (flattened ellipse) cut flat for stand
+    * Middle: gently bulging waist up to the shoulder radius
+    * Top: straight cylinder for the egg-cup
 - Arm sockets: two horizontal cylindrical holes on the sides at ARM_Z.
 - Leg sockets: two downward-angled cylindrical holes at the base.
 
@@ -26,51 +27,48 @@ import trimesh.boolean as tb
 # ---------------------------------------------------------------------------
 
 # Overall body proportions
-BODY_HEIGHT = 65.0          # total height of the torso
-MAX_RADIUS   = 25.0         # max XY radius at the equator of the ellipsoid
+BODY_HEIGHT   = 65.0    # total height of the torso (ESTIMATE)
+BODY_R_MAX    = 25.0    # max outer radius (at the equator/waist)  (ESTIMATE)
+BODY_R_TOP    = 22.0    # outer radius at the top of the cup section  (ESTIMATE)
 
-# Lower rounded section
-ELLIPSE_A = MAX_RADIUS      # XY semi-axis of lower ellipsoid
-ELLIPSE_C = 35.0            # Z  semi-axis of lower ellipsoid
-FLATTEN_Z = -8.0            # Z where we cut the bottom flat (relative to ellipsoid centre)
-                            # ESTIMATE – adjust for desired stand height
+# Lower rounded belly: ellipsoidal cap
+# The belly occupies the bottom BELLY_H mm of the body.
+# It is formed by scaling a hemisphere to have XY-radius=BODY_R_MAX and height=BELLY_H.
+BELLY_H       = 30.0    # height of the rounded belly section (ESTIMATE)
+FLAT_BOTTOM   = 5.0     # mm to cut off the very bottom → flat stand ring
 
-# Upper cylindrical/cup section
-CUP_INNER_R  = 19.0         # inner radius of egg cavity  (ESTIMATE)
-CUP_DEPTH    = 22.0         # depth of egg cavity          (ESTIMATE)
-WALL_T       = 3.0          # wall thickness
-CUP_OUTER_R  = CUP_INNER_R + WALL_T
+# Cup section
+CUP_INNER_R   = 19.0    # inner radius of egg cavity (ESTIMATE)
+CUP_DEPTH     = 22.0    # depth of egg cavity (ESTIMATE)
+WALL_T        = 3.0     # wall thickness
 
 # Arm sockets (horizontal, pointing ±X)
-ARM_DIAM     = 6.0          # socket diameter (ESTIMATE)
-ARM_DEPTH    = 6.0          # socket depth into body (ESTIMATE)
-ARM_Z        = 42.0         # height above body bottom (ESTIMATE)
-PRESS_CLEAR  = 0.20         # press-fit clearance for 0.4 mm nozzle profile
+ARM_DIAM      = 6.0     # socket diameter (ESTIMATE)
+ARM_DEPTH     = 6.0     # socket depth into body (ESTIMATE)
+ARM_Z         = 40.0    # height above body bottom (ESTIMATE)
+PRESS_CLEAR   = 0.20    # press-fit clearance for 0.4 mm nozzle profile
 
 # Leg sockets (pointing downward, angled outward)
-LEG_DIAM     = 8.0          # socket diameter (ESTIMATE)
-LEG_DEPTH    = 8.0          # socket depth (ESTIMATE)
-LEG_SPREAD_X = 11.0         # ±X centre-of-socket from body axis (ESTIMATE)
-LEG_Z        = 10.0         # socket centre height above body bottom (ESTIMATE)
-LEG_ANGLE_DEG = 20.0        # downward tilt of leg socket axis (ESTIMATE)
+LEG_DIAM      = 8.0     # socket diameter (ESTIMATE)
+LEG_DEPTH     = 8.0     # socket depth (ESTIMATE)
+LEG_SPREAD_X  = 11.0    # ±X centre-of-socket from body axis (ESTIMATE)
+LEG_Z         = 8.0     # socket centre height above body bottom (ESTIMATE)
+LEG_ANGLE_DEG = 25.0    # downward tilt of leg socket axis (ESTIMATE)
 
-SEGMENTS = 80               # angular resolution for revolve/cylinders
+SEGMENTS = 80
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _ellipsoid(rx: float, rz: float, sections: int) -> trimesh.Trimesh:
-    """Return an oblate ellipsoid centred at the origin, rx=ry, different rz."""
-    # build a unit sphere and scale
-    sphere = tc.icosphere(subdivisions=4)
-    sphere.apply_scale([rx, rx, rz])
-    return sphere
-
-
 def _cylinder(radius: float, height: float, sections: int = SEGMENTS) -> trimesh.Trimesh:
     cyl = tc.cylinder(radius=radius, height=height, sections=sections)
     return cyl
+
+
+def _revolve_profile(profile: np.ndarray) -> trimesh.Trimesh:
+    """Revolve a 2-D profile [[r,z], ...] 360° around the Z axis."""
+    return trimesh.creation.revolve(profile, sections=SEGMENTS)
 
 
 # ---------------------------------------------------------------------------
@@ -79,76 +77,82 @@ def _cylinder(radius: float, height: float, sections: int = SEGMENTS) -> trimesh
 
 def build() -> trimesh.Trimesh:
     # ------------------------------------------------------------------
-    # 1. Lower rounded base: oblate ellipsoid, cut flat at bottom
+    # 1. Build outer shell as a revolved profile (r, z) – origin at bottom
     # ------------------------------------------------------------------
-    ellipsoid = _ellipsoid(ELLIPSE_A, ELLIPSE_C, SEGMENTS)
+    # Profile points (r, z) going counter-clockwise from bottom-centre outward:
+    #   bottom flat ring  →  belly curve  →  shoulder  →  cup top
+    # The belly uses a quarter-ellipse arc parameterised in t ∈ [0, π/2].
 
-    # The ellipsoid centre sits at z=0; the flat cut is at z=FLATTEN_Z.
-    # Remove everything below FLATTEN_Z with a large cutting box.
-    cut_z = FLATTEN_Z
-    cut_box_half = MAX_RADIUS * 3
-    cutter = tc.box(extents=[cut_box_half * 2, cut_box_half * 2, abs(cut_z) * 2])
-    cutter.apply_translation([0.0, 0.0, cut_z - abs(cut_z)])  # box top face at cut_z
+    n_arc = 24  # arc sample points
 
-    lower_body = tb.difference([ellipsoid, cutter], engine="manifold")
+    # Quarter-ellipse belly: XY radius 0→BODY_R_MAX over the full belly height.
+    # The belly profile starts at the bottom centre (r=0, z=0) and arcs outward.
+    t = np.linspace(0, np.pi / 2, n_arc)
+    belly_r = BODY_R_MAX * np.sin(t)
+    belly_z = BELLY_H    * (1 - np.cos(t))   # 0 at t=0, BELLY_H at t=π/2
 
-    # Translate so that the flat bottom sits at z=0
-    shift_z = -cut_z   # cut_z is negative, so shift_z is positive
-    lower_body.apply_translation([0.0, 0.0, shift_z])
+    # Straight cylinder section from top of belly to BODY_HEIGHT
+    cup_r = np.array([BODY_R_MAX, BODY_R_TOP])
+    cup_z = np.array([BELLY_H,     BODY_HEIGHT])
+
+    # Full outer profile – closed loop including axis (r=0) so revolve produces
+    # a watertight solid: axis-bottom → belly arc → shoulder → cup top → axis-top
+    outer_r = np.concatenate([[0.0], belly_r, cup_r[1:], [0.0]])
+    outer_z = np.concatenate([[0.0],  belly_z, cup_z[1:], [BODY_HEIGHT]])
+    outer_profile = np.column_stack([outer_r, outer_z])
+
+    outer_shell = _revolve_profile(outer_profile)
 
     # ------------------------------------------------------------------
-    # 2. Upper cylindrical cup section
+    # 2. Cut flat bottom: slice at z=FLAT_BOTTOM so the stand ring is flat
     # ------------------------------------------------------------------
-    # The equator of the ellipsoid (max XY) is at its centre, now at z=shift_z.
-    # We extend with a cylinder from the equator height up to BODY_HEIGHT.
-    equator_z = shift_z   # ellipsoid XY maximum is at the original z=0 plane
+    big = BODY_R_MAX * 4
+    # cutter box: from z=-big to z=FLAT_BOTTOM  → top face at FLAT_BOTTOM
+    floor_cutter = tc.box(extents=[big * 2, big * 2, big + FLAT_BOTTOM])
+    floor_cutter.apply_translation([0.0, 0.0, FLAT_BOTTOM / 2.0 - big / 2.0])
 
-    upper_height = BODY_HEIGHT - equator_z
-    upper_cyl = _cylinder(CUP_OUTER_R, upper_height)
-    upper_cyl.apply_translation([0.0, 0.0, equator_z + upper_height / 2.0])
+    solid = tb.difference([outer_shell, floor_cutter], engine="manifold")
 
-    # Union lower rounded base + upper cylinder
-    solid = tb.union([lower_body, upper_cyl], engine="manifold")
+    # Shift so the flat stand face sits exactly at z=0
+    solid.apply_translation([0.0, 0.0, -FLAT_BOTTOM])
+
+    # After the shift: body spans z=0 … BODY_TOP
+    BODY_TOP = BODY_HEIGHT - FLAT_BOTTOM
 
     # ------------------------------------------------------------------
     # 3. Hollow out egg cavity from the top
     # ------------------------------------------------------------------
-    cavity = _cylinder(CUP_INNER_R, CUP_DEPTH + 1.0)   # +1 to ensure clean top cut
-    cavity.apply_translation([0.0, 0.0, BODY_HEIGHT - CUP_DEPTH / 2.0])
+    cavity_h = CUP_DEPTH + 2.0   # slight over-depth for clean boolean
+    cavity = _cylinder(CUP_INNER_R, cavity_h)
+    cavity_cz = BODY_TOP - CUP_DEPTH / 2.0 + 1.0   # cavity centre
+    cavity.apply_translation([0.0, 0.0, cavity_cz])
     solid = tb.difference([solid, cavity], engine="manifold")
 
     # ------------------------------------------------------------------
     # 4. Arm sockets (horizontal holes on ±X sides)
     # ------------------------------------------------------------------
     arm_r = (ARM_DIAM - PRESS_CLEAR) / 2.0
-    arm_cyl_len = ARM_DEPTH + 2.0   # slight over-depth for clean boolean
+    arm_len = ARM_DEPTH + 4.0
 
     for sign in (+1, -1):
-        arm_sock = _cylinder(arm_r, arm_cyl_len, sections=SEGMENTS)
-        # rotate to point along X
-        rot = trimesh.transformations.rotation_matrix(
-            np.pi / 2, [0, 1, 0], [0, 0, 0]
-        )
+        arm_sock = _cylinder(arm_r, arm_len)
+        rot = trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0])
         arm_sock.apply_transform(rot)
-        arm_sock.apply_translation([sign * (MAX_RADIUS - ARM_DEPTH / 2.0 + 1.0),
-                                    0.0,
-                                    ARM_Z])
+        arm_sock.apply_translation([sign * (BODY_R_MAX - ARM_DEPTH / 2.0 + 2.0),
+                                    0.0, ARM_Z])
         solid = tb.difference([solid, arm_sock], engine="manifold")
 
     # ------------------------------------------------------------------
     # 5. Leg sockets (downward-angled holes near the base)
     # ------------------------------------------------------------------
     leg_r = (LEG_DIAM - PRESS_CLEAR) / 2.0
-    leg_cyl_len = LEG_DEPTH + 2.0
-    tilt = np.radians(LEG_ANGLE_DEG)  # downward tilt angle
+    leg_len = LEG_DEPTH + 4.0
+    tilt = np.radians(LEG_ANGLE_DEG)
 
     for sign in (+1, -1):
-        leg_sock = _cylinder(leg_r, leg_cyl_len, sections=SEGMENTS)
-        # Default cylinder axis is along Z; tilt downward in XZ-plane
-        rot_axis = [0, 1, 0] if sign > 0 else [0, -1, 0]
-        rot = trimesh.transformations.rotation_matrix(
-            tilt, rot_axis, [0, 0, 0]
-        )
+        leg_sock = _cylinder(leg_r, leg_len)
+        rot_axis = [0, 1, 0]
+        rot = trimesh.transformations.rotation_matrix(tilt * sign, rot_axis)
         leg_sock.apply_transform(rot)
         leg_sock.apply_translation([sign * LEG_SPREAD_X, 0.0, LEG_Z])
         solid = tb.difference([solid, leg_sock], engine="manifold")
