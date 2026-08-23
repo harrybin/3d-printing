@@ -14,7 +14,7 @@ Innenmaße (Ei-Aufnahme, Zapfen) sind weiterhin Schätzungen und müssen durch T
 | Ei-Aufnahme Innendurchmesser oben | 38 | Standard-Eierbecher (Hühnerei ⌀ ~42 mm, Spielraum) | mittel |
 | Ei-Aufnahme Tiefe | 22 | Schätzung | niedrig |
 | Wandstärke Becher | 3.0 | FDM-Richtwert | mittel |
-| Flatten-Abstand Boden | 8 | Flacher Stand; Boden der Ellipse abgeschnitten | Schätzung |
+| Flatten-Abstand Boden | 5 | Schätzung (Flacher Stand; Boden der Ellipse abgeschnitten) | niedrig |
 | Bodenplatte Dicke | 2.0 | FDM-Richtwert | mittel |
 
 ## Arme
@@ -23,7 +23,7 @@ Innenmaße (Ei-Aufnahme, Zapfen) sind weiterhin Schätzungen und müssen durch T
 | --- | ---: | --- | --- |
 | Arm-Zapfen-Durchmesser | 6.0 | Schätzung | niedrig |
 | Arm-Zapfen-Tiefe (Eingriff) | 6.0 | Schätzung | niedrig |
-| Arm-Zapfen Z-Höhe (ab Korpusboden) | 42 | ca. 2/3 der Körperhöhe | niedrig |
+| Arm-Zapfen Z-Höhe (ab Korpusboden) | 40 | Schätzung (ca. 2/3 der Körperhöhe) | niedrig |
 | Seitlicher Versatz (Mitte Korpus) | 25 | STL Bounds (X-Halbbreite) | hoch |
 | Press-Fit Spiel | 0.20 | Standard-Profil 0.4 mm Düse | mittel |
 
@@ -33,9 +33,9 @@ Innenmaße (Ei-Aufnahme, Zapfen) sind weiterhin Schätzungen und müssen durch T
 | --- | ---: | --- | --- |
 | Bein-Zapfen-Durchmesser | 8.0 | Schätzung | niedrig |
 | Bein-Zapfen-Tiefe (Eingriff) | 8.0 | Schätzung | niedrig |
-| Bein-Zapfen Y-Versatz (vorne/hinten) | 0 | mittig, nur X-Spread | Schätzung |
+| Bein-Zapfen Y-Versatz (vorne/hinten) | 0 | Schätzung (mittig, nur X-Spread) | niedrig |
 | X-Spread Beine (Mitte-Mitte) | 22 | Schätzung | niedrig |
-| Z-Position Bein-Zapfen-Mitte | 10 | in der unteren Rundungszone | Schätzung |
+| Z-Position Bein-Zapfen-Mitte | 8 | Schätzung (in der unteren Rundungszone) | niedrig |
 | Press-Fit Spiel | 0.20 | Standard-Profil 0.4 mm Düse | mittel |
 
 ## TODO nach Testdruck

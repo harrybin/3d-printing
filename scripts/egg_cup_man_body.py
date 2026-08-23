@@ -26,21 +26,21 @@ import trimesh.boolean as tb
 # Parameters (all mm) – see docs/egg-cup-man-measurements.md
 # ---------------------------------------------------------------------------
 
+# Cup section
+CUP_INNER_R   = 19.0    # inner radius of egg cavity (ESTIMATE)
+CUP_DEPTH     = 22.0    # depth of egg cavity (ESTIMATE)
+WALL_T        = 3.0     # wall thickness
+
 # Overall body proportions
-BODY_HEIGHT   = 65.0    # total height of the torso (ESTIMATE)
-BODY_R_MAX    = 25.0    # max outer radius (at the equator/waist)  (ESTIMATE)
-BODY_R_TOP    = 22.0    # outer radius at the top of the cup section  (ESTIMATE)
+BODY_HEIGHT   = 65.0                    # total height of the torso (ESTIMATE)
+BODY_R_MAX    = 25.0                    # max outer radius (at the equator/waist)  (ESTIMATE)
+BODY_R_TOP    = CUP_INNER_R + WALL_T    # outer radius at the top of the cup section
 
 # Lower rounded belly: ellipsoidal cap
 # The belly occupies the bottom BELLY_H mm of the body.
 # It is formed by scaling a hemisphere to have XY-radius=BODY_R_MAX and height=BELLY_H.
 BELLY_H       = 30.0    # height of the rounded belly section (ESTIMATE)
 FLAT_BOTTOM   = 5.0     # mm to cut off the very bottom → flat stand ring
-
-# Cup section
-CUP_INNER_R   = 19.0    # inner radius of egg cavity (ESTIMATE)
-CUP_DEPTH     = 22.0    # depth of egg cavity (ESTIMATE)
-WALL_T        = 3.0     # wall thickness
 
 # Arm sockets (horizontal, pointing ±X)
 ARM_DIAM      = 6.0     # socket diameter (ESTIMATE)
@@ -90,6 +90,7 @@ def build() -> trimesh.Trimesh:
     t = np.linspace(0, np.pi / 2, n_arc)
     belly_r = BODY_R_MAX * np.sin(t)
     belly_z = BELLY_H    * (1 - np.cos(t))   # 0 at t=0, BELLY_H at t=π/2
+    assert np.isclose(belly_r[0], 0.0) and np.isclose(belly_z[0], 0.0)
 
     # Straight cylinder section from top of belly to BODY_HEIGHT
     cup_r = np.array([BODY_R_MAX, BODY_R_TOP])
@@ -97,8 +98,8 @@ def build() -> trimesh.Trimesh:
 
     # Full outer profile – closed loop including axis (r=0) so revolve produces
     # a watertight solid: axis-bottom → belly arc → shoulder → cup top → axis-top
-    outer_r = np.concatenate([[0.0], belly_r, cup_r[1:], [0.0]])
-    outer_z = np.concatenate([[0.0],  belly_z, cup_z[1:], [BODY_HEIGHT]])
+    outer_r = np.concatenate([[0.0], belly_r[1:], cup_r[1:], [0.0]])
+    outer_z = np.concatenate([[0.0],  belly_z[1:], cup_z[1:], [BODY_HEIGHT]])
     outer_profile = np.column_stack([outer_r, outer_z])
 
     outer_shell = _revolve_profile(outer_profile)
@@ -117,21 +118,21 @@ def build() -> trimesh.Trimesh:
     solid.apply_translation([0.0, 0.0, -FLAT_BOTTOM])
 
     # After the shift: body spans z=0 … BODY_TOP
-    BODY_TOP = BODY_HEIGHT - FLAT_BOTTOM
+    body_top = BODY_HEIGHT - FLAT_BOTTOM
 
     # ------------------------------------------------------------------
     # 3. Hollow out egg cavity from the top
     # ------------------------------------------------------------------
     cavity_h = CUP_DEPTH + 2.0   # slight over-depth for clean boolean
     cavity = _cylinder(CUP_INNER_R, cavity_h)
-    cavity_cz = BODY_TOP - CUP_DEPTH / 2.0 + 1.0   # cavity centre
+    cavity_cz = body_top - CUP_DEPTH / 2.0 + 1.0   # cavity centre
     cavity.apply_translation([0.0, 0.0, cavity_cz])
     solid = tb.difference([solid, cavity], engine="manifold")
 
     # ------------------------------------------------------------------
     # 4. Arm sockets (horizontal holes on ±X sides)
     # ------------------------------------------------------------------
-    arm_r = (ARM_DIAM - PRESS_CLEAR) / 2.0
+    arm_r = (ARM_DIAM + PRESS_CLEAR) / 2.0
     arm_len = ARM_DEPTH + 4.0
 
     for sign in (+1, -1):
@@ -145,7 +146,7 @@ def build() -> trimesh.Trimesh:
     # ------------------------------------------------------------------
     # 5. Leg sockets (downward-angled holes near the base)
     # ------------------------------------------------------------------
-    leg_r = (LEG_DIAM - PRESS_CLEAR) / 2.0
+    leg_r = (LEG_DIAM + PRESS_CLEAR) / 2.0
     leg_len = LEG_DEPTH + 4.0
     tilt = np.radians(LEG_ANGLE_DEG)
 
