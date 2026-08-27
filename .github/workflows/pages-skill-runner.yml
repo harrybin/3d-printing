@@ -21,6 +21,10 @@ on:
         description: Repo-relative image directory for contact sheet generation
         required: false
         type: string
+      workspace_branch:
+        description: Optional branch containing uploaded browser images
+        required: false
+        type: string
       infill_percent:
         description: Optional infill percentage for measure command
         required: false
@@ -59,6 +63,7 @@ jobs:
           SKILL: ${{ inputs.skill }}
           MODEL_PATH: ${{ inputs.model_path }}
           IMAGE_DIR: ${{ inputs.image_dir }}
+          WORKSPACE_BRANCH: ${{ inputs.workspace_branch }}
           INFILL_PERCENT: ${{ inputs.infill_percent }}
           PROMPT: ${{ inputs.prompt }}
         run: |
@@ -68,6 +73,7 @@ jobs:
               "skill": os.environ.get("SKILL", ""),
               "model_path": os.environ.get("MODEL_PATH", ""),
               "image_dir": os.environ.get("IMAGE_DIR", ""),
+              "workspace_branch": os.environ.get("WORKSPACE_BRANCH", ""),
               "infill_percent": os.environ.get("INFILL_PERCENT", ""),
               "prompt": os.environ.get("PROMPT", ""),
           }
@@ -94,6 +100,7 @@ jobs:
           SKILL: ${{ inputs.skill }}
           MODEL_PATH: ${{ inputs.model_path }}
           IMAGE_DIR: ${{ inputs.image_dir }}
+          WORKSPACE_BRANCH: ${{ inputs.workspace_branch }}
           INFILL_PERCENT: ${{ inputs.infill_percent }}
         run: |
           set -uo pipefail
@@ -109,6 +116,18 @@ jobs:
                 raise SystemExit(f"Path escapes repository root: {sys.argv[1]}")
             print(candidate)
             PY
+          }
+          normalize_repo_path() {
+           python - "$1" <<'PY'
+           import pathlib
+           import sys
+
+           root = pathlib.Path.cwd().resolve()
+           candidate = (root / sys.argv[1]).resolve()
+           if not candidate.is_relative_to(root):
+               raise SystemExit(f"Path escapes repository root: {sys.argv[1]}")
+           print(candidate.relative_to(root).as_posix())
+           PY
           }
           record_failure() {
            echo "$1" | tee -a workflow-output/error.txt >&2
@@ -161,11 +180,27 @@ jobs:
            stl-from-image-measurements)
              if [ -z "$IMAGE_DIR" ]; then
                record_failure "IMAGE_DIR is required for stl-from-image-measurements."
-             elif ! IMAGE_FOLDER="$(resolve_repo_path "$IMAGE_DIR")"; then
+             elif ! NORMALIZED_IMAGE_DIR="$(normalize_repo_path "$IMAGE_DIR")"; then
                record_failure "IMAGE_DIR escapes the repository root: $IMAGE_DIR"
-             elif [ ! -d "$IMAGE_FOLDER" ]; then
-               record_failure "IMAGE_DIR not found: $IMAGE_DIR"
              else
+               if [ -n "${WORKSPACE_BRANCH:-}" ]; then
+                 rm -rf workflow-input
+                 mkdir -p workflow-input
+                 if ! git fetch origin "refs/heads/$WORKSPACE_BRANCH:refs/remotes/origin/pages-skill-workspace"; then
+                   record_failure "WORKSPACE_BRANCH could not be fetched: $WORKSPACE_BRANCH"
+                 elif ! git archive --format=tar refs/remotes/origin/pages-skill-workspace -- "$NORMALIZED_IMAGE_DIR" | tar -xf - -C workflow-input; then
+                   record_failure "IMAGE_DIR not found on workspace branch: $IMAGE_DIR"
+                 else
+                   IMAGE_FOLDER="$PWD/workflow-input/$NORMALIZED_IMAGE_DIR"
+                 fi
+               else
+                 IMAGE_FOLDER="$(resolve_repo_path "$IMAGE_DIR")"
+               fi
+             fi
+             if [ "${rc}" -eq 0 ] && [ ! -d "${IMAGE_FOLDER:-}" ]; then
+               record_failure "IMAGE_DIR not found: $IMAGE_DIR"
+             fi
+             if [ "${rc}" -eq 0 ]; then
                python scripts/make_contact_sheet.py "$IMAGE_FOLDER" --out "workflow-output/_index.png" | tee workflow-output/contact-sheet.txt
                cmd_rc=${PIPESTATUS[0]}
                [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
@@ -183,6 +218,7 @@ jobs:
           SKILL: ${{ inputs.skill }}
           MODEL_PATH: ${{ inputs.model_path }}
           IMAGE_DIR: ${{ inputs.image_dir }}
+          WORKSPACE_BRANCH: ${{ inputs.workspace_branch }}
           PROMPT: ${{ inputs.prompt }}
           SKILL_PATH: ${{ steps.selected_skill.outputs.skill_path }}
           EXIT_CODE: ${{ steps.execute_workflow.outputs.exit_code }}
@@ -194,6 +230,7 @@ jobs:
            echo "- Skill reference: \\`$SKILL_PATH\\`"
            [ -n "$MODEL_PATH" ] && echo "- Model path: \\`$MODEL_PATH\\`"
            [ -n "$IMAGE_DIR" ] && echo "- Image dir: \\`$IMAGE_DIR\\`"
+           [ -n "$WORKSPACE_BRANCH" ] && echo "- Workspace branch: \\`$WORKSPACE_BRANCH\\`"
            [ -n "$PROMPT" ] && echo "- Prompt note: $PROMPT"
            echo "- Exit code: \\`${EXIT_CODE:-0}\\`"
            echo

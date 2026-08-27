@@ -397,7 +397,12 @@ function workflowFile() {
 }
 
 function currentWorkflowRef() {
-  const skill = state.manifest ? selectedSkill() : null
+  return state.config.repository.defaultBranch
+}
+
+function currentWorkspaceBranch() {
+  if (!state.manifest) return null
+  const skill = selectedSkill()
   const imageDirNode = dynamicFields
     ? [...dynamicFields.querySelectorAll('[data-field]')].find((element) => element.dataset.field === 'image_dir')
     : null
@@ -406,7 +411,7 @@ function currentWorkflowRef() {
     state.workspace?.userLogin === state.user?.login &&
     typeof imageDirNode?.value === 'string' &&
     imageDirNode.value.trim().startsWith(state.config.workspace.imageRoot + '/')
-  return usesWorkspace ? state.workspace.branch : state.config.repository.defaultBranch
+  return usesWorkspace ? state.workspace.branch : null
 }
 
 function workspaceBranchName(login) {
@@ -654,6 +659,8 @@ function clearToken() {
 
 async function dispatchWorkflow() {
   const inputs = collectInputs()
+  const workspaceBranch = currentWorkspaceBranch()
+  if (workspaceBranch) inputs.workspace_branch = workspaceBranch
   setStatus(dispatchStatus, 'Starte Workflow…')
   await githubRequest(`/repos/${repoSlug()}/actions/workflows/${workflowFile()}/dispatches`, {
     method: 'POST',
@@ -663,7 +670,8 @@ async function dispatchWorkflow() {
       inputs,
     }),
   })
-  setStatus(dispatchStatus, `Workflow auf ${currentWorkflowRef()} angefordert. Aktualisiere Run-Liste…`, 'success')
+  const sourceNote = workspaceBranch ? ` Bildquelle: ${workspaceBranch}.` : ''
+  setStatus(dispatchStatus, `Workflow auf ${currentWorkflowRef()} angefordert.${sourceNote} Aktualisiere Run-Liste…`, 'success')
   await refreshRuns()
 }
 

@@ -176,14 +176,17 @@ auf GitHub Actions.
    benutzereigenen Branch unter `pages-user-input/…` hoch, damit das
    Bild-Workflow-Profil sie ohne Backend nutzen kann.
 3. Die App liest Skill-Metadaten aus `web/public/skills-manifest.json`.
-4. Ein ausgewähltes Workflow-Profil wird als `workflow_dispatch`-Run gestartet.
-5. GitHub Actions checkt das Repository temporär serverseitig aus, liest die
+4. Ein ausgewähltes Workflow-Profil wird als `workflow_dispatch`-Run auf `main`
+   gestartet.
+5. Falls Referenzbilder zuvor hochgeladen wurden, zieht der Workflow deren Ordner
+   zusätzlich aus dem benutzereigenen Workspace-Branch nach.
+6. GitHub Actions checkt das Repository temporär serverseitig aus, liest die
    zugehörige Skill-Datei unter `.github/skills/` als Referenzdokumentation und
    führt das fest zugeordnete Repository-Skript aus.
-6. Reports und Artefakte (z. B. `_index.png`, `validate.txt`, `measure.txt`)
+7. Reports und Artefakte (z. B. `_index.png`, `validate.txt`, `measure.txt`)
    werden im Workflow-Run bereitgestellt und können aus der Pages-App
    heruntergeladen werden.
-7. Die Validate-/Optimize-Profile legen das bearbeitete Eingabemodell zusätzlich
+8. Die Validate-/Optimize-Profile legen das bearbeitete Eingabemodell zusätzlich
    im Workflow-Artefakt ab. Wenn ein Artefakt STL- oder 3MF-Dateien enthält,
    speichert die Pages-App diese
    zusätzlich im Browser-`localStorage`, damit spätere Sessions sie ohne erneuten
