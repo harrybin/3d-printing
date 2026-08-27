@@ -166,10 +166,9 @@ jobs:
              elif [ ! -d "$IMAGE_FOLDER" ]; then
                record_failure "IMAGE_DIR not found: $IMAGE_DIR"
              else
-               python scripts/make_contact_sheet.py "$IMAGE_FOLDER" --out "$IMAGE_FOLDER/_index.png" | tee workflow-output/contact-sheet.txt
+               python scripts/make_contact_sheet.py "$IMAGE_FOLDER" --out "workflow-output/_index.png" | tee workflow-output/contact-sheet.txt
                cmd_rc=${PIPESTATUS[0]}
                [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
-               cp "$IMAGE_FOLDER/_index.png" workflow-output/_index.png
              fi
              ;;
            *)

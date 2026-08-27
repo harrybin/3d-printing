@@ -61,7 +61,7 @@
           "placeholder": "model-sources",
           "default": "model-sources",
           "required": true,
-          "help": "Pfad relativ zum Repo-Root; der Workflow erzeugt <image_dir>/_index.png und lädt es als Artefakt hoch."
+          "help": "Pfad relativ zum Repo-Root; der Workflow erzeugt daraus ein `_index.png`-Artefakt für den Browser-Download."
         }
       ],
       "outputs": ["request.json", "skill.md", "contact-sheet.txt", "_index.png"],
