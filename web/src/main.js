@@ -11,6 +11,7 @@ const API_HEADERS = {
 }
 
 const app = document.querySelector('#app')
+let storedModelsCache = getStoredModels()
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -41,6 +42,11 @@ function saveStoredJson(key, value) {
 function getStoredModels() {
   const raw = loadStoredJson(MODEL_STORAGE_KEY, [])
   return Array.isArray(raw) ? raw : []
+}
+
+function refreshStoredModelsCache() {
+  storedModelsCache = getStoredModels()
+  return storedModelsCache
 }
 
 function decodeBase64(base64) {
@@ -97,6 +103,7 @@ function persistStoredModels(models) {
     throw new Error('Lokaler Speicher voll. Ältere Modelle löschen oder kleinere Artefakte verwenden.')
   }
   saveStoredJson(MODEL_STORAGE_KEY, next)
+  storedModelsCache = next
   return next
 }
 
@@ -115,7 +122,7 @@ function installModelFetchShim() {
     const request = input instanceof Request ? input : new Request(input, init)
     const url = new URL(request.url, window.location.href)
     const method = (request.method || 'GET').toUpperCase()
-    const savedModels = getStoredModels()
+    const savedModels = storedModelsCache
     const viewerModels = savedModels.filter((entry) => entry.viewerEligible)
 
     if (url.pathname.endsWith('/models/models.json')) {
@@ -563,7 +570,7 @@ function renderRuns(runs) {
 }
 
 function renderSavedModels() {
-  state.savedModels = getStoredModels()
+  state.savedModels = refreshStoredModelsCache()
   updateStorageNotice()
   if (!state.savedModels.length) {
     savedModelsList.className = 'runs-list empty'
@@ -771,23 +778,29 @@ function downloadSavedModel(key) {
 
 function openSavedModelInViewer(key) {
   const chooser = document.querySelector('#viewerRoot #fileChooser')
-  if (!chooser) return
+  if (!chooser) {
+    setStatus(dispatchStatus, 'Viewer-Dateiauswahl nicht gefunden. Bitte Seite neu laden und erneut versuchen.', 'warning')
+    return
+  }
   if (![...chooser.options].some((option) => option.value === key)) {
     chooser.add(new Option(key, key))
   }
   chooser.value = key
   chooser.dispatchEvent(new Event('change', { bubbles: true }))
+  setStatus(dispatchStatus, `Lokales Modell ${key} im Viewer geöffnet.`, 'success')
 }
 
 function deleteSavedModel(key) {
-  state.savedModels = getStoredModels().filter((entry) => entry.key !== key)
+  state.savedModels = refreshStoredModelsCache().filter((entry) => entry.key !== key)
   saveStoredJson(MODEL_STORAGE_KEY, state.savedModels)
+  storedModelsCache = state.savedModels
   renderSavedModels()
 }
 
 function clearSavedModels() {
   state.savedModels = []
   localStorage.removeItem(MODEL_STORAGE_KEY)
+  storedModelsCache = []
   renderSavedModels()
 }
 
