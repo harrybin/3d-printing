@@ -167,7 +167,8 @@ async function githubRequest(path, options = {}) {
   if (!state.token) throw new Error('GitHub token fehlt.')
   const headers = {
     ...API_HEADERS,
-    Authorization: `******    ...(options.headers || {}),
+    Authorization: 'Bearer ' + state.token,
+    ...(options.headers || {}),
   }
   const res = await fetch(`https://api.github.com${path}`, {
     ...options,
