@@ -362,7 +362,29 @@ function updateStorageNotice() {
   const savedCount = state.savedModels.length
   const userLabel = state.user?.login ? ` Benutzer: ${state.user.login}.` : ''
   const tokenLabel = state.token ? ' PAT lokal gespeichert.' : ' Kein PAT gespeichert.'
-  setStatus(storageNotice, `Lokale Session:${userLabel}${tokenLabel} Gespeicherte Modelldateien: ${savedCount}.`, state.token ? 'success' : 'warning')
+  const workspaceLabel = state.workspace?.imageDir ? ` Bild-Workspace: ${state.workspace.imageDir}.` : ' Kein Bild-Workspace gespeichert.'
+  setStatus(storageNotice, `Lokale Session:${userLabel}${tokenLabel}${workspaceLabel} Gespeicherte Modelldateien: ${savedCount}.`, state.token ? 'success' : 'warning')
+}
+
+function renderWorkspaceStatus() {
+  if (!state.workspace?.imageDir) {
+    setStatus(workspaceStatus, 'Noch kein Bild-Workspace initialisiert.', 'warning')
+    return
+  }
+  const fileCount = Array.isArray(state.workspace.files) ? state.workspace.files.length : 0
+  setStatus(
+    workspaceStatus,
+    `Branch: ${state.workspace.branch} · Ordner: ${state.workspace.imageDir} · Dateien: ${fileCount}`,
+    'success',
+  )
+}
+
+function applyWorkspaceFieldDefaults() {
+  if (!state.workspace?.imageDir) return
+  const skill = selectedSkill()
+  if (!skill || skill.id !== 'stl-from-image-measurements') return
+  const node = [...dynamicFields.querySelectorAll('[data-field]')].find((element) => element.dataset.field === 'image_dir')
+  if (node) node.value = state.workspace.imageDir
 }
 
 function repoSlug() {
@@ -375,7 +397,16 @@ function workflowFile() {
 }
 
 function currentWorkflowRef() {
-  return state.workspace?.branch || state.config.repository.defaultBranch
+  const skill = state.manifest ? selectedSkill() : null
+  const imageDirNode = dynamicFields
+    ? [...dynamicFields.querySelectorAll('[data-field]')].find((element) => element.dataset.field === 'image_dir')
+    : null
+  const usesWorkspace =
+    skill?.id === 'stl-from-image-measurements' &&
+    state.workspace?.userLogin === state.user?.login &&
+    typeof imageDirNode?.value === 'string' &&
+    imageDirNode.value.trim().startsWith(state.config.workspace.imageRoot + '/')
+  return usesWorkspace ? state.workspace.branch : state.config.repository.defaultBranch
 }
 
 function workspaceBranchName(login) {
@@ -435,6 +466,7 @@ function renderSkillDetails() {
       `,
     )
     .join('')
+  applyWorkspaceFieldDefaults()
 }
 
 function renderFieldInput(field) {
@@ -493,6 +525,79 @@ async function safeErrorMessage(res) {
   }
 }
 
+async function githubRequestOptional(path, options = {}) {
+  try {
+    return await githubRequest(path, options)
+  } catch (error) {
+    if (String(error.message).includes('(404)')) return null
+    throw error
+  }
+}
+
+async function readFileAsBase64(file) {
+  const buffer = await file.arrayBuffer()
+  return encodeBase64(new Uint8Array(buffer))
+}
+
+async function ensureWorkspaceBranch(login) {
+  const branch = workspaceBranchName(login)
+  const existing = await githubRequestOptional(`/repos/${repoSlug()}/git/ref/heads/${encodeURIComponent(branch)}`)
+  if (existing) return branch
+  const base = await githubRequest(`/repos/${repoSlug()}/git/ref/heads/${state.config.repository.defaultBranch}`)
+  await githubRequest(`/repos/${repoSlug()}/git/refs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ref: `refs/heads/${branch}`,
+      sha: base.object.sha,
+    }),
+  })
+  return branch
+}
+
+async function uploadImagesToWorkspace() {
+  if (!state.user?.login || !state.token) throw new Error('Bitte zuerst einen GitHub-Token verbinden.')
+  const files = [...(imageUploadInput.files || [])]
+  if (!files.length) throw new Error('Bitte mindestens ein Bild auswählen.')
+
+  const branch = await ensureWorkspaceBranch(state.user.login)
+  const sessionId = new Date().toISOString().replace(/[:.]/g, '-')
+  const imageDir = workspaceImageDir(state.user.login, sessionId)
+  const uploaded = []
+
+  for (const [index, file] of files.entries()) {
+    const safeName = `${String(index + 1).padStart(2, '0')}-${sanitizePathSegment(file.name.replace(/\.[^.]+$/, ''))}${fileExtension(file.name) || '.bin'}`
+    await githubRequest(`/repos/${repoSlug()}/contents/${imageDir}/${safeName}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `Upload reference image ${safeName}`,
+        content: await readFileAsBase64(file),
+        branch,
+      }),
+    })
+    uploaded.push({
+      name: safeName,
+      size: file.size,
+      uploadedAt: new Date().toISOString(),
+    })
+  }
+
+  state.workspace = {
+    branch,
+    imageDir,
+    files: uploaded,
+    userLogin: state.user.login,
+    updatedAt: new Date().toISOString(),
+  }
+  saveStoredJson(WORKSPACE_STORAGE_KEY, state.workspace)
+  imageUploadInput.value = ''
+  renderWorkspaceStatus()
+  updateStorageNotice()
+  renderSkillDetails()
+  setStatus(dispatchStatus, `${uploaded.length} Bilddatei(en) nach ${imageDir} auf ${branch} hochgeladen.`, 'success')
+}
+
 async function connectToken() {
   state.token = tokenInput.value.trim()
   if (!state.token) {
@@ -508,9 +613,15 @@ async function connectToken() {
   try {
     const user = await githubRequest('/user')
     state.user = { login: user.login, id: user.id }
+    if (state.workspace?.userLogin && state.workspace.userLogin !== user.login) {
+      state.workspace = null
+      localStorage.removeItem(WORKSPACE_STORAGE_KEY)
+      renderSkillDetails()
+    }
     localStorage.setItem(TOKEN_STORAGE_KEY, state.token)
     saveStoredJson(USER_STORAGE_KEY, state.user)
     setStatus(authStatus, `Verbunden als ${user.login}. PAT und lokale Modelle bleiben im Browser gespeichert.`, 'success')
+    renderWorkspaceStatus()
     updateStorageNotice()
     await refreshRuns()
     ensurePolling()
@@ -548,11 +659,11 @@ async function dispatchWorkflow() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      ref: state.config.repository.defaultBranch,
+      ref: currentWorkflowRef(),
       inputs,
     }),
   })
-  setStatus(dispatchStatus, 'Workflow angefordert. Aktualisiere Run-Liste…', 'success')
+  setStatus(dispatchStatus, `Workflow auf ${currentWorkflowRef()} angefordert. Aktualisiere Run-Liste…`, 'success')
   await refreshRuns()
 }
 
@@ -852,6 +963,18 @@ function clearSavedModels() {
   renderSavedModels()
 }
 
+function useWorkspaceDirForImageSkill() {
+  if (!state.workspace?.imageDir) {
+    setStatus(dispatchStatus, 'Noch kein Bild-Workspace vorhanden.', 'warning')
+    return
+  }
+  skillSelect.value = 'stl-from-image-measurements'
+  renderSkillDetails()
+  const node = [...dynamicFields.querySelectorAll('[data-field]')].find((element) => element.dataset.field === 'image_dir')
+  if (node) node.value = state.workspace.imageDir
+  setStatus(dispatchStatus, `Bild-Workflow auf ${state.workspace.imageDir} vorbereitet.`, 'success')
+}
+
 function ensurePolling() {
   if (state.pollHandle || !state.token) return
   state.pollHandle = window.setInterval(() => {
@@ -890,6 +1013,8 @@ skillSelect.addEventListener('change', renderSkillDetails)
 connectBtn.addEventListener('click', () => connectToken().catch(() => {}))
 clearTokenBtn.addEventListener('click', clearToken)
 clearSavedModelsBtn.addEventListener('click', clearSavedModels)
+uploadImagesBtn.addEventListener('click', () => uploadImagesToWorkspace().catch((error) => setStatus(dispatchStatus, error.message, 'danger')))
+useWorkspaceDirBtn.addEventListener('click', useWorkspaceDirForImageSkill)
 dispatchBtn.addEventListener('click', () => dispatchWorkflow().catch((error) => setStatus(dispatchStatus, error.message, 'danger')))
 refreshBtn.addEventListener('click', () => refreshRuns())
 
@@ -905,6 +1030,7 @@ async function bootstrap() {
     manifestSummary.textContent = manifest.description
     renderSkillOptions()
     renderSavedModels()
+    renderWorkspaceStatus()
     if (state.user?.login && state.token) {
       setStatus(authStatus, `Gespeicherter PAT gefunden. Letzter Benutzer: ${state.user.login}.`, 'warning')
       await connectToken()

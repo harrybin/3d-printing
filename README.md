@@ -172,15 +172,18 @@ auf GitHub Actions.
 
 1. Nutzer öffnet die Pages-App, verbindet einen GitHub-Token und legt ihn im
    Browser-`localStorage` ab.
-2. Die App liest Skill-Metadaten aus `web/public/skills-manifest.json`.
-3. Ein ausgewähltes Workflow-Profil wird als `workflow_dispatch`-Run gestartet.
-4. GitHub Actions checkt das Repository temporär serverseitig aus, liest die
+2. Optional lädt die App Referenzbilder mit dem Benutzer-PAT in einen
+   benutzereigenen Branch unter `pages-user-input/…` hoch, damit das
+   Bild-Workflow-Profil sie ohne Backend nutzen kann.
+3. Die App liest Skill-Metadaten aus `web/public/skills-manifest.json`.
+4. Ein ausgewähltes Workflow-Profil wird als `workflow_dispatch`-Run gestartet.
+5. GitHub Actions checkt das Repository temporär serverseitig aus, liest die
    zugehörige Skill-Datei unter `.github/skills/` als Referenzdokumentation und
    führt das fest zugeordnete Repository-Skript aus.
-5. Reports und Artefakte (z. B. `_index.png`, `validate.txt`, `measure.txt`)
+6. Reports und Artefakte (z. B. `_index.png`, `validate.txt`, `measure.txt`)
    werden im Workflow-Run bereitgestellt und können aus der Pages-App
    heruntergeladen werden.
-6. Die Validate-/Optimize-Profile legen das bearbeitete Eingabemodell zusätzlich
+7. Die Validate-/Optimize-Profile legen das bearbeitete Eingabemodell zusätzlich
    im Workflow-Artefakt ab. Wenn ein Artefakt STL- oder 3MF-Dateien enthält,
    speichert die Pages-App diese
    zusätzlich im Browser-`localStorage`, damit spätere Sessions sie ohne erneuten
@@ -197,6 +200,8 @@ auf GitHub Actions.
 
 - GitHub Pages hostet weiterhin **kein Backend** und hält keine Secrets.
 - Der Token sowie lokal gesicherte Modelldateien werden absichtlich nur im Browser-`localStorage` gehalten.
+- Für Bild-Uploads braucht der Benutzer-PAT **Contents: Read and write**, weil die
+  Bilder in einen benutzereigenen Workspace-Branch geschrieben werden.
 - Es gibt noch keinen eingebetteten Copilot-Chat und keine serverseitige
   LLM-Orchestrierung. Dafür wäre später eine GitHub-App- oder Broker-Schicht
   nötig.

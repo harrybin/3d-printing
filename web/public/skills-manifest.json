@@ -1,5 +1,5 @@
 {
-  "description": "Dispatcht serverseitige GitHub-Actions-Runs für feste Workflow-Profile, zeigt die zugehörigen Repo-Skill-Dateien als Referenz an und nutzt die vorhandenen Python-Skripte als Ausführungs-Engine.",
+  "description": "Dispatcht serverseitige GitHub-Actions-Runs für feste Workflow-Profile, zeigt die zugehörigen Repo-Skill-Dateien als Referenz an, unterstützt benutzerseitige Bild-Uploads in einen GitHub-Workspace-Branch und nutzt die vorhandenen Python-Skripte als Ausführungs-Engine.",
   "skills": [
     {
       "id": "validate-stl-mesh",
@@ -52,7 +52,7 @@
       "id": "stl-from-image-measurements",
       "name": "STL from image measurements",
       "source": ".github/skills/stl-from-image-measurements/SKILL.md",
-      "description": "Startet den Kontaktblatt-Schritt des Bild-Workflows serverseitig für bereits im Repository vorhandene Bildordner.",
+      "description": "Startet den Kontaktblatt-Schritt des Bild-Workflows serverseitig für Repository-Bildordner oder zuvor hochgeladene Referenzbilder im benutzereigenen Workspace-Branch.",
       "fields": [
         {
           "name": "image_dir",
@@ -61,7 +61,7 @@
           "placeholder": "model-sources",
           "default": "model-sources",
           "required": true,
-          "help": "Pfad relativ zum Repo-Root; der Workflow erzeugt daraus ein `_index.png`-Artefakt für den Browser-Download."
+          "help": "Pfad relativ zum Repo-Root; kann direkt aus dem Bild-Workspace der App übernommen werden. Der Workflow erzeugt daraus ein `_index.png`-Artefakt für den Browser-Download."
         }
       ],
       "outputs": ["request.json", "skill.md", "contact-sheet.txt", "_index.png"],

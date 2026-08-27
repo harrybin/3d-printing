@@ -11,5 +11,9 @@
   "auth": {
     "mode": "personal-access-token",
     "tokenStorage": "localStorage"
+  },
+  "workspace": {
+    "branchPrefix": "copilot-pages-sessions",
+    "imageRoot": "pages-user-input"
   }
 }
