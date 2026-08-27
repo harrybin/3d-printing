@@ -162,6 +162,10 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;')
 }
 
+function safeGithubUrl(value, prefix = 'https://github.com/') {
+  return typeof value === 'string' && value.startsWith(prefix) ? value : '#'
+}
+
 function githubBlobUrl(path) {
   return `https://github.com/${repoSlug()}/blob/${state.config.repository.defaultBranch}/${path}`
 }
@@ -336,23 +340,24 @@ function renderRuns(runs) {
   runsList.className = 'runs-list'
   runsList.innerHTML = runs
     .map((run) => {
+      const runUrl = safeGithubUrl(run.html_url)
       const artifacts = (run.artifacts || []).map((artifact) => `
         <li>
-          <span>${artifact.name}</span>
-          <button type="button" data-download="${artifact.archive_download_url}" data-artifact-name="${artifact.name}">Download</button>
+          <span>${escapeHtml(artifact.name)}</span>
+          <button type="button" data-download="${escapeHtml(safeGithubUrl(artifact.archive_download_url, 'https://api.github.com/'))}" data-artifact-name="${escapeHtml(artifact.name)}">Download</button>
         </li>
       `).join('') || '<li>Keine Artefakte.</li>'
-      const jobs = (run.jobs || []).map((job) => `<li>${job.name}: ${job.status}${job.conclusion ? ` / ${job.conclusion}` : ''}</li>`).join('') || '<li>Jobdetails noch nicht geladen.</li>'
+      const jobs = (run.jobs || []).map((job) => `<li>${escapeHtml(job.name)}: ${escapeHtml(job.status)}${job.conclusion ? ` / ${escapeHtml(job.conclusion)}` : ''}</li>`).join('') || '<li>Jobdetails noch nicht geladen.</li>'
       return `
         <article class="run-card" data-tone="${runTone(run)}">
           <div class="run-card-header">
             <div>
-              <h4>#${run.run_number} · ${run.display_title || run.name}</h4>
-              <p>${new Date(run.created_at).toLocaleString('de-DE')} · ${formatRunStatus(run)}</p>
+              <h4>#${escapeHtml(run.run_number)} · ${escapeHtml(run.display_title || run.name)}</h4>
+              <p>${escapeHtml(new Date(run.created_at).toLocaleString('de-DE'))} · ${escapeHtml(formatRunStatus(run))}</p>
             </div>
-            <a href="${run.html_url}" target="_blank" rel="noreferrer">In GitHub öffnen</a>
+            <a href="${escapeHtml(runUrl)}" target="_blank" rel="noreferrer">In GitHub öffnen</a>
           </div>
-          <p class="run-body"><strong>Skill:</strong> ${run.display_skill || 'unbekannt'}${run.head_branch ? ` · <strong>Ref:</strong> ${run.head_branch}` : ''}</p>
+          <p class="run-body"><strong>Skill:</strong> ${escapeHtml(run.display_skill || 'unbekannt')}${run.head_branch ? ` · <strong>Ref:</strong> ${escapeHtml(run.head_branch)}` : ''}</p>
           <details>
             <summary>Jobs</summary>
             <ul class="artifact-list">${jobs}</ul>
