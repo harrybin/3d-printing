@@ -30,9 +30,17 @@ LABEL_BG = (32, 32, 32)
 LABEL_FG = (255, 255, 255)
 
 
-def collect(folder: Path, recursive: bool) -> list[Path]:
+def collect(folder: Path, recursive: bool, exclude: Path | None = None) -> list[Path]:
     walker = folder.rglob("*") if recursive else folder.glob("*")
-    files = [p for p in walker if p.is_file() and p.suffix.lower() in IMAGE_SUFFIXES]
+    excluded = exclude.resolve() if exclude is not None else None
+    files = [
+        p
+        for p in walker
+        if p.is_file()
+        and p.suffix.lower() in IMAGE_SUFFIXES
+        and p.name != "_index.png"
+        and (excluded is None or p.resolve() != excluded)
+    ]
     return sorted(files, key=lambda p: str(p).lower())
 
 
@@ -81,12 +89,12 @@ def main() -> int:
         print(f"error: {args.folder} is not a directory", file=sys.stderr)
         return 2
 
-    paths = collect(args.folder, args.recursive)
+    out = args.out or args.folder / "_index.png"
+    paths = collect(args.folder, args.recursive, exclude=out)
     if not paths:
         print(f"error: no images found in {args.folder}", file=sys.stderr)
         return 2
 
-    out = args.out or args.folder / "_index.png"
     out.parent.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(str(out), build_sheet(paths, args.cols, args.tile))
 
