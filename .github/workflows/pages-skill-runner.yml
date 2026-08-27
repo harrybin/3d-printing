@@ -96,27 +96,42 @@ jobs:
           INFILL_PERCENT: ${{ inputs.infill_percent }}
         run: |
           set -euo pipefail
+          resolve_repo_path() {
+            python - "$1" <<'PY'
+            import pathlib
+            import sys
+
+            root = pathlib.Path.cwd().resolve()
+            candidate = (root / sys.argv[1]).resolve()
+            if not candidate.is_relative_to(root):
+                raise SystemExit(f"Path escapes repository root: {sys.argv[1]}")
+            print(candidate)
+            PY
+          }
           case "$SKILL" in
             validate-stl-mesh)
               test -n "$MODEL_PATH"
-              test -f "$MODEL_PATH"
-              python scripts/mesh_tool.py info "$MODEL_PATH" --json | tee workflow-output/info.json
-              python scripts/mesh_tool.py validate "$MODEL_PATH" | tee workflow-output/validate.txt
-              python scripts/mesh_tool.py overhang "$MODEL_PATH" | tee workflow-output/overhang.txt
+              MODEL_FILE="$(resolve_repo_path "$MODEL_PATH")"
+              test -f "$MODEL_FILE"
+              python scripts/mesh_tool.py info "$MODEL_FILE" --json | tee workflow-output/info.json
+              python scripts/mesh_tool.py validate "$MODEL_FILE" | tee workflow-output/validate.txt
+              python scripts/mesh_tool.py overhang "$MODEL_FILE" | tee workflow-output/overhang.txt
               ;;
             optimize-stl-for-print)
               test -n "$MODEL_PATH"
-              test -f "$MODEL_PATH"
+              MODEL_FILE="$(resolve_repo_path "$MODEL_PATH")"
+              test -f "$MODEL_FILE"
               INFILL_VALUE="${INFILL_PERCENT:-20}"
-              python scripts/mesh_tool.py validate "$MODEL_PATH" | tee workflow-output/validate.txt
-              python scripts/mesh_tool.py overhang "$MODEL_PATH" | tee workflow-output/overhang.txt
-              python scripts/mesh_tool.py measure "$MODEL_PATH" --infill "$INFILL_VALUE" | tee workflow-output/measure.txt
+              python scripts/mesh_tool.py validate "$MODEL_FILE" | tee workflow-output/validate.txt
+              python scripts/mesh_tool.py overhang "$MODEL_FILE" | tee workflow-output/overhang.txt
+              python scripts/mesh_tool.py measure "$MODEL_FILE" --infill "$INFILL_VALUE" | tee workflow-output/measure.txt
               ;;
             stl-from-image-measurements)
               test -n "$IMAGE_DIR"
-              test -d "$IMAGE_DIR"
-              python scripts/make_contact_sheet.py "$IMAGE_DIR" --out "$IMAGE_DIR/_index.png" | tee workflow-output/contact-sheet.txt
-              cp "$IMAGE_DIR/_index.png" workflow-output/_index.png
+              IMAGE_FOLDER="$(resolve_repo_path "$IMAGE_DIR")"
+              test -d "$IMAGE_FOLDER"
+              python scripts/make_contact_sheet.py "$IMAGE_FOLDER" --out "$IMAGE_FOLDER/_index.png" | tee workflow-output/contact-sheet.txt
+              cp "$IMAGE_FOLDER/_index.png" workflow-output/_index.png
               ;;
             *)
               echo "Unsupported skill: $SKILL" >&2

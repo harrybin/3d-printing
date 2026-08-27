@@ -119,6 +119,7 @@ const state = {
   token: sessionStorage.getItem(SESSION_TOKEN_KEY) || '',
   user: null,
   runs: [],
+  runDetails: new Map(),
   pollHandle: null,
 }
 
@@ -256,7 +257,7 @@ function collectInputs() {
   const skill = selectedSkill()
   const inputs = { skill: skill.id, prompt: promptInput.value.trim() }
   for (const field of skill.fields) {
-    const node = dynamicFields.querySelector(`[data-field="${field.name}"]`)
+    const node = [...dynamicFields.querySelectorAll('[data-field]')].find((element) => element.dataset.field === field.name)
     const value = (node?.value || '').trim()
     if (field.required && !value) throw new Error(`Feld „${field.label}“ fehlt.`)
     if (value) inputs[field.name] = value
@@ -340,14 +341,21 @@ function renderRuns(runs) {
   runsList.className = 'runs-list'
   runsList.innerHTML = runs
     .map((run) => {
+      const cached = state.runDetails.get(run.id)
+      if (cached?.updatedAt && cached.updatedAt !== run.updated_at) state.runDetails.delete(run.id)
+      const details = state.runDetails.get(run.id) || { artifacts: null, jobs: null }
       const runUrl = safeGithubUrl(run.html_url)
-      const artifacts = (run.artifacts || []).map((artifact) => `
+      const artifacts = Array.isArray(details.artifacts)
+        ? details.artifacts.map((artifact) => `
         <li>
           <span>${escapeHtml(artifact.name)}</span>
           <button type="button" data-download="${escapeHtml(safeGithubUrl(artifact.archive_download_url, 'https://api.github.com/'))}" data-artifact-name="${escapeHtml(artifact.name)}">Download</button>
         </li>
       `).join('') || '<li>Keine Artefakte.</li>'
-      const jobs = (run.jobs || []).map((job) => `<li>${escapeHtml(job.name)}: ${escapeHtml(job.status)}${job.conclusion ? ` / ${escapeHtml(job.conclusion)}` : ''}</li>`).join('') || '<li>Jobdetails noch nicht geladen.</li>'
+        : '<li>Zum Laden öffnen.</li>'
+      const jobs = Array.isArray(details.jobs)
+        ? details.jobs.map((job) => `<li>${escapeHtml(job.name)}: ${escapeHtml(job.status)}${job.conclusion ? ` / ${escapeHtml(job.conclusion)}` : ''}</li>`).join('') || '<li>Keine Jobs gefunden.</li>'
+        : '<li>Zum Laden öffnen.</li>'
       return `
         <article class="run-card" data-tone="${runTone(run)}">
           <div class="run-card-header">
@@ -358,13 +366,13 @@ function renderRuns(runs) {
             <a href="${escapeHtml(runUrl)}" target="_blank" rel="noreferrer">In GitHub öffnen</a>
           </div>
           <p class="run-body"><strong>Skill:</strong> ${escapeHtml(run.display_skill || 'unbekannt')}${run.head_branch ? ` · <strong>Ref:</strong> ${escapeHtml(run.head_branch)}` : ''}</p>
-          <details>
+          <details data-run-id="${escapeHtml(run.id)}" data-detail-kind="jobs">
             <summary>Jobs</summary>
-            <ul class="artifact-list">${jobs}</ul>
+            <ul class="artifact-list" id="run-jobs-${escapeHtml(run.id)}">${jobs}</ul>
           </details>
-          <details>
+          <details data-run-id="${escapeHtml(run.id)}" data-detail-kind="artifacts">
             <summary>Artefakte</summary>
-            <ul class="artifact-list">${artifacts}</ul>
+            <ul class="artifact-list" id="run-artifacts-${escapeHtml(run.id)}">${artifacts}</ul>
           </details>
         </article>
       `
@@ -379,21 +387,10 @@ async function fetchWorkflowRuns() {
   const filtered = state.user
     ? workflowRuns.filter((run) => (run.triggering_actor?.login || run.actor?.login) === state.user.login)
     : workflowRuns
-  const detailedRuns = await Promise.all(
-    filtered.slice(0, 5).map(async (run) => {
-      const [artifactsData, jobsData] = await Promise.all([
-        githubRequest(`/repos/${repoSlug()}/actions/runs/${run.id}/artifacts`).catch(() => ({ artifacts: [] })),
-        githubRequest(`/repos/${repoSlug()}/actions/runs/${run.id}/jobs`).catch(() => ({ jobs: [] })),
-      ])
-      return {
-        ...run,
-        display_skill: run.name === state.config.workflow.name ? inferSkillFromTitle(run.display_title) : run.name,
-        artifacts: artifactsData.artifacts || [],
-        jobs: jobsData.jobs || [],
-      }
-    }),
-  )
-  return detailedRuns
+  return filtered.slice(0, 5).map((run) => ({
+    ...run,
+    display_skill: run.name === state.config.workflow.name ? inferSkillFromTitle(run.display_title) : run.name,
+  }))
 }
 
 function inferSkillFromTitle(title = '') {
@@ -416,6 +413,32 @@ async function refreshRuns() {
   } catch (error) {
     setStatus(dispatchStatus, `Status konnte nicht geladen werden: ${error.message}`, 'danger')
     renderRuns([])
+  }
+}
+
+async function loadRunDetails(runId) {
+  const run = state.runs.find((entry) => String(entry.id) === String(runId))
+  if (!run) return
+  const cached = state.runDetails.get(run.id)
+  if (cached?.updatedAt === run.updated_at && Array.isArray(cached.jobs) && Array.isArray(cached.artifacts)) return
+  const jobsNode = document.querySelector(`#run-jobs-${CSS.escape(String(run.id))}`)
+  const artifactsNode = document.querySelector(`#run-artifacts-${CSS.escape(String(run.id))}`)
+  if (jobsNode) jobsNode.innerHTML = '<li>Lade…</li>'
+  if (artifactsNode) artifactsNode.innerHTML = '<li>Lade…</li>'
+  try {
+    const [artifactsData, jobsData] = await Promise.all([
+      githubRequest(`/repos/${repoSlug()}/actions/runs/${run.id}/artifacts`).catch(() => ({ artifacts: [] })),
+      githubRequest(`/repos/${repoSlug()}/actions/runs/${run.id}/jobs`).catch(() => ({ jobs: [] })),
+    ])
+    state.runDetails.set(run.id, {
+      updatedAt: run.updated_at,
+      artifacts: artifactsData.artifacts || [],
+      jobs: jobsData.jobs || [],
+    })
+    renderRuns(state.runs)
+  } catch (error) {
+    if (jobsNode) jobsNode.innerHTML = `<li>${escapeHtml(error.message)}</li>`
+    if (artifactsNode) artifactsNode.innerHTML = `<li>${escapeHtml(error.message)}</li>`
   }
 }
 
@@ -444,6 +467,12 @@ runsList.addEventListener('click', (event) => {
   const button = event.target.closest('[data-download]')
   if (!button) return
   downloadArtifact(button.dataset.download, button.dataset.artifactName)
+})
+
+runsList.addEventListener('toggle', (event) => {
+  const details = event.target
+  if (!(details instanceof HTMLDetailsElement) || !details.open || !details.dataset.runId) return
+  loadRunDetails(details.dataset.runId).catch(() => {})
 })
 
 skillSelect.addEventListener('change', renderSkillDetails)
