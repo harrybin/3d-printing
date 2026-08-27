@@ -184,7 +184,7 @@ app.innerHTML = `
         <p class="eyebrow">GitHub Pages + GitHub Actions</p>
         <h1>STL Canvas + Repo Skill Runner</h1>
         <p class="lede">
-          Die App rendert STL-Dateien lokal im Browser und startet serverseitige, skill-gestützte
+          Die App rendert STL-Dateien lokal im Browser und startet serverseitige, workflow-gestützte
           Repo-Workflows auf GitHub Actions – ohne lokalen Checkout beim Benutzer.
         </p>
       </div>
@@ -207,7 +207,7 @@ app.innerHTML = `
           <div>
             <h2>Repo Skill Runner</h2>
             <p>
-              Nutzt Repo-Skills als Policy-Kontext und führt unterstützte Aufgaben über
+              Zeigt zugehörige Repo-Skills als Referenz an und führt unterstützte Aufgaben über
               <code>workflow_dispatch</code> in GitHub Actions aus.
             </p>
           </div>
@@ -255,7 +255,7 @@ app.innerHTML = `
 
           <label class="stack field-block">
             <span>Prompt / Notizen</span>
-            <textarea id="promptInput" rows="5" placeholder="Optional: zusätzliche Hinweise für den Workflow-Lauf"></textarea>
+            <textarea id="promptInput" rows="5" placeholder="Optional: zusätzliche Hinweise; werden mit dem Run gespeichert, steuern das MVP aber nicht direkt"></textarea>
           </label>
 
           <div class="button-row">

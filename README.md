@@ -163,7 +163,7 @@ bed and both coordinate conventions.
 ## GitHub Pages Skill Runner (ohne lokalen Checkout)
 
 Die GitHub-Pages-SPA kann jetzt nicht nur STL-Dateien anzeigen, sondern auch
-serverseitige, skill-gestützte Repository-Workflows starten. Der Browser bleibt
+serverseitige Repository-Workflow-Profile starten. Der Browser bleibt
 reines Frontend; die Ausführung passiert über
 `.github/workflows/pages-skill-runner.yml`
 auf GitHub Actions.
@@ -173,18 +173,20 @@ auf GitHub Actions.
 1. Nutzer öffnet die Pages-App, verbindet einen GitHub-Token und legt ihn im
    Browser-`localStorage` ab.
 2. Die App liest Skill-Metadaten aus `web/public/skills-manifest.json`.
-3. Ein ausgewählter Skill wird als `workflow_dispatch`-Run gestartet.
+3. Ein ausgewähltes Workflow-Profil wird als `workflow_dispatch`-Run gestartet.
 4. GitHub Actions checkt das Repository temporär serverseitig aus, liest die
-   Skill-Datei unter `.github/skills/` als Policy-Kontext und führt die
-   vorhandenen Python-Skripte aus.
+   zugehörige Skill-Datei unter `.github/skills/` als Referenzdokumentation und
+   führt das fest zugeordnete Repository-Skript aus.
 5. Reports und Artefakte (z. B. `_index.png`, `validate.txt`, `measure.txt`)
    werden im Workflow-Run bereitgestellt und können aus der Pages-App
    heruntergeladen werden.
-6. Wenn ein Artefakt STL- oder 3MF-Dateien enthält, speichert die Pages-App diese
+6. Die Validate-/Optimize-Profile legen das bearbeitete Eingabemodell zusätzlich
+   im Workflow-Artefakt ab. Wenn ein Artefakt STL- oder 3MF-Dateien enthält,
+   speichert die Pages-App diese
    zusätzlich im Browser-`localStorage`, damit spätere Sessions sie ohne erneuten
    Workflow-Run fortsetzen können.
 
-### Aktuell unterstützte Skill-Backed Flows
+### Aktuell unterstützte Workflow-Profile
 
 - `validate-stl-mesh` → `scripts/mesh_tool.py info|validate|overhang`
 - `optimize-stl-for-print` → `scripts/mesh_tool.py validate|overhang|measure`

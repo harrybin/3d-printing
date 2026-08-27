@@ -1,5 +1,5 @@
 {
-  "description": "Dispatcht serverseitige GitHub-Actions-Runs, die Repo-Skill-Dateien als Policy-Kontext lesen und die vorhandenen Python-Skripte als Ausführungs-Engine nutzen.",
+  "description": "Dispatcht serverseitige GitHub-Actions-Runs für feste Workflow-Profile, zeigt die zugehörigen Repo-Skill-Dateien als Referenz an und nutzt die vorhandenen Python-Skripte als Ausführungs-Engine.",
   "skills": [
     {
       "id": "validate-stl-mesh",
@@ -17,8 +17,8 @@
           "help": "Pfad relativ zum Repo-Root. Für diesen MVP werden nur bereits im Repository vorhandene Modelle verarbeitet."
         }
       ],
-      "outputs": ["request.json", "skill.md", "info.json", "validate.txt", "overhang.txt"],
-      "limitations": "Kein Dateiupload im Browser; der Run arbeitet auf Repository-Dateien oder bereits committeten STL-Dateien."
+      "outputs": ["request.json", "skill.md", "info.json", "validate.txt", "overhang.txt", "models/<eingabe>.stl"],
+      "limitations": "Kein Dateiupload im Browser; der Run arbeitet auf Repository-Dateien und legt das geprüfte Modell zusätzlich im Artefakt für lokale Browser-Fortsetzung ab."
     },
     {
       "id": "optimize-stl-for-print",
@@ -45,8 +45,8 @@
           "help": "Optionaler Wert für scripts/mesh_tool.py measure --infill."
         }
       ],
-      "outputs": ["request.json", "skill.md", "validate.txt", "overhang.txt", "measure.txt"],
-      "limitations": "Der Workflow macht keine dauerhaften Modelländerungen; Orientierungs-Entscheidungen bleiben Reports oder Slicer-Aufgaben."
+      "outputs": ["request.json", "skill.md", "validate.txt", "overhang.txt", "measure.txt", "models/<eingabe>.stl"],
+      "limitations": "Der Workflow macht keine dauerhaften Modelländerungen; er legt das analysierte Modell nur als Artefaktkopie für lokale Browser-Fortsetzung ab."
     },
     {
       "id": "stl-from-image-measurements",

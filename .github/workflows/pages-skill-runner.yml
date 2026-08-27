@@ -88,14 +88,16 @@ jobs:
           echo "skill_path=$skill_path" >> "$GITHUB_OUTPUT"
         id: selected_skill
 
-      - name: Run requested skill-backed workflow
+      - name: Run selected workflow profile
+        id: execute_workflow
         env:
           SKILL: ${{ inputs.skill }}
           MODEL_PATH: ${{ inputs.model_path }}
           IMAGE_DIR: ${{ inputs.image_dir }}
           INFILL_PERCENT: ${{ inputs.infill_percent }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          rc=0
           resolve_repo_path() {
             python - "$1" <<'PY'
             import pathlib
@@ -108,60 +110,114 @@ jobs:
             print(candidate)
             PY
           }
+          record_failure() {
+           echo "$1" | tee -a workflow-output/error.txt >&2
+           rc=1
+          }
           case "$SKILL" in
-            validate-stl-mesh)
-              test -n "$MODEL_PATH"
-              MODEL_FILE="$(resolve_repo_path "$MODEL_PATH")"
-              test -f "$MODEL_FILE"
-              python scripts/mesh_tool.py info "$MODEL_FILE" --json | tee workflow-output/info.json
-              python scripts/mesh_tool.py validate "$MODEL_FILE" | tee workflow-output/validate.txt
-              python scripts/mesh_tool.py overhang "$MODEL_FILE" | tee workflow-output/overhang.txt
-              ;;
-            optimize-stl-for-print)
-              test -n "$MODEL_PATH"
-              MODEL_FILE="$(resolve_repo_path "$MODEL_PATH")"
-              test -f "$MODEL_FILE"
-              INFILL_VALUE="${INFILL_PERCENT:-20}"
-              python scripts/mesh_tool.py validate "$MODEL_FILE" | tee workflow-output/validate.txt
-              python scripts/mesh_tool.py overhang "$MODEL_FILE" | tee workflow-output/overhang.txt
-              python scripts/mesh_tool.py measure "$MODEL_FILE" --infill "$INFILL_VALUE" | tee workflow-output/measure.txt
-              ;;
-            stl-from-image-measurements)
-              test -n "$IMAGE_DIR"
-              IMAGE_FOLDER="$(resolve_repo_path "$IMAGE_DIR")"
-              test -d "$IMAGE_FOLDER"
-              python scripts/make_contact_sheet.py "$IMAGE_FOLDER" --out "$IMAGE_FOLDER/_index.png" | tee workflow-output/contact-sheet.txt
-              cp "$IMAGE_FOLDER/_index.png" workflow-output/_index.png
-              ;;
-            *)
-              echo "Unsupported skill: $SKILL" >&2
-              exit 1
-              ;;
+           validate-stl-mesh)
+             if [ -z "$MODEL_PATH" ]; then
+               record_failure "MODEL_PATH is required for validate-stl-mesh."
+             elif ! MODEL_FILE="$(resolve_repo_path "$MODEL_PATH")"; then
+               record_failure "MODEL_PATH escapes the repository root: $MODEL_PATH"
+             elif [ ! -f "$MODEL_FILE" ]; then
+               record_failure "MODEL_PATH not found: $MODEL_PATH"
+             else
+               mkdir -p workflow-output/models
+               cp "$MODEL_FILE" "workflow-output/models/$(basename "$MODEL_FILE")"
+               python scripts/mesh_tool.py info "$MODEL_FILE" --json | tee workflow-output/info.json
+               cmd_rc=${PIPESTATUS[0]}
+               [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
+               python scripts/mesh_tool.py validate "$MODEL_FILE" | tee workflow-output/validate.txt
+               cmd_rc=${PIPESTATUS[0]}
+               [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
+               python scripts/mesh_tool.py overhang "$MODEL_FILE" | tee workflow-output/overhang.txt
+               cmd_rc=${PIPESTATUS[0]}
+               [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
+             fi
+             ;;
+           optimize-stl-for-print)
+             if [ -z "$MODEL_PATH" ]; then
+               record_failure "MODEL_PATH is required for optimize-stl-for-print."
+             elif ! MODEL_FILE="$(resolve_repo_path "$MODEL_PATH")"; then
+               record_failure "MODEL_PATH escapes the repository root: $MODEL_PATH"
+             elif [ ! -f "$MODEL_FILE" ]; then
+               record_failure "MODEL_PATH not found: $MODEL_PATH"
+             else
+               INFILL_VALUE="${INFILL_PERCENT:-20}"
+               mkdir -p workflow-output/models
+               cp "$MODEL_FILE" "workflow-output/models/$(basename "$MODEL_FILE")"
+               python scripts/mesh_tool.py validate "$MODEL_FILE" | tee workflow-output/validate.txt
+               cmd_rc=${PIPESTATUS[0]}
+               [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
+               python scripts/mesh_tool.py overhang "$MODEL_FILE" | tee workflow-output/overhang.txt
+               cmd_rc=${PIPESTATUS[0]}
+               [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
+               python scripts/mesh_tool.py measure "$MODEL_FILE" --infill "$INFILL_VALUE" | tee workflow-output/measure.txt
+               cmd_rc=${PIPESTATUS[0]}
+               [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
+             fi
+             ;;
+           stl-from-image-measurements)
+             if [ -z "$IMAGE_DIR" ]; then
+               record_failure "IMAGE_DIR is required for stl-from-image-measurements."
+             elif ! IMAGE_FOLDER="$(resolve_repo_path "$IMAGE_DIR")"; then
+               record_failure "IMAGE_DIR escapes the repository root: $IMAGE_DIR"
+             elif [ ! -d "$IMAGE_FOLDER" ]; then
+               record_failure "IMAGE_DIR not found: $IMAGE_DIR"
+             else
+               python scripts/make_contact_sheet.py "$IMAGE_FOLDER" --out "$IMAGE_FOLDER/_index.png" | tee workflow-output/contact-sheet.txt
+               cmd_rc=${PIPESTATUS[0]}
+               [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
+               cp "$IMAGE_FOLDER/_index.png" workflow-output/_index.png
+             fi
+             ;;
+           *)
+             record_failure "Unsupported skill: $SKILL"
+             ;;
           esac
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
 
       - name: Add workflow summary
+        if: always()
         env:
           SKILL: ${{ inputs.skill }}
           MODEL_PATH: ${{ inputs.model_path }}
           IMAGE_DIR: ${{ inputs.image_dir }}
           PROMPT: ${{ inputs.prompt }}
           SKILL_PATH: ${{ steps.selected_skill.outputs.skill_path }}
+          EXIT_CODE: ${{ steps.execute_workflow.outputs.exit_code }}
         run: |
           {
-            echo "# Pages skill runner"
-            echo
-            echo "- Skill: \\`$SKILL\\`"
-            echo "- Skill source: \\`$SKILL_PATH\\`"
-            [ -n "$MODEL_PATH" ] && echo "- Model path: \\`$MODEL_PATH\\`"
-            [ -n "$IMAGE_DIR" ] && echo "- Image dir: \\`$IMAGE_DIR\\`"
-            [ -n "$PROMPT" ] && echo "- Prompt: $PROMPT"
-            echo
-            echo "This run was triggered by the GitHub Pages app and uses existing repo scripts plus the selected skill file as policy context."
+           echo "# Pages skill runner"
+           echo
+           echo "- Skill: \\`$SKILL\\`"
+           echo "- Skill reference: \\`$SKILL_PATH\\`"
+           [ -n "$MODEL_PATH" ] && echo "- Model path: \\`$MODEL_PATH\\`"
+           [ -n "$IMAGE_DIR" ] && echo "- Image dir: \\`$IMAGE_DIR\\`"
+           [ -n "$PROMPT" ] && echo "- Prompt note: $PROMPT"
+           echo "- Exit code: \\`${EXIT_CODE:-0}\\`"
+           echo
+           echo "This run was triggered by the GitHub Pages app."
+           echo
+           echo "The selected skill file is attached as reference documentation. In this MVP, execution is determined by the selected workflow profile and the repository scripts it maps to."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload workflow artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: pages-skill-runner-${{ github.run_number }}-${{ inputs.skill }}
           path: workflow-output
           if-no-files-found: error
+
+      - name: Fail job when workflow profile failed
+        if: always()
+        env:
+          EXIT_CODE: ${{ steps.execute_workflow.outputs.exit_code }}
+        run: |
+          code="${EXIT_CODE:-0}"
+          if [ "$code" -ne 0 ]; then
+           echo "Failing job because the selected workflow profile returned exit code $code." >&2
+           exit "$code"
+          fi
