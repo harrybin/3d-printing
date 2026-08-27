@@ -1,13 +1,174 @@
 import './style.css'
 import { initStlCanvas } from '../../.github/extensions/stl-canvas/viewer-app.mjs'
 
-const SESSION_TOKEN_KEY = 'stl-canvas-github-token'
+const TOKEN_STORAGE_KEY = 'stl-canvas-github-token'
+const USER_STORAGE_KEY = 'stl-canvas-github-user'
+const MODEL_STORAGE_KEY = 'stl-canvas-saved-models'
+const MAX_STORED_MODEL_JSON_CHARS = 4_000_000
 const API_HEADERS = {
   Accept: 'application/vnd.github+json',
   'X-GitHub-Api-Version': '2022-11-28',
 }
 
 const app = document.querySelector('#app')
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
+function safeGithubUrl(value, prefix = 'https://github.com/') {
+  return typeof value === 'string' && value.startsWith(prefix) ? value : '#'
+}
+
+function loadStoredJson(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function saveStoredJson(key, value) {
+  localStorage.setItem(key, JSON.stringify(value))
+}
+
+function getStoredModels() {
+  const raw = loadStoredJson(MODEL_STORAGE_KEY, [])
+  return Array.isArray(raw) ? raw : []
+}
+
+function decodeBase64(base64) {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i)
+  return bytes
+}
+
+function encodeBase64(bytes) {
+  let out = ''
+  const chunkSize = 0x8000
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    out += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
+  }
+  return btoa(out)
+}
+
+function fileExtension(name) {
+  const match = /\.[^.]+$/.exec(name || '')
+  return match ? match[0].toLowerCase() : ''
+}
+
+function isModelFile(name) {
+  return ['.stl', '.3mf'].includes(fileExtension(name))
+}
+
+function isViewerEligibleModel(name) {
+  return fileExtension(name) === '.stl'
+}
+
+function contentTypeFor(name) {
+  switch (fileExtension(name)) {
+    case '.stl':
+      return 'model/stl'
+    case '.3mf':
+      return 'application/vnd.ms-package.3dmanufacturing-3dmodel+xml'
+    default:
+      return 'application/octet-stream'
+  }
+}
+
+function formatBytes(size) {
+  const value = Number(size) || 0
+  if (value < 1024) return `${value} B`
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
+  return `${(value / (1024 * 1024)).toFixed(2)} MB`
+}
+
+function persistStoredModels(models) {
+  const next = [...models]
+  while (next.length && JSON.stringify(next).length > MAX_STORED_MODEL_JSON_CHARS) next.pop()
+  if (models.length && !next.find((entry) => entry.key === models[0].key)) {
+    throw new Error('Lokaler Speicher voll. Ältere Modelle löschen oder kleinere Artefakte verwenden.')
+  }
+  saveStoredJson(MODEL_STORAGE_KEY, next)
+  return next
+}
+
+function upsertStoredModel(record) {
+  const current = getStoredModels()
+  const next = [record, ...current.filter((entry) => entry.key !== record.key)]
+  return persistStoredModels(next)
+}
+
+let modelFetchShimInstalled = false
+function installModelFetchShim() {
+  if (modelFetchShimInstalled) return
+  modelFetchShimInstalled = true
+  const originalFetch = window.fetch.bind(window)
+  window.fetch = async (input, init) => {
+    const request = input instanceof Request ? input : new Request(input, init)
+    const url = new URL(request.url, window.location.href)
+    const method = (request.method || 'GET').toUpperCase()
+    const savedModels = getStoredModels()
+    const viewerModels = savedModels.filter((entry) => entry.viewerEligible)
+
+    if (url.pathname.endsWith('/models/models.json')) {
+      try {
+        const response = await originalFetch(input, init)
+        const data = response.ok ? await response.clone().json() : { files: [] }
+        const files = Array.from(new Set([...(Array.isArray(data.files) ? data.files : []), ...viewerModels.map((entry) => entry.key)])).sort((a, b) => a.localeCompare(b))
+        return new Response(JSON.stringify({ ...data, files }), {
+          status: response.status,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      } catch {
+        return new Response(JSON.stringify({ files: viewerModels.map((entry) => entry.key) }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
+    const marker = '/models/'
+    const markerIndex = url.pathname.lastIndexOf(marker)
+    if (markerIndex >= 0) {
+      const requestedFile = decodeURIComponent(url.pathname.slice(markerIndex + marker.length))
+      const saved = viewerModels.find((entry) => entry.key === requestedFile)
+      if (saved) {
+        if (method === 'HEAD') {
+          return new Response(null, {
+            status: 200,
+            headers: {
+              'Content-Type': saved.contentType,
+              ETag: saved.version,
+              'Content-Length': String(saved.size),
+            },
+          })
+        }
+        if (method === 'GET') {
+          return new Response(decodeBase64(saved.base64), {
+            status: 200,
+            headers: {
+              'Content-Type': saved.contentType,
+              ETag: saved.version,
+              'Content-Length': String(saved.size),
+            },
+          })
+        }
+      }
+    }
+
+    return originalFetch(input, init)
+  }
+}
+
+installModelFetchShim()
 
 app.innerHTML = `
   <div class="page-shell">
@@ -28,7 +189,7 @@ app.innerHTML = `
         <div class="section-header">
           <div>
             <h2>STL Viewer</h2>
-            <p>Bestehende Modelle aus <code>models/</code> bleiben direkt in GitHub Pages sichtbar.</p>
+            <p>Bestehende Modelle aus <code>models/</code> und lokal gespeicherte STL-Dateien bleiben direkt im Browser sichtbar.</p>
           </div>
         </div>
         <div id="viewerRoot" class="viewer-root"></div>
@@ -49,9 +210,12 @@ app.innerHTML = `
           <div>
             <h3>GitHub verbinden</h3>
             <p class="muted">
-              GitHub Pages kann keine Secrets halten. Dieses MVP nutzt deshalb einen GitHub Token im Browser
-              (nur <code>sessionStorage</code>), um Workflow Runs im eigenen Account zu starten.
+              Dieses Setup bleibt backendfrei. Der eingegebene PAT und lokal gesicherte Modelldateien werden im
+              <code>localStorage</code> dieses Browsers gespeichert, damit Sessions fortgesetzt werden können.
             </p>
+          </div>
+          <div id="storageNotice" class="status-panel" data-tone="warning">
+            Beim Verbinden wird der zugehörige GitHub-Benutzer angezeigt und der PAT lokal im Browser gespeichert.
           </div>
           <label class="stack field-block">
             <span>GitHub Token</span>
@@ -103,23 +267,30 @@ app.innerHTML = `
           </div>
           <div id="runsList" class="runs-list empty">Noch keine Daten geladen.</div>
         </section>
+
+        <section class="stack saved-box">
+          <div class="section-header compact">
+            <div>
+              <h3>Lokale Modellablage</h3>
+              <p class="muted">Gespeicherte STL/3MF-Dateien aus Workflow-Artefakten zum Fortsetzen späterer Sessions.</p>
+            </div>
+            <button type="button" id="clearSavedModelsBtn" class="secondary">Modelle löschen</button>
+          </div>
+          <div id="savedModelsList" class="runs-list empty">Noch keine lokal gespeicherten Modelldateien.</div>
+        </section>
       </section>
     </main>
   </div>
 `
 
-initStlCanvas({
-  root: document.querySelector('#viewerRoot'),
-  viewStorageKey: 'stl-canvas-pages-view-defaults',
-})
-
 const state = {
   config: null,
   manifest: null,
-  token: sessionStorage.getItem(SESSION_TOKEN_KEY) || '',
-  user: null,
+  token: localStorage.getItem(TOKEN_STORAGE_KEY) || '',
+  user: loadStoredJson(USER_STORAGE_KEY, null),
   runs: [],
   runDetails: new Map(),
+  savedModels: getStoredModels(),
   pollHandle: null,
 }
 
@@ -127,6 +298,8 @@ const repoBadge = document.querySelector('#repoBadge')
 const tokenInput = document.querySelector('#tokenInput')
 const connectBtn = document.querySelector('#connectBtn')
 const clearTokenBtn = document.querySelector('#clearTokenBtn')
+const clearSavedModelsBtn = document.querySelector('#clearSavedModelsBtn')
+const storageNotice = document.querySelector('#storageNotice')
 const authStatus = document.querySelector('#authStatus')
 const skillSelect = document.querySelector('#skillSelect')
 const skillMeta = document.querySelector('#skillMeta')
@@ -136,13 +309,26 @@ const dispatchBtn = document.querySelector('#dispatchBtn')
 const refreshBtn = document.querySelector('#refreshBtn')
 const dispatchStatus = document.querySelector('#dispatchStatus')
 const runsList = document.querySelector('#runsList')
+const savedModelsList = document.querySelector('#savedModelsList')
 const manifestSummary = document.querySelector('#manifestSummary')
 
 tokenInput.value = state.token
 
+initStlCanvas({
+  root: document.querySelector('#viewerRoot'),
+  viewStorageKey: 'stl-canvas-pages-view-defaults',
+})
+
 function setStatus(node, message, tone = 'neutral') {
   node.textContent = message
   node.dataset.tone = tone
+}
+
+function updateStorageNotice() {
+  const savedCount = state.savedModels.length
+  const userLabel = state.user?.login ? ` Benutzer: ${state.user.login}.` : ''
+  const tokenLabel = state.token ? ' PAT lokal gespeichert.' : ' Kein PAT gespeichert.'
+  setStatus(storageNotice, `Lokale Session:${userLabel}${tokenLabel} Gespeicherte Modelldateien: ${savedCount}.`, state.token ? 'success' : 'warning')
 }
 
 function repoSlug() {
@@ -154,57 +340,8 @@ function workflowFile() {
   return state.config.workflow.file
 }
 
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
-}
-
-function safeGithubUrl(value, prefix = 'https://github.com/') {
-  return typeof value === 'string' && value.startsWith(prefix) ? value : '#'
-}
-
 function githubBlobUrl(path) {
   return `https://github.com/${repoSlug()}/blob/${state.config.repository.defaultBranch}/${path}`
-}
-
-async function loadJson(url) {
-  const res = await fetch(url, { cache: 'no-store' })
-  if (!res.ok) throw new Error(`Failed to load ${url}: ${res.status}`)
-  return res.json()
-}
-
-async function githubRequest(path, options = {}) {
-  if (!state.token) throw new Error('GitHub token fehlt.')
-  const headers = {
-    ...API_HEADERS,
-    Authorization: 'Bearer ' + state.token,
-    ...(options.headers || {}),
-  }
-  const res = await fetch(`https://api.github.com${path}`, {
-    ...options,
-    headers,
-  })
-  if (res.status === 204) return null
-  if (!res.ok) {
-    const message = await safeErrorMessage(res)
-    throw new Error(message)
-  }
-  const contentType = res.headers.get('content-type') || ''
-  if (contentType.includes('application/json')) return res.json()
-  return res.blob()
-}
-
-async function safeErrorMessage(res) {
-  try {
-    const data = await res.json()
-    return data.message ? `${data.message} (${res.status})` : `GitHub API error (${res.status})`
-  } catch {
-    return `GitHub API error (${res.status})`
-  }
 }
 
 function selectedSkill() {
@@ -265,27 +402,70 @@ function collectInputs() {
   return inputs
 }
 
+async function loadJson(url) {
+  const res = await fetch(url, { cache: 'no-store' })
+  if (!res.ok) throw new Error(`Failed to load ${url}: ${res.status}`)
+  return res.json()
+}
+
+async function githubRequest(path, options = {}) {
+  if (!state.token) throw new Error('GitHub token fehlt.')
+  const headers = {
+    ...API_HEADERS,
+    Authorization: 'Bearer ' + state.token,
+    ...(options.headers || {}),
+  }
+  const res = await fetch(`https://api.github.com${path}`, {
+    ...options,
+    headers,
+  })
+  if (res.status === 204) return null
+  if (!res.ok) {
+    const message = await safeErrorMessage(res)
+    throw new Error(message)
+  }
+  const contentType = res.headers.get('content-type') || ''
+  if (contentType.includes('application/json')) return res.json()
+  return res.blob()
+}
+
+async function safeErrorMessage(res) {
+  try {
+    const data = await res.json()
+    return data.message ? `${data.message} (${res.status})` : `GitHub API error (${res.status})`
+  } catch {
+    return `GitHub API error (${res.status})`
+  }
+}
+
 async function connectToken() {
   state.token = tokenInput.value.trim()
   if (!state.token) {
-    sessionStorage.removeItem(SESSION_TOKEN_KEY)
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
+    localStorage.removeItem(USER_STORAGE_KEY)
     state.user = null
     setStatus(authStatus, 'Token fehlt.', 'warning')
     renderRuns([])
+    updateStorageNotice()
     return
   }
   setStatus(authStatus, 'Prüfe GitHub Token…')
   try {
     const user = await githubRequest('/user')
-    state.user = user
-    sessionStorage.setItem(SESSION_TOKEN_KEY, state.token)
-    setStatus(authStatus, `Verbunden als ${user.login}.`, 'success')
+    state.user = { login: user.login, id: user.id }
+    localStorage.setItem(TOKEN_STORAGE_KEY, state.token)
+    saveStoredJson(USER_STORAGE_KEY, state.user)
+    setStatus(authStatus, `Verbunden als ${user.login}. PAT und lokale Modelle bleiben im Browser gespeichert.`, 'success')
+    updateStorageNotice()
     await refreshRuns()
     ensurePolling()
   } catch (error) {
-    sessionStorage.removeItem(SESSION_TOKEN_KEY)
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
+    localStorage.removeItem(USER_STORAGE_KEY)
     state.user = null
     state.token = ''
+    tokenInput.value = ''
+    updateStorageNotice()
     setStatus(authStatus, `Verbindung fehlgeschlagen: ${error.message}`, 'danger')
     throw error
   }
@@ -295,12 +475,14 @@ function clearToken() {
   state.token = ''
   state.user = null
   tokenInput.value = ''
-  sessionStorage.removeItem(SESSION_TOKEN_KEY)
+  localStorage.removeItem(TOKEN_STORAGE_KEY)
+  localStorage.removeItem(USER_STORAGE_KEY)
   if (state.pollHandle) {
     window.clearInterval(state.pollHandle)
     state.pollHandle = null
   }
-  setStatus(authStatus, 'Token gelöscht.', 'neutral')
+  updateStorageNotice()
+  setStatus(authStatus, 'Token gelöscht. Gespeicherte Modelldateien bleiben erhalten.', 'neutral')
   renderRuns([])
 }
 
@@ -349,7 +531,7 @@ function renderRuns(runs) {
         ? details.artifacts.map((artifact) => `
         <li>
           <span>${escapeHtml(artifact.name)}</span>
-          <button type="button" data-download="${escapeHtml(safeGithubUrl(artifact.archive_download_url, 'https://api.github.com/'))}" data-artifact-name="${escapeHtml(artifact.name)}">Download</button>
+          <button type="button" data-download="${escapeHtml(safeGithubUrl(artifact.archive_download_url, 'https://api.github.com/'))}" data-artifact-name="${escapeHtml(artifact.name)}" data-run-id="${escapeHtml(run.id)}">Download</button>
         </li>
       `).join('') || '<li>Keine Artefakte.</li>'
         : '<li>Zum Laden öffnen.</li>'
@@ -378,6 +560,34 @@ function renderRuns(runs) {
       `
     })
     .join('')
+}
+
+function renderSavedModels() {
+  state.savedModels = getStoredModels()
+  updateStorageNotice()
+  if (!state.savedModels.length) {
+    savedModelsList.className = 'runs-list empty'
+    savedModelsList.textContent = 'Noch keine lokal gespeicherten Modelldateien.'
+    return
+  }
+  savedModelsList.className = 'runs-list'
+  savedModelsList.innerHTML = state.savedModels.map((model) => `
+    <article class="run-card">
+      <div class="run-card-header">
+        <div>
+          <h4>${escapeHtml(model.displayName)}</h4>
+          <p>${escapeHtml(model.userLogin || 'unbekannt')} · ${escapeHtml(model.sourceArtifact || 'Artefakt')} · ${escapeHtml(new Date(model.savedAt).toLocaleString('de-DE'))}</p>
+        </div>
+        <span>${escapeHtml(formatBytes(model.size))}</span>
+      </div>
+      <p class="run-body"><strong>Datei:</strong> ${escapeHtml(model.key)}</p>
+      <div class="button-row compact-row">
+        ${model.viewerEligible ? `<button type="button" data-open-model="${escapeHtml(model.key)}">Im Viewer öffnen</button>` : ''}
+        <button type="button" data-download-model="${escapeHtml(model.key)}">Herunterladen</button>
+        <button type="button" class="secondary" data-delete-model="${escapeHtml(model.key)}">Löschen</button>
+      </div>
+    </article>
+  `).join('')
 }
 
 async function fetchWorkflowRuns() {
@@ -442,18 +652,143 @@ async function loadRunDetails(runId) {
   }
 }
 
-async function downloadArtifact(url, name) {
+function findZipEndOfCentralDirectory(bytes) {
+  for (let index = bytes.length - 22; index >= Math.max(0, bytes.length - 0xffff - 22); index -= 1) {
+    if (bytes[index] === 0x50 && bytes[index + 1] === 0x4b && bytes[index + 2] === 0x05 && bytes[index + 3] === 0x06) return index
+  }
+  throw new Error('ZIP-Ende nicht gefunden.')
+}
+
+async function inflateDeflateRaw(bytes) {
+  if (typeof DecompressionStream === 'undefined') throw new Error('Browser unterstützt kein lokales ZIP-Entpacken.')
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))
+  return new Uint8Array(await new Response(stream).arrayBuffer())
+}
+
+async function extractModelFilesFromZip(blob) {
+  const buffer = await blob.arrayBuffer()
+  const bytes = new Uint8Array(buffer)
+  const view = new DataView(buffer)
+  const eocd = findZipEndOfCentralDirectory(bytes)
+  const totalEntries = view.getUint16(eocd + 10, true)
+  const centralDirectoryOffset = view.getUint32(eocd + 16, true)
+  const decoder = new TextDecoder('utf-8')
+  const entries = []
+  let pointer = centralDirectoryOffset
+
+  for (let i = 0; i < totalEntries; i += 1) {
+    if (view.getUint32(pointer, true) !== 0x02014b50) throw new Error('Ungültiger ZIP-Central-Directory-Eintrag.')
+    const compressionMethod = view.getUint16(pointer + 10, true)
+    const compressedSize = view.getUint32(pointer + 20, true)
+    const uncompressedSize = view.getUint32(pointer + 24, true)
+    const fileNameLength = view.getUint16(pointer + 28, true)
+    const extraLength = view.getUint16(pointer + 30, true)
+    const commentLength = view.getUint16(pointer + 32, true)
+    const localHeaderOffset = view.getUint32(pointer + 42, true)
+    const fileNameBytes = bytes.slice(pointer + 46, pointer + 46 + fileNameLength)
+    const name = decoder.decode(fileNameBytes)
+    entries.push({ name, compressionMethod, compressedSize, uncompressedSize, localHeaderOffset })
+    pointer += 46 + fileNameLength + extraLength + commentLength
+  }
+
+  const models = []
+  for (const entry of entries) {
+    if (!isModelFile(entry.name) || entry.name.endsWith('/')) continue
+    if (view.getUint32(entry.localHeaderOffset, true) !== 0x04034b50) throw new Error('Ungültiger ZIP-Local-Header.')
+    const fileNameLength = view.getUint16(entry.localHeaderOffset + 26, true)
+    const extraLength = view.getUint16(entry.localHeaderOffset + 28, true)
+    const dataStart = entry.localHeaderOffset + 30 + fileNameLength + extraLength
+    const compressed = bytes.slice(dataStart, dataStart + entry.compressedSize)
+    let content
+    if (entry.compressionMethod === 0) content = compressed
+    else if (entry.compressionMethod === 8) content = await inflateDeflateRaw(compressed)
+    else throw new Error(`ZIP-Komprimierung ${entry.compressionMethod} wird nicht unterstützt.`)
+    models.push({ name: entry.name, content, size: entry.uncompressedSize || content.length })
+  }
+  return models
+}
+
+async function cacheModelsFromArtifact(blob, artifactName, runId) {
+  const run = state.runs.find((entry) => String(entry.id) === String(runId))
+  const extracted = await extractModelFilesFromZip(blob)
+  if (!extracted.length) return 0
+  let storedCount = 0
+  for (const file of extracted) {
+    const leafName = file.name.split('/').pop()
+    const namespacedKey = `saved/${run?.run_number || 'run'}-${leafName}`
+    state.savedModels = upsertStoredModel({
+      key: namespacedKey,
+      displayName: leafName,
+      base64: encodeBase64(file.content),
+      contentType: contentTypeFor(leafName),
+      size: file.size,
+      savedAt: new Date().toISOString(),
+      sourceArtifact: artifactName,
+      runId: String(runId || ''),
+      runNumber: run?.run_number || null,
+      userLogin: state.user?.login || '',
+      version: `${run?.updated_at || Date.now()}-${file.size}`,
+      viewerEligible: isViewerEligibleModel(leafName),
+    })
+    storedCount += 1
+  }
+  renderSavedModels()
+  return storedCount
+}
+
+async function downloadArtifact(url, name, runId) {
   try {
     const blob = await githubRequest(url.replace('https://api.github.com', ''))
+    let cacheMessage = ''
+    try {
+      const storedCount = await cacheModelsFromArtifact(blob, name, runId)
+      if (storedCount) cacheMessage = ` ${storedCount} Modelldatei(en) lokal gespeichert.`
+    } catch (error) {
+      cacheMessage = ` Lokales Sichern übersprungen: ${error.message}`
+    }
     const href = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = href
     link.download = `${name}.zip`
     link.click()
     URL.revokeObjectURL(href)
+    setStatus(dispatchStatus, `Artefakt ${name} heruntergeladen.${cacheMessage}`.trim(), 'success')
   } catch (error) {
     setStatus(dispatchStatus, `Artefakt-Download fehlgeschlagen: ${error.message}`, 'danger')
   }
+}
+
+function downloadSavedModel(key) {
+  const model = state.savedModels.find((entry) => entry.key === key)
+  if (!model) return
+  const blob = new Blob([decodeBase64(model.base64)], { type: model.contentType })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = model.displayName
+  link.click()
+  URL.revokeObjectURL(link.href)
+}
+
+function openSavedModelInViewer(key) {
+  const chooser = document.querySelector('#viewerRoot #fileChooser')
+  if (!chooser) return
+  if (![...chooser.options].some((option) => option.value === key)) {
+    chooser.add(new Option(key, key))
+  }
+  chooser.value = key
+  chooser.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
+function deleteSavedModel(key) {
+  state.savedModels = getStoredModels().filter((entry) => entry.key !== key)
+  saveStoredJson(MODEL_STORAGE_KEY, state.savedModels)
+  renderSavedModels()
+}
+
+function clearSavedModels() {
+  state.savedModels = []
+  localStorage.removeItem(MODEL_STORAGE_KEY)
+  renderSavedModels()
 }
 
 function ensurePolling() {
@@ -466,7 +801,7 @@ function ensurePolling() {
 runsList.addEventListener('click', (event) => {
   const button = event.target.closest('[data-download]')
   if (!button) return
-  downloadArtifact(button.dataset.download, button.dataset.artifactName)
+  downloadArtifact(button.dataset.download, button.dataset.artifactName, button.dataset.runId)
 })
 
 runsList.addEventListener('toggle', (event) => {
@@ -475,9 +810,25 @@ runsList.addEventListener('toggle', (event) => {
   loadRunDetails(details.dataset.runId).catch(() => {})
 })
 
+savedModelsList.addEventListener('click', (event) => {
+  const openButton = event.target.closest('[data-open-model]')
+  if (openButton) {
+    openSavedModelInViewer(openButton.dataset.openModel)
+    return
+  }
+  const downloadButton = event.target.closest('[data-download-model]')
+  if (downloadButton) {
+    downloadSavedModel(downloadButton.dataset.downloadModel)
+    return
+  }
+  const deleteButton = event.target.closest('[data-delete-model]')
+  if (deleteButton) deleteSavedModel(deleteButton.dataset.deleteModel)
+})
+
 skillSelect.addEventListener('change', renderSkillDetails)
 connectBtn.addEventListener('click', () => connectToken().catch(() => {}))
 clearTokenBtn.addEventListener('click', clearToken)
+clearSavedModelsBtn.addEventListener('click', clearSavedModels)
 dispatchBtn.addEventListener('click', () => dispatchWorkflow().catch((error) => setStatus(dispatchStatus, error.message, 'danger')))
 refreshBtn.addEventListener('click', () => refreshRuns())
 
@@ -492,9 +843,12 @@ async function bootstrap() {
     repoBadge.textContent = `${repoSlug()} · ${state.config.workflow.name}`
     manifestSummary.textContent = manifest.description
     renderSkillOptions()
-    if (state.token) {
+    renderSavedModels()
+    if (state.user?.login && state.token) {
+      setStatus(authStatus, `Gespeicherter PAT gefunden. Letzter Benutzer: ${state.user.login}.`, 'warning')
       await connectToken()
     } else {
+      updateStorageNotice()
       renderRuns([])
     }
   } catch (error) {

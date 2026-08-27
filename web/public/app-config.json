@@ -10,6 +10,6 @@
   },
   "auth": {
     "mode": "personal-access-token",
-    "tokenStorage": "sessionStorage"
+    "tokenStorage": "localStorage"
   }
 }

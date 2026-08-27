@@ -170,8 +170,8 @@ auf GitHub Actions.
 
 ### Ablauf
 
-1. Nutzer öffnet die Pages-App und verbindet einen GitHub-Token nur für die
-   aktuelle Browsersitzung.
+1. Nutzer öffnet die Pages-App, verbindet einen GitHub-Token und legt ihn im
+   Browser-`localStorage` ab.
 2. Die App liest Skill-Metadaten aus `web/public/skills-manifest.json`.
 3. Ein ausgewählter Skill wird als `workflow_dispatch`-Run gestartet.
 4. GitHub Actions checkt das Repository temporär serverseitig aus, liest die
@@ -180,6 +180,9 @@ auf GitHub Actions.
 5. Reports und Artefakte (z. B. `_index.png`, `validate.txt`, `measure.txt`)
    werden im Workflow-Run bereitgestellt und können aus der Pages-App
    heruntergeladen werden.
+6. Wenn ein Artefakt STL- oder 3MF-Dateien enthält, speichert die Pages-App diese
+   zusätzlich im Browser-`localStorage`, damit spätere Sessions sie ohne erneuten
+   Workflow-Run fortsetzen können.
 
 ### Aktuell unterstützte Skill-Backed Flows
 
@@ -191,7 +194,7 @@ auf GitHub Actions.
 ### Grenzen dieses MVPs
 
 - GitHub Pages hostet weiterhin **kein Backend** und hält keine Secrets.
-- Der Token bleibt absichtlich nur im Browser-`sessionStorage`.
+- Der Token sowie lokal gesicherte Modelldateien werden absichtlich nur im Browser-`localStorage` gehalten.
 - Es gibt noch keinen eingebetteten Copilot-Chat und keine serverseitige
   LLM-Orchestrierung. Dafür wäre später eine GitHub-App- oder Broker-Schicht
   nötig.
