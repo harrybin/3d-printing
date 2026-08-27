@@ -165,7 +165,7 @@ bed and both coordinate conventions.
 Die GitHub-Pages-SPA kann jetzt nicht nur STL-Dateien anzeigen, sondern auch
 serverseitige, skill-gestützte Repository-Workflows starten. Der Browser bleibt
 reines Frontend; die Ausführung passiert über
-`/home/runner/work/3d-printing/3d-printing/.github/workflows/pages-skill-runner.yml`
+`.github/workflows/pages-skill-runner.yml`
 auf GitHub Actions.
 
 ### Ablauf

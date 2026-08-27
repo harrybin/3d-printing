@@ -153,6 +153,15 @@ function workflowFile() {
   return state.config.workflow.file
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
 function githubBlobUrl(path) {
   return `https://github.com/${repoSlug()}/blob/${state.config.repository.defaultBranch}/${path}`
 }
@@ -199,7 +208,7 @@ function selectedSkill() {
 
 function renderSkillOptions() {
   skillSelect.innerHTML = state.manifest.skills
-    .map((skill) => `<option value="${skill.id}">${skill.name}</option>`)
+    .map((skill) => `<option value="${escapeHtml(skill.id)}">${escapeHtml(skill.name)}</option>`)
     .join('')
   if (!skillSelect.value && state.manifest.skills[0]) skillSelect.value = state.manifest.skills[0].id
   renderSkillDetails()
@@ -210,11 +219,11 @@ function renderSkillDetails() {
   if (!skill) return
   skillMeta.innerHTML = `
     <div class="skill-card">
-      <p>${skill.description}</p>
+      <p>${escapeHtml(skill.description)}</p>
       <ul>
-        <li><strong>Skill-Datei:</strong> <a href="${githubBlobUrl(skill.source)}" target="_blank" rel="noreferrer">${skill.source}</a></li>
-        <li><strong>Workflow-Ausgabe:</strong> ${skill.outputs.join(', ')}</li>
-        <li><strong>Hinweis:</strong> ${skill.limitations}</li>
+        <li><strong>Skill-Datei:</strong> <a href="${escapeHtml(githubBlobUrl(skill.source))}" target="_blank" rel="noreferrer">${escapeHtml(skill.source)}</a></li>
+        <li><strong>Workflow-Ausgabe:</strong> ${escapeHtml(skill.outputs.join(', '))}</li>
+        <li><strong>Hinweis:</strong> ${escapeHtml(skill.limitations)}</li>
       </ul>
     </div>
   `
@@ -222,9 +231,9 @@ function renderSkillDetails() {
     .map(
       (field) => `
         <label class="stack field-block">
-          <span>${field.label}${field.required ? ' *' : ''}</span>
+          <span>${escapeHtml(field.label)}${field.required ? ' *' : ''}</span>
           ${renderFieldInput(field)}
-          <span class="hint">${field.help}</span>
+          <span class="hint">${escapeHtml(field.help)}</span>
         </label>
       `,
     )
@@ -234,9 +243,9 @@ function renderSkillDetails() {
 function renderFieldInput(field) {
   const value = field.default || ''
   if (field.type === 'number') {
-    return `<input data-field="${field.name}" type="number" value="${value}" placeholder="${field.placeholder || ''}" ${field.required ? 'required' : ''} />`
+    return `<input data-field="${escapeHtml(field.name)}" type="number" value="${escapeHtml(value)}" placeholder="${escapeHtml(field.placeholder || '')}" ${field.required ? 'required' : ''} />`
   }
-  return `<input data-field="${field.name}" type="text" value="${value}" placeholder="${field.placeholder || ''}" ${field.required ? 'required' : ''} spellcheck="false" />`
+  return `<input data-field="${escapeHtml(field.name)}" type="text" value="${escapeHtml(value)}" placeholder="${escapeHtml(field.placeholder || '')}" ${field.required ? 'required' : ''} spellcheck="false" />`
 }
 
 function collectInputs() {
@@ -359,7 +368,8 @@ function renderRuns(runs) {
 }
 
 async function fetchWorkflowRuns() {
-  const data = await githubRequest(`/repos/${repoSlug()}/actions/workflows/${workflowFile()}/runs?event=workflow_dispatch&per_page=10`)
+  const actorQuery = state.user ? `&actor=${encodeURIComponent(state.user.login)}` : ''
+  const data = await githubRequest(`/repos/${repoSlug()}/actions/workflows/${workflowFile()}/runs?event=workflow_dispatch&per_page=50${actorQuery}`)
   const workflowRuns = data.workflow_runs || []
   const filtered = state.user
     ? workflowRuns.filter((run) => (run.triggering_actor?.login || run.actor?.login) === state.user.login)
