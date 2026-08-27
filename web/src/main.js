@@ -4,6 +4,7 @@ import { initStlCanvas } from '../../.github/extensions/stl-canvas/viewer-app.mj
 const TOKEN_STORAGE_KEY = 'stl-canvas-github-token'
 const USER_STORAGE_KEY = 'stl-canvas-github-user'
 const MODEL_STORAGE_KEY = 'stl-canvas-saved-models'
+const WORKSPACE_STORAGE_KEY = 'stl-canvas-image-workspace'
 const MAX_STORED_MODEL_JSON_CHARS = 4_000_000
 const API_HEADERS = {
   Accept: 'application/vnd.github+json',
@@ -234,9 +235,30 @@ app.innerHTML = `
           </div>
           <p class="hint" id="tokenHint">
             Empfohlen: Fine-grained PAT mit mindestens <code>Actions: Read and write</code> und
-            <code>Contents: Read-only</code> für dieses Repository.
+            <code>Contents: Read and write</code> für dieses Repository.
           </p>
           <div id="authStatus" class="status-panel">Nicht verbunden.</div>
+        </section>
+
+        <section class="stack upload-box">
+          <div class="section-header compact">
+            <div>
+              <h3>Bild-Workspace</h3>
+              <p class="muted">
+                Lädt Referenzbilder ohne Backend in einen benutzereigenen GitHub-Branch hoch, damit das
+                Image-Workflow-Profil sie verwenden kann.
+              </p>
+            </div>
+          </div>
+          <div id="workspaceStatus" class="status-panel">Noch kein Bild-Workspace initialisiert.</div>
+          <label class="stack field-block">
+            <span>Referenzbilder hochladen</span>
+            <input id="imageUploadInput" type="file" accept="image/*" multiple />
+          </label>
+          <div class="button-row">
+            <button type="button" id="uploadImagesBtn">Bilder nach GitHub hochladen</button>
+            <button type="button" id="useWorkspaceDirBtn" class="secondary">Ordner für Bild-Workflow verwenden</button>
+          </div>
         </section>
 
         <section class="stack request-box">
@@ -298,6 +320,7 @@ const state = {
   runs: [],
   runDetails: new Map(),
   savedModels: getStoredModels(),
+  workspace: loadStoredJson(WORKSPACE_STORAGE_KEY, null),
   pollHandle: null,
 }
 
@@ -306,7 +329,11 @@ const tokenInput = document.querySelector('#tokenInput')
 const connectBtn = document.querySelector('#connectBtn')
 const clearTokenBtn = document.querySelector('#clearTokenBtn')
 const clearSavedModelsBtn = document.querySelector('#clearSavedModelsBtn')
+const imageUploadInput = document.querySelector('#imageUploadInput')
+const uploadImagesBtn = document.querySelector('#uploadImagesBtn')
+const useWorkspaceDirBtn = document.querySelector('#useWorkspaceDirBtn')
 const storageNotice = document.querySelector('#storageNotice')
+const workspaceStatus = document.querySelector('#workspaceStatus')
 const authStatus = document.querySelector('#authStatus')
 const skillSelect = document.querySelector('#skillSelect')
 const skillMeta = document.querySelector('#skillMeta')
@@ -345,6 +372,27 @@ function repoSlug() {
 
 function workflowFile() {
   return state.config.workflow.file
+}
+
+function currentWorkflowRef() {
+  return state.workspace?.branch || state.config.repository.defaultBranch
+}
+
+function workspaceBranchName(login) {
+  return `${state.config.workspace.branchPrefix}/${login}`
+}
+
+function workspaceImageDir(login, sessionId) {
+  return `${state.config.workspace.imageRoot}/${login}/${sessionId}`
+}
+
+function sanitizePathSegment(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80) || 'upload'
 }
 
 function githubBlobUrl(path) {
