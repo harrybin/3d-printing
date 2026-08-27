@@ -808,7 +808,7 @@ runsList.addEventListener('toggle', (event) => {
   const details = event.target
   if (!(details instanceof HTMLDetailsElement) || !details.open || !details.dataset.runId) return
   loadRunDetails(details.dataset.runId).catch(() => {})
-})
+}, true)
 
 savedModelsList.addEventListener('click', (event) => {
   const openButton = event.target.closest('[data-open-model]')
