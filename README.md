@@ -170,8 +170,8 @@ auf GitHub Actions.
 
 ### Ablauf
 
-1. Nutzer öffnet die Pages-App, verbindet einen GitHub-Token und legt ihn im
-   Browser-`localStorage` ab.
+1. Nutzer öffnet die Pages-App, verbindet einen GitHub-Token und hält ihn nur in
+   der aktuellen Browser-Tab-Session (`sessionStorage`).
 2. In **privaten** Repositories kann die App Referenzbilder mit dem
    Benutzer-PAT in einen benutzereigenen Branch unter `pages-user-input/…`
    hochladen, damit das Bild-Workflow-Profil sie ohne Backend nutzen kann.
@@ -202,7 +202,9 @@ auf GitHub Actions.
 ### Grenzen dieses MVPs
 
 - GitHub Pages hostet weiterhin **kein Backend** und hält keine Secrets.
-- Der Token sowie lokal gesicherte Modelldateien werden absichtlich nur im Browser-`localStorage` gehalten.
+- Der Token bleibt absichtlich nur im Browser-`sessionStorage` der aktuellen
+  Tabsitzung; lokal gesicherte Modelldateien und der zuletzt verifizierte
+  Benutzer bleiben im Browser-`localStorage`.
 - Für Bild-Uploads braucht der Benutzer-PAT **Contents: Read and write**, weil die
   Bilder in einen benutzereigenen Workspace-Branch geschrieben werden. In diesem
   öffentlichen Repository bleibt die Upload-Funktion deshalb deaktiviert, damit

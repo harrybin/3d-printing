@@ -218,12 +218,13 @@ app.innerHTML = `
           <div>
             <h3>GitHub verbinden</h3>
             <p class="muted">
-              Dieses Setup bleibt backendfrei. Der eingegebene PAT und lokal gesicherte Modelldateien werden im
-              <code>localStorage</code> dieses Browsers gespeichert, damit Sessions fortgesetzt werden können.
+              Dieses Setup bleibt backendfrei. Der PAT bleibt nur im <code>sessionStorage</code> des aktuellen Tabs;
+              lokal gesicherte Modelldateien und der zuletzt verifizierte Benutzer bleiben im
+              <code>localStorage</code>, damit Sessions sicherer fortgesetzt werden können.
             </p>
           </div>
           <div id="storageNotice" class="status-panel" data-tone="warning">
-            Beim Verbinden wird der zugehörige GitHub-Benutzer angezeigt und der PAT lokal im Browser gespeichert.
+            Beim Verbinden wird der zugehörige GitHub-Benutzer angezeigt; der PAT bleibt nur in dieser Tabsitzung.
           </div>
           <label class="stack field-block">
             <span>GitHub Token</span>
@@ -315,7 +316,7 @@ app.innerHTML = `
 const state = {
   config: null,
   manifest: null,
-  token: localStorage.getItem(TOKEN_STORAGE_KEY) || '',
+  token: sessionStorage.getItem(TOKEN_STORAGE_KEY) || '',
   user: loadStoredJson(USER_STORAGE_KEY, null),
   runs: [],
   runDetails: new Map(),
@@ -361,7 +362,7 @@ function setStatus(node, message, tone = 'neutral') {
 function updateStorageNotice() {
   const savedCount = state.savedModels.length
   const userLabel = state.user?.login ? ` Benutzer: ${state.user.login}.` : ''
-  const tokenLabel = state.token ? ' PAT lokal gespeichert.' : ' Kein PAT gespeichert.'
+  const tokenLabel = state.token ? ' PAT nur für diese Tabsitzung gespeichert.' : ' Kein PAT gespeichert.'
   const workspaceLabel = state.workspace?.imageDir ? ` Bild-Workspace: ${state.workspace.imageDir}.` : ' Kein Bild-Workspace gespeichert.'
   setStatus(storageNotice, `Lokale Session:${userLabel}${tokenLabel}${workspaceLabel} Gespeicherte Modelldateien: ${savedCount}.`, state.token ? 'success' : 'warning')
 }
@@ -623,7 +624,7 @@ async function uploadImagesToWorkspace() {
 async function connectToken() {
   state.token = tokenInput.value.trim()
   if (!state.token) {
-    localStorage.removeItem(TOKEN_STORAGE_KEY)
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY)
     localStorage.removeItem(USER_STORAGE_KEY)
     state.user = null
     setStatus(authStatus, 'Token fehlt.', 'warning')
@@ -640,15 +641,15 @@ async function connectToken() {
       localStorage.removeItem(WORKSPACE_STORAGE_KEY)
       renderSkillDetails()
     }
-    localStorage.setItem(TOKEN_STORAGE_KEY, state.token)
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, state.token)
     saveStoredJson(USER_STORAGE_KEY, state.user)
-    setStatus(authStatus, `Verbunden als ${user.login}. PAT und lokale Modelle bleiben im Browser gespeichert.`, 'success')
+    setStatus(authStatus, `Verbunden als ${user.login}. PAT bleibt nur in dieser Tabsitzung; lokale Modelle bleiben im Browser gespeichert.`, 'success')
     renderWorkspaceStatus()
     updateStorageNotice()
     await refreshRuns()
     ensurePolling()
   } catch (error) {
-    localStorage.removeItem(TOKEN_STORAGE_KEY)
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY)
     localStorage.removeItem(USER_STORAGE_KEY)
     state.user = null
     state.token = ''
@@ -663,7 +664,7 @@ function clearToken() {
   state.token = ''
   state.user = null
   tokenInput.value = ''
-  localStorage.removeItem(TOKEN_STORAGE_KEY)
+  sessionStorage.removeItem(TOKEN_STORAGE_KEY)
   localStorage.removeItem(USER_STORAGE_KEY)
   if (state.pollHandle) {
     window.clearInterval(state.pollHandle)
@@ -1068,8 +1069,13 @@ async function bootstrap() {
     renderSavedModels()
     renderWorkspaceStatus()
     if (state.user?.login && state.token) {
-      setStatus(authStatus, `Gespeicherter PAT gefunden. Letzter Benutzer: ${state.user.login}.`, 'warning')
-      await connectToken()
+      setStatus(authStatus, `PAT in dieser Tabsitzung gefunden. Letzter Benutzer: ${state.user.login}.`, 'warning')
+      try {
+        await connectToken()
+      } catch {
+        updateStorageNotice()
+        renderRuns([])
+      }
     } else {
       updateStorageNotice()
       renderRuns([])
