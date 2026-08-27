@@ -2,7 +2,8 @@
   "repository": {
     "owner": "harrybin",
     "repo": "3d-printing",
-    "defaultBranch": "main"
+    "defaultBranch": "main",
+    "visibility": "public"
   },
   "workflow": {
     "file": "pages-skill-runner.yml",

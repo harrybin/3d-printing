@@ -172,9 +172,9 @@ auf GitHub Actions.
 
 1. Nutzer öffnet die Pages-App, verbindet einen GitHub-Token und legt ihn im
    Browser-`localStorage` ab.
-2. Optional lädt die App Referenzbilder mit dem Benutzer-PAT in einen
-   benutzereigenen Branch unter `pages-user-input/…` hoch, damit das
-   Bild-Workflow-Profil sie ohne Backend nutzen kann.
+2. In **privaten** Repositories kann die App Referenzbilder mit dem
+   Benutzer-PAT in einen benutzereigenen Branch unter `pages-user-input/…`
+   hochladen, damit das Bild-Workflow-Profil sie ohne Backend nutzen kann.
 3. Die App liest Skill-Metadaten aus `web/public/skills-manifest.json`.
 4. Ein ausgewähltes Workflow-Profil wird als `workflow_dispatch`-Run auf `main`
    gestartet.
@@ -204,7 +204,9 @@ auf GitHub Actions.
 - GitHub Pages hostet weiterhin **kein Backend** und hält keine Secrets.
 - Der Token sowie lokal gesicherte Modelldateien werden absichtlich nur im Browser-`localStorage` gehalten.
 - Für Bild-Uploads braucht der Benutzer-PAT **Contents: Read and write**, weil die
-  Bilder in einen benutzereigenen Workspace-Branch geschrieben werden.
+  Bilder in einen benutzereigenen Workspace-Branch geschrieben werden. In diesem
+  öffentlichen Repository bleibt die Upload-Funktion deshalb deaktiviert, damit
+  Benutzerfotos nicht öffentlich im Git-Verlauf landen.
 - Es gibt noch keinen eingebetteten Copilot-Chat und keine serverseitige
   LLM-Orchestrierung. Dafür wäre später eine GitHub-App- oder Broker-Schicht
   nötig.

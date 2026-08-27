@@ -245,8 +245,8 @@ app.innerHTML = `
             <div>
               <h3>Bild-Workspace</h3>
               <p class="muted">
-                Lädt Referenzbilder ohne Backend in einen benutzereigenen GitHub-Branch hoch, damit das
-                Image-Workflow-Profil sie verwenden kann.
+                In privaten Repositories kann die App Referenzbilder ohne Backend in einen
+                benutzereigenen GitHub-Branch hochladen, damit das Image-Workflow-Profil sie verwenden kann.
               </p>
             </div>
           </div>
@@ -367,6 +367,14 @@ function updateStorageNotice() {
 }
 
 function renderWorkspaceStatus() {
+  if (!imageUploadsAllowed()) {
+    setStatus(
+      workspaceStatus,
+      'Bild-Uploads sind in diesem öffentlichen Repository deaktiviert, damit Benutzerfotos nicht öffentlich im Git-Verlauf landen.',
+      'warning',
+    )
+    return
+  }
   if (!state.workspace?.imageDir) {
     setStatus(workspaceStatus, 'Noch kein Bild-Workspace initialisiert.', 'warning')
     return
@@ -431,11 +439,16 @@ function sanitizePathSegment(value) {
     .slice(0, 80) || 'upload'
 }
 
+function imageUploadsAllowed() {
+  return state.config?.repository?.visibility === 'private'
+}
+
 function githubBlobUrl(path) {
   return `https://github.com/${repoSlug()}/blob/${state.config.repository.defaultBranch}/${path}`
 }
 
 function selectedSkill() {
+  if (!state.manifest?.skills?.length) return null
   return state.manifest.skills.find((skill) => skill.id === skillSelect.value) || state.manifest.skills[0]
 }
 
@@ -484,6 +497,7 @@ function renderFieldInput(field) {
 
 function collectInputs() {
   const skill = selectedSkill()
+  if (!skill) throw new Error('App wird noch initialisiert. Bitte kurz erneut versuchen.')
   const inputs = { skill: skill.id, prompt: promptInput.value.trim() }
   for (const field of skill.fields) {
     const node = [...dynamicFields.querySelectorAll('[data-field]')].find((element) => element.dataset.field === field.name)
@@ -561,6 +575,9 @@ async function ensureWorkspaceBranch(login) {
 }
 
 async function uploadImagesToWorkspace() {
+  if (!imageUploadsAllowed()) {
+    throw new Error('Bild-Uploads sind für dieses öffentliche Repository deaktiviert.')
+  }
   if (!state.user?.login || !state.token) throw new Error('Bitte zuerst einen GitHub-Token verbinden.')
   const files = [...(imageUploadInput.files || [])]
   if (!files.length) throw new Error('Bitte mindestens ein Bild auswählen.')
@@ -972,6 +989,10 @@ function clearSavedModels() {
 }
 
 function useWorkspaceDirForImageSkill() {
+  if (!state.manifest?.skills) {
+    setStatus(dispatchStatus, 'App wird noch initialisiert. Bitte kurz erneut versuchen.', 'warning')
+    return
+  }
   if (!state.workspace?.imageDir) {
     setStatus(dispatchStatus, 'Noch kein Bild-Workspace vorhanden.', 'warning')
     return
@@ -1034,6 +1055,13 @@ async function bootstrap() {
     ])
     state.config = config
     state.manifest = manifest
+    if (!imageUploadsAllowed()) {
+      state.workspace = null
+      localStorage.removeItem(WORKSPACE_STORAGE_KEY)
+      imageUploadInput.disabled = true
+      uploadImagesBtn.disabled = true
+      useWorkspaceDirBtn.disabled = true
+    }
     repoBadge.textContent = `${repoSlug()} · ${state.config.workflow.name}`
     manifestSummary.textContent = manifest.description
     renderSkillOptions()

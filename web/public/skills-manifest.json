@@ -1,5 +1,5 @@
 {
-  "description": "Dispatcht serverseitige GitHub-Actions-Runs für feste Workflow-Profile, zeigt die zugehörigen Repo-Skill-Dateien als Referenz an, unterstützt benutzerseitige Bild-Uploads in einen GitHub-Workspace-Branch und nutzt die vorhandenen Python-Skripte als Ausführungs-Engine.",
+  "description": "Dispatcht serverseitige GitHub-Actions-Runs für feste Workflow-Profile, zeigt die zugehörigen Repo-Skill-Dateien als Referenz an und nutzt die vorhandenen Python-Skripte als Ausführungs-Engine. Bild-Uploads in einen GitHub-Workspace-Branch sind nur für private Repositories vorgesehen.",
   "skills": [
     {
       "id": "validate-stl-mesh",
