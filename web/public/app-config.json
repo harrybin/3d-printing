@@ -1,0 +1,15 @@
+{
+  "repository": {
+    "owner": "harrybin",
+    "repo": "3d-printing",
+    "defaultBranch": "main"
+  },
+  "workflow": {
+    "file": "pages-skill-runner.yml",
+    "name": "Pages skill runner"
+  },
+  "auth": {
+    "mode": "personal-access-token",
+    "tokenStorage": "sessionStorage"
+  }
+}

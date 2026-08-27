@@ -1,0 +1,71 @@
+{
+  "description": "Dispatcht serverseitige GitHub-Actions-Runs, die Repo-Skill-Dateien als Policy-Kontext lesen und die vorhandenen Python-Skripte als Ausführungs-Engine nutzen.",
+  "skills": [
+    {
+      "id": "validate-stl-mesh",
+      "name": "Validate STL mesh",
+      "source": ".github/skills/validate-stl-mesh/skill.md",
+      "description": "Prüft ein STL aus models/ mit info, validate und overhang gegen die bestehenden Repo-Regeln.",
+      "fields": [
+        {
+          "name": "model_path",
+          "label": "Modellpfad",
+          "type": "text",
+          "placeholder": "models/lineal-clip-kappe.stl",
+          "default": "models/lineal-clip-kappe.stl",
+          "required": true,
+          "help": "Pfad relativ zum Repo-Root. Für diesen MVP werden nur bereits im Repository vorhandene Modelle verarbeitet."
+        }
+      ],
+      "outputs": ["request.json", "skill.md", "info.json", "validate.txt", "overhang.txt"],
+      "limitations": "Kein Dateiupload im Browser; der Run arbeitet auf Repository-Dateien oder bereits committeten STL-Dateien."
+    },
+    {
+      "id": "optimize-stl-for-print",
+      "name": "Optimize STL for print",
+      "source": ".github/skills/optimize-stl-for-print/skill.md",
+      "description": "Führt Validate, Overhang und Measure aus und gibt eine druckbezogene Auswertung zurück, ohne die Generator-Ausgabe zu überschreiben.",
+      "fields": [
+        {
+          "name": "model_path",
+          "label": "Modellpfad",
+          "type": "text",
+          "placeholder": "models/duschscharnier_ersatz.stl",
+          "default": "models/duschscharnier_ersatz.stl",
+          "required": true,
+          "help": "Pfad relativ zum Repo-Root. Die Workflow-Variante erzeugt nur Reports und keine rotierte Ersatzdatei."
+        },
+        {
+          "name": "infill_percent",
+          "label": "Infill %",
+          "type": "number",
+          "placeholder": "20",
+          "default": "20",
+          "required": false,
+          "help": "Optionaler Wert für scripts/mesh_tool.py measure --infill."
+        }
+      ],
+      "outputs": ["request.json", "skill.md", "validate.txt", "overhang.txt", "measure.txt"],
+      "limitations": "Der Workflow macht keine dauerhaften Modelländerungen; Orientierungs-Entscheidungen bleiben Reports oder Slicer-Aufgaben."
+    },
+    {
+      "id": "stl-from-image-measurements",
+      "name": "STL from image measurements",
+      "source": ".github/skills/stl-from-image-measurements/SKILL.md",
+      "description": "Startet den Kontaktblatt-Schritt des Bild-Workflows serverseitig für bereits im Repository vorhandene Bildordner.",
+      "fields": [
+        {
+          "name": "image_dir",
+          "label": "Bildordner",
+          "type": "text",
+          "placeholder": "model-sources",
+          "default": "model-sources",
+          "required": true,
+          "help": "Pfad relativ zum Repo-Root; der Workflow erzeugt <image_dir>/_index.png und lädt es als Artefakt hoch."
+        }
+      ],
+      "outputs": ["request.json", "skill.md", "contact-sheet.txt", "_index.png"],
+      "limitations": "Dieses MVP deckt nur den Index-/Kontaktblatt-Schritt ab; eigentliche Modellierung und Copilot-Dialog brauchen weiterhin einen separaten Agenten oder Backend-Service."
+    }
+  ]
+}

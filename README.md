@@ -160,6 +160,44 @@ bed and both coordinate conventions.
 | `arrange` | lay several parts out on the build plate |
 | `compare` | compare the same model across worktrees before trusting a bug report |
 
+## GitHub Pages Skill Runner (ohne lokalen Checkout)
+
+Die GitHub-Pages-SPA kann jetzt nicht nur STL-Dateien anzeigen, sondern auch
+serverseitige, skill-gestützte Repository-Workflows starten. Der Browser bleibt
+reines Frontend; die Ausführung passiert über
+`/home/runner/work/3d-printing/3d-printing/.github/workflows/pages-skill-runner.yml`
+auf GitHub Actions.
+
+### Ablauf
+
+1. Nutzer öffnet die Pages-App und verbindet einen GitHub-Token nur für die
+   aktuelle Browsersitzung.
+2. Die App liest Skill-Metadaten aus `web/public/skills-manifest.json`.
+3. Ein ausgewählter Skill wird als `workflow_dispatch`-Run gestartet.
+4. GitHub Actions checkt das Repository temporär serverseitig aus, liest die
+   Skill-Datei unter `.github/skills/` als Policy-Kontext und führt die
+   vorhandenen Python-Skripte aus.
+5. Reports und Artefakte (z. B. `_index.png`, `validate.txt`, `measure.txt`)
+   werden im Workflow-Run bereitgestellt und können aus der Pages-App
+   heruntergeladen werden.
+
+### Aktuell unterstützte Skill-Backed Flows
+
+- `validate-stl-mesh` → `scripts/mesh_tool.py info|validate|overhang`
+- `optimize-stl-for-print` → `scripts/mesh_tool.py validate|overhang|measure`
+- `stl-from-image-measurements` → `scripts/make_contact_sheet.py` für den
+  verpflichtenden Kontaktblatt-Schritt
+
+### Grenzen dieses MVPs
+
+- GitHub Pages hostet weiterhin **kein Backend** und hält keine Secrets.
+- Der Token bleibt absichtlich nur im Browser-`sessionStorage`.
+- Es gibt noch keinen eingebetteten Copilot-Chat und keine serverseitige
+  LLM-Orchestrierung. Dafür wäre später eine GitHub-App- oder Broker-Schicht
+  nötig.
+- Bild- und STL-Verarbeitung läuft nur auf Dateien, die bereits im Repository
+  liegen; Browser-Uploads sind nicht Teil dieses MVPs.
+
 ## Coordinate Convention
 
 Models support both placement conventions on the 250 × 250 mm bed:
