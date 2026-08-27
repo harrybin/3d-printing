@@ -46,6 +46,8 @@ jobs:
 
       - name: Build
         working-directory: web
+        env:
+          PAGES_WORKFLOW_REF: ${{ github.ref_name }}
         run: npm run build
 
       - name: Setup Pages

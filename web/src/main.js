@@ -789,12 +789,13 @@ function renderSavedModels() {
 
 async function fetchWorkflowRuns() {
   const actorQuery = state.user ? `&actor=${encodeURIComponent(state.user.login)}` : ''
-  const data = await githubRequest(`/repos/${repoSlug()}/actions/workflows/${workflowFile()}/runs?event=workflow_dispatch&per_page=50${actorQuery}`)
+  const branchQuery = `&branch=${encodeURIComponent(currentWorkflowRef())}`
+  const data = await githubRequest(`/repos/${repoSlug()}/actions/workflows/${workflowFile()}/runs?event=workflow_dispatch&per_page=50${actorQuery}${branchQuery}`)
   const workflowRuns = data.workflow_runs || []
   const filtered = state.user
     ? workflowRuns.filter((run) => (run.triggering_actor?.login || run.actor?.login) === state.user.login)
     : workflowRuns
-  return filtered.slice(0, 5).map((run) => ({
+  return filtered.filter((run) => run.head_branch === currentWorkflowRef()).slice(0, 5).map((run) => ({
     ...run,
     display_skill: run.name === state.config.workflow.name ? inferSkillFromTitle(run.display_title) : run.name,
   }))
