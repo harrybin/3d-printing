@@ -5,8 +5,12 @@ on:
     branches: [main]
     paths:
       - '.github/extensions/stl-canvas/**'
+      - '.github/skills/**'
+      - '.github/workflows/pages-skill-runner.yml'
       - 'web/**'
+      - 'scripts/**'
       - 'models/**'
+      - 'requirements.txt'
       - '.github/workflows/pages-spa.yml'
   workflow_dispatch:
 
