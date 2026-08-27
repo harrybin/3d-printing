@@ -315,6 +315,7 @@ app.innerHTML = `
 
 const state = {
   config: null,
+  buildInfo: null,
   manifest: null,
   token: sessionStorage.getItem(TOKEN_STORAGE_KEY) || '',
   user: loadStoredJson(USER_STORAGE_KEY, null),
@@ -406,7 +407,7 @@ function workflowFile() {
 }
 
 function currentWorkflowRef() {
-  return state.config.repository.defaultBranch
+  return state.buildInfo?.workflowRef || state.config.repository.defaultBranch
 }
 
 function currentWorkspaceBranch() {
@@ -529,7 +530,9 @@ async function githubRequest(path, options = {}) {
   if (res.status === 204) return null
   if (!res.ok) {
     const message = await safeErrorMessage(res)
-    throw new Error(message)
+    const error = new Error(message)
+    error.status = res.status
+    throw error
   }
   const contentType = res.headers.get('content-type') || ''
   if (contentType.includes('application/json')) return res.json()
@@ -649,11 +652,13 @@ async function connectToken() {
     await refreshRuns()
     ensurePolling()
   } catch (error) {
-    sessionStorage.removeItem(TOKEN_STORAGE_KEY)
-    localStorage.removeItem(USER_STORAGE_KEY)
-    state.user = null
-    state.token = ''
-    tokenInput.value = ''
+    if (error.status === 401 || error.status === 403) {
+      sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+      localStorage.removeItem(USER_STORAGE_KEY)
+      state.user = null
+      state.token = ''
+      tokenInput.value = ''
+    }
     updateStorageNotice()
     setStatus(authStatus, `Verbindung fehlgeschlagen: ${error.message}`, 'danger')
     throw error
@@ -1050,11 +1055,13 @@ refreshBtn.addEventListener('click', () => refreshRuns())
 
 async function bootstrap() {
   try {
-    const [config, manifest] = await Promise.all([
+    const [config, buildInfo, manifest] = await Promise.all([
       loadJson('./app-config.json'),
+      loadJson('./build-info.json').catch(() => null),
       loadJson('./skills-manifest.json'),
     ])
     state.config = config
+    state.buildInfo = buildInfo
     state.manifest = manifest
     if (!imageUploadsAllowed()) {
       state.workspace = null
@@ -1063,7 +1070,7 @@ async function bootstrap() {
       uploadImagesBtn.disabled = true
       useWorkspaceDirBtn.disabled = true
     }
-    repoBadge.textContent = `${repoSlug()} · ${state.config.workflow.name}`
+    repoBadge.textContent = `${repoSlug()} · ${state.config.workflow.name} · ref ${currentWorkflowRef()}`
     manifestSummary.textContent = manifest.description
     renderSkillOptions()
     renderSavedModels()
