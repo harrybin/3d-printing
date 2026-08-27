@@ -446,7 +446,7 @@ function imageUploadsAllowed() {
 }
 
 function githubBlobUrl(path) {
-  return `https://github.com/${repoSlug()}/blob/${state.config.repository.defaultBranch}/${path}`
+  return `https://github.com/${repoSlug()}/blob/${currentWorkflowRef()}/${path}`
 }
 
 function selectedSkill() {
