@@ -59,6 +59,10 @@ so it can pick the right photo instead of opening all of them at full resolution
 This writes `model-sources/_index.png` plus an index-to-path legend; measurements are
 then taken from the full-resolution tiles that actually show the feature.
 
+Once a model is finished, the raw reference photos are deleted and only the contact
+sheet is kept, renamed after the model, under `model-sources/archiv/`
+(see `model-sources/archiv/README.md` for the tile-to-file legend).
+
 The `stl-from-image-measurements` skill scales the image and reports what is measured
 versus inferred:
 

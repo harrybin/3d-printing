@@ -48,6 +48,7 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - For engineering shapes (countersinks, bosses, ribs, hulled contours), prefer **build123d** for the solid and re-export through trimesh (round vertices to 0.001 mm, merge, dedupe faces) to guarantee a watertight ASCII STL.
 - When recreating parts from photos/videos, run the render-and-compare loop (vedo offscreen renders vs. reference frames) before declaring the model done; see `.github/skills/stl-from-image-measurements/SKILL.md`.
 - Before reading reference photos, build a numbered contact sheet with `python scripts/make_contact_sheet.py <image folder>` and open only the tiles that show the feature in question. Commit the sheet as `<image folder>/_index.png` and cite tile numbers in the measurement doc.
+- When a model is finished, delete its raw reference photos and analysis renderings. Keep only the contact sheet(s), renamed after the model, in `model-sources/archiv/` (e.g. `duschscharnier_ersatz-referenzfotos-index.png`), and record the tile-to-file legend in `model-sources/archiv/README.md`.
 
 ## Common Pitfalls
 

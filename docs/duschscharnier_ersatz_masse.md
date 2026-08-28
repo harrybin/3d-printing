@@ -36,10 +36,13 @@ Lager-Einsatz. Die Werte stammen aus den Fotos mit Schieblehre bzw. dem
 | Tropfen-Flankenradius, aussen / Tasche | 34.2 / 32.15 | Konturabgleich auf Foto 201713 | ersetzt die geraden Tangenten des fruheren Hull; Bogenmittelpunkte fur Aussen und Tasche identisch |
 | Zentraloffnung im Einsatz | 17.9 | Nutzermessung | nicht Teil des Ersatzkorpers |
 
-Bildindex: `model-sources/_index.png` (nummeriertes Kontaktblatt aller Referenzfotos).
-Die Kachelnummern verweisen auf die Dateien in `model-sources/`; die Quellenangaben
-oben nennen den Zeitstempel-Teil des Dateinamens, z. B. `202902` = Kachel 16.
-Neu erzeugen mit `python scripts/make_contact_sheet.py model-sources`.
+Bildindex: `model-sources/archiv/duschscharnier_ersatz-referenzfotos-index.png`
+(nummeriertes Kontaktblatt aller Referenzfotos) sowie
+`model-sources/archiv/duschscharnier_ersatz-analyse-index.png` (Schieblehren-
+Overlays, STL-Renderings, Videostandbilder). Die Rohbilder sind nach
+Fertigstellung des Modells entfernt worden; die Kachel-zu-Datei-Zuordnung steht
+in `model-sources/archiv/README.md`. Die Quellenangaben oben nennen den
+Zeitstempel-Teil des urspruenglichen Dateinamens, z. B. `202902` = Kachel 16.
 
 ## Verstarkung
 
