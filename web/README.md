@@ -1,10 +1,12 @@
-# STL Canvas SPA (GitHub Pages)
+# 3d-printing - create and adjust models with GH-Copilot (GitHub Pages)
 
-This SPA hosts an STL viewer on GitHub Pages.
+Diese SPA hostet den STL-Viewer auf GitHub Pages und startet GitHub Copilot als
+GitHub-Action im vollständigen Repository.
 
-The browser viewer implementation is shared with `.github/extensions/stl-canvas/viewer-app.mjs` so the Pages SPA and the Copilot extension stay in sync.
+Die Viewer-Implementierung wird mit `.github/extensions/stl-canvas/viewer-app.mjs`
+geteilt, damit Pages-App und Copilot-Extension synchron bleiben.
 
-## Run locally
+## Lokal starten
 
 ```bash
 cd web
@@ -12,7 +14,11 @@ npm install
 npm run dev
 ```
 
-`npm run dev` and `npm run build` now automatically sync STL files from the repo's `models/` directory into `web/public/models/`; `models.json` is generated and the `*.stl` files are copied there.
+`predev`/`prebuild` erzeugen automatisch:
+
+- `web/public/models/` + `models.json` aus dem Repo-Ordner `models/` (`sync-models.mjs`)
+- `web/public/skills-manifest.json` aus `.github/skills/**` (`sync-skills.mjs`)
+- `web/public/build-info.json` (`write-build-info.mjs`)
 
 ## Build
 
@@ -23,12 +29,54 @@ npm run build
 
 ## Deployment
 
-Automatically via GitHub Actions when these paths change:
+Automatisch via GitHub Actions, wenn sich diese Pfade ändern:
 
 - `.github/extensions/stl-canvas/**`
+- `.github/skills/**`
+- `.github/workflows/copilot-agent.yml`
 - `web/**`
+- `scripts/**`
 - `models/**`
 
-## Models
+## Konfiguration
 
-The workflow copies STL files from the repo-root `models/` directory into `web/public/models/` during the build and generates `models.json`.
+`web/public/app-config.json` steuert Titel, Repository, Workflow-Datei,
+Prompt-Limits und den Bildspeicher. Die Skill-Liste im UI ist rein informativ –
+Copilot bekommt in der Action immer alle Skills.
+
+## Browser-Speicher
+
+| Daten | Ort | Grund |
+| --- | --- | --- |
+| PAT | `sessionStorage` | Verschwindet mit dem Tab. |
+| Zuletzt verbundener Benutzer, Prompt-Journal | `localStorage` | Kleine Metadaten. |
+| Referenzbilder, Modelle, Berichte | **IndexedDB** (`stl-copilot-store`) | Blobs statt Base64; `localStorage` ist auf ~5 MB begrenzt und würde schon beim ersten Foto überlaufen. |
+
+Modelle aus dem alten `localStorage`-Format werden beim ersten Start automatisch
+in die IndexedDB übernommen.
+
+## Fork-Modell
+
+Runs laufen im **Fork des jeweiligen Benutzers**, nicht im Upstream-Repo. Die App
+liest den Login des verbundenen PAT (`GET /user`) und dispatcht gegen
+`<login>/3d-printing`. Fehlt der Fork, der Workflow oder das Secret, blendet die
+App eine Einrichtungsanleitung mit Direktlinks ein und blockiert den Dispatch.
+
+Einmalige Einrichtung: Upstream forken → Actions im Fork aktivieren → Secret
+`COPILOT_GITHUB_TOKEN` (fine-grained PAT mit `Copilot Requests`) im Fork anlegen.
+Actions-Minuten und Copilot-Verbrauch gehen damit auf das Konto des Benutzers.
+
+Gesteuert über `execution.mode` in `public/app-config.json`; auf einen anderen
+Wert gesetzt, dispatcht die App wieder direkt gegen `repository.owner`.
+
+## Token
+
+Fine-grained PAT für den **eigenen Fork** mit **`Metadata: Read`** und
+**`Actions: Read and write`**. Kein `Contents`-Recht: die App schreibt nie in ein
+Repository. `Actions: Read and write` ist die kleinste Stufe, mit der GitHub
+`workflow_dispatch` erlaubt.
+
+Das zweite Token (`COPILOT_GITHUB_TOKEN`) wird **nie** in die App eingegeben – es
+liegt ausschließlich als Actions-Secret im Fork. `workflow_dispatch`-Inputs sind
+für jeden mit Actions-Leserecht im Klartext sichtbar und deshalb kein Ort für
+Secrets.

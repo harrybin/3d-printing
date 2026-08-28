@@ -1,71 +1,53 @@
 {
-  "description": "Dispatcht serverseitige GitHub-Actions-Runs für feste Workflow-Profile, zeigt die zugehörigen Repo-Skill-Dateien als Referenz an und nutzt die vorhandenen Python-Skripte als Ausführungs-Engine. Bild-Uploads in einen GitHub-Workspace-Branch sind nur für private Repositories vorgesehen.",
+  "description": "Alle Repository-Skills stehen jedem Copilot-Run automatisch zur Verfügung. Eine Auswahl ist nicht nötig – Copilot entscheidet anhand des Prompts, welche Skills es verwendet.",
   "skills": [
     {
-      "id": "validate-stl-mesh",
-      "name": "Validate STL mesh",
-      "source": ".github/skills/validate-stl-mesh/skill.md",
-      "description": "Prüft ein STL aus models/ mit info, validate und overhang gegen die bestehenden Repo-Regeln.",
-      "fields": [
-        {
-          "name": "model_path",
-          "label": "Modellpfad",
-          "type": "text",
-          "placeholder": "models/lineal-clip-kappe.stl",
-          "default": "models/lineal-clip-kappe.stl",
-          "required": true,
-          "help": "Pfad relativ zum Repo-Root. Für diesen MVP werden nur bereits im Repository vorhandene Modelle verarbeitet."
-        }
-      ],
-      "outputs": ["request.json", "skill.md", "info.json", "validate.txt", "overhang.txt", "models/<eingabe>.stl"],
-      "limitations": "Kein Dateiupload im Browser; der Run arbeitet auf Repository-Dateien und legt das geprüfte Modell zusätzlich im Artefakt für lokale Browser-Fortsetzung ab."
+      "id": "anycubic-kobra-s1-ace-pro-profile",
+      "name": "anycubic-kobra-s1-ace-pro-profile",
+      "description": "Anycubic Kobra S1 Combo + ACE Pro defaults and constraints for STL authoring and editing.",
+      "source": ".github/skills/anycubic-kobra-s1-ace-pro-profile/skill.md"
+    },
+    {
+      "id": "create-ascii-stl",
+      "name": "create-ascii-stl",
+      "description": "Create ASCII STL files using print-safe defaults for Anycubic Kobra S1 Combo + ACE Pro.",
+      "source": ".github/skills/create-ascii-stl/skill.md"
+    },
+    {
+      "id": "edit-stl-transform",
+      "name": "edit-stl-transform",
+      "description": "Edit STL geometry (scale/rotate/translate/split/merge) while preserving printability constraints.",
+      "source": ".github/skills/edit-stl-transform/skill.md"
     },
     {
       "id": "optimize-stl-for-print",
-      "name": "Optimize STL for print",
-      "source": ".github/skills/optimize-stl-for-print/skill.md",
-      "description": "Führt Validate, Overhang und Measure aus und gibt eine druckbezogene Auswertung zurück, ohne die Generator-Ausgabe zu überschreiben.",
-      "fields": [
-        {
-          "name": "model_path",
-          "label": "Modellpfad",
-          "type": "text",
-          "placeholder": "models/duschscharnier_ersatz.stl",
-          "default": "models/duschscharnier_ersatz.stl",
-          "required": true,
-          "help": "Pfad relativ zum Repo-Root. Die Workflow-Variante erzeugt nur Reports und keine rotierte Ersatzdatei."
-        },
-        {
-          "name": "infill_percent",
-          "label": "Infill %",
-          "type": "number",
-          "placeholder": "20",
-          "default": "20",
-          "required": false,
-          "help": "Optionaler Wert für scripts/mesh_tool.py measure --infill."
-        }
-      ],
-      "outputs": ["request.json", "skill.md", "validate.txt", "overhang.txt", "measure.txt", "models/<eingabe>.stl"],
-      "limitations": "Der Workflow macht keine dauerhaften Modelländerungen; er legt das analysierte Modell nur als Artefaktkopie für lokale Browser-Fortsetzung ab."
+      "name": "optimize-stl-for-print",
+      "description": "Optimize an existing STL for FDM printing on the Anycubic Kobra S1 - orientation, overhangs, wall and hole compensation, elephant foot, bed layout and material estimate.",
+      "source": ".github/skills/optimize-stl-for-print/skill.md"
+    },
+    {
+      "id": "research-part-specs",
+      "name": "research-part-specs",
+      "description": "Find real published dimensions for a part before modeling it, cite the source, and record the numbers in a measurement doc instead of guessing from a photo.",
+      "source": ".github/skills/research-part-specs/skill.md"
+    },
+    {
+      "id": "stl-create-edit-interview",
+      "name": "stl-create-edit-interview",
+      "description": "Guided question flow for STL authoring/editing choices (wall strategy, mesh pattern, infill strategy, and fit intent).",
+      "source": ".github/skills/stl-create-edit-interview/skill.md"
     },
     {
       "id": "stl-from-image-measurements",
-      "name": "STL from image measurements",
-      "source": ".github/skills/stl-from-image-measurements/SKILL.md",
-      "description": "Startet den Kontaktblatt-Schritt des Bild-Workflows serverseitig für Repository-Bildordner oder zuvor hochgeladene Referenzbilder im benutzereigenen Workspace-Branch.",
-      "fields": [
-        {
-          "name": "image_dir",
-          "label": "Bildordner",
-          "type": "text",
-          "placeholder": "model-sources",
-          "default": "model-sources",
-          "required": true,
-          "help": "Pfad relativ zum Repo-Root; kann direkt aus dem Bild-Workspace der App übernommen werden. Der Workflow erzeugt daraus ein `_index.png`-Artefakt für den Browser-Download."
-        }
-      ],
-      "outputs": ["request.json", "skill.md", "contact-sheet.txt", "_index.png"],
-      "limitations": "Dieses MVP deckt nur den Index-/Kontaktblatt-Schritt ab; eigentliche Modellierung und Copilot-Dialog brauchen weiterhin einen separaten Agenten oder Backend-Service."
+      "name": "stl-from-image-measurements",
+      "description": "Create or edit printable geometry from user-provided images and measurements. Use for identifying objects from photos, indexing reference photos into a numbered contact sheet before reading them, researching existing 3D models with subagents, downloading or extracting model properties when possible, recreating missing geometry, combining objects into one output, applying requested spacing/relations/dimensions, and validating against Anycubic Kobra S1 Combo + ACE Pro print constraints before finalizing.",
+      "source": ".github/skills/stl-from-image-measurements/SKILL.md"
+    },
+    {
+      "id": "validate-stl-mesh",
+      "name": "validate-stl-mesh",
+      "description": "Validate STL meshes for manifold correctness and FDM printability readiness.",
+      "source": ".github/skills/validate-stl-mesh/skill.md"
     }
   ]
 }

@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/extensions/stl-canvas/**'
       - '.github/skills/**'
-      - '.github/workflows/pages-skill-runner.yml'
+      - '.github/workflows/copilot-agent.yml'
       - 'web/**'
       - 'scripts/**'
       - 'models/**'

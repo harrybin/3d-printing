@@ -198,6 +198,17 @@ button.secondary {
   border-color: #da3633;
 }
 
+#setupHint ol {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+}
+
+#setupHint p {
+  margin: 6px 0 0;
+}
+
 .skill-card {
   border: 1px solid #30363d;
   border-radius: 14px;
@@ -271,6 +282,41 @@ button.secondary {
 
 .compact-row {
   align-items: center;
+}
+
+.image-card .image-thumb {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  margin: 10px 0;
+  border-radius: 10px;
+  background: #010409;
+}
+
+.image-card .field-block {
+  margin-top: 6px;
+}
+
+.file-preview {
+  margin: 10px 0 0;
+  padding: 10px;
+  max-height: 320px;
+  overflow: auto;
+  border-radius: 10px;
+  background: #010409;
+  border: 1px solid #30363d;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.hint[data-tone='danger'] {
+  color: #ff7b72;
+}
+
+#promptExamples {
+  flex-wrap: wrap;
 }
 
 @media (max-width: 1200px) {
