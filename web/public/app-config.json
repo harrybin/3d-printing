@@ -1,4 +1,8 @@
 {
+  "app": {
+    "title": "3d-printing - create and adjust models with GH-Copilot",
+    "tagline": "Modelle im Browser ansehen und per GitHub Copilot in einer GitHub-Action erzeugen oder anpassen."
+  },
   "repository": {
     "owner": "harrybin",
     "repo": "3d-printing",
@@ -6,15 +10,20 @@
     "visibility": "public"
   },
   "workflow": {
-    "file": "pages-skill-runner.yml",
-    "name": "Pages skill runner"
+    "file": "copilot-agent.yml",
+    "name": "Copilot model agent"
   },
   "auth": {
     "mode": "personal-access-token",
-    "tokenStorage": "sessionStorage"
+    "tokenStorage": "sessionStorage",
+    "requiredPermissions": ["Metadata: Read", "Actions: Read and write"]
   },
-  "workspace": {
-    "branchPrefix": "copilot-pages-sessions",
-    "imageRoot": "pages-user-input"
+  "prompt": {
+    "chunkSize": 1024,
+    "maxChunks": 12
+  },
+  "images": {
+    "storage": "indexeddb",
+    "maxFiles": 24
   }
 }

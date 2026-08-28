@@ -8,9 +8,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "sync-models": "node scripts/sync-models.mjs",
+    "sync-skills": "node scripts/sync-skills.mjs",
     "write-build-info": "node scripts/write-build-info.mjs",
-    "predev": "npm run sync-models && npm run write-build-info",
-    "prebuild": "npm run sync-models && npm run write-build-info"
+    "predev": "npm run sync-models && npm run sync-skills && npm run write-build-info",
+    "prebuild": "npm run sync-models && npm run sync-skills && npm run write-build-info"
   },
   "dependencies": {},
   "devDependencies": {

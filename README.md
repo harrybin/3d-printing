@@ -160,60 +160,57 @@ bed and both coordinate conventions.
 | `arrange` | lay several parts out on the build plate |
 | `compare` | compare the same model across worktrees before trusting a bug report |
 
-## GitHub Pages Skill Runner (ohne lokalen Checkout)
+## Web app: "3d-printing - create and adjust models with GH-Copilot"
 
-Die GitHub-Pages-SPA kann jetzt nicht nur STL-Dateien anzeigen, sondern auch
-serverseitige Repository-Workflow-Profile starten. Der Browser bleibt
-reines Frontend; die Ausführung passiert über
-`.github/workflows/pages-skill-runner.yml`
-auf GitHub Actions.
+Die GitHub-Pages-SPA zeigt STL-Dateien an **und** startet GitHub Copilot als
+GitHub-Action im vollständigen Repository. Der Browser bleibt reines Frontend,
+es gibt kein Backend und keine Secrets in der Seite. Ausführung passiert über
+`.github/workflows/copilot-agent.yml`.
 
 ### Ablauf
 
-1. Nutzer öffnet die Pages-App, verbindet einen GitHub-Token und hält ihn nur in
-   der aktuellen Browser-Tab-Session (`sessionStorage`).
-2. In **privaten** Repositories kann die App Referenzbilder mit dem
-   Benutzer-PAT in einen benutzereigenen Branch unter `pages-user-input/…`
-   hochladen, damit das Bild-Workflow-Profil sie ohne Backend nutzen kann.
-3. Die App liest Skill-Metadaten aus `web/public/skills-manifest.json`.
-4. Ein ausgewähltes Workflow-Profil wird als `workflow_dispatch`-Run auf `main`
-   gestartet.
-5. Falls Referenzbilder zuvor hochgeladen wurden, zieht der Workflow deren Ordner
-   zusätzlich aus dem benutzereigenen Workspace-Branch nach.
-6. GitHub Actions checkt das Repository temporär serverseitig aus, liest die
-   zugehörige Skill-Datei unter `.github/skills/` als Referenzdokumentation und
-   führt das fest zugeordnete Repository-Skript aus.
-7. Reports und Artefakte (z. B. `_index.png`, `validate.txt`, `measure.txt`)
-   werden im Workflow-Run bereitgestellt und können aus der Pages-App
-   heruntergeladen werden.
-8. Die Validate-/Optimize-Profile legen das bearbeitete Eingabemodell zusätzlich
-   im Workflow-Artefakt ab. Wenn ein Artefakt STL- oder 3MF-Dateien enthält,
-   speichert die Pages-App diese
-   zusätzlich im Browser-`localStorage`, damit spätere Sessions sie ohne erneuten
-   Workflow-Run fortsetzen können.
+1. Benutzer öffnet die Pages-App und verbindet ein feingranulares PAT, das nur in
+   der aktuellen Browser-Tab-Session (`sessionStorage`) liegt.
+2. Der Benutzer beschreibt in Freitext, was Copilot tun soll. Es gibt **keine
+   Skill-Auswahl** – alle Skills unter `.github/skills/` stehen jedem Run
+   automatisch zur Verfügung, ebenso `AGENTS.md` und alle Skripte aus `scripts/`.
+3. Die App zerlegt den Prompt in Blöcke à 1024 Zeichen (GitHub-Limit pro
+   `workflow_dispatch`-Input, maximal 12 Blöcke = 12 KB) und startet den Run mit
+   einer selbst erzeugten `correlation_id`.
+4. Die Action installiert `@github/copilot`, die Python-Abhängigkeiten aus
+   `requirements.txt` und lässt Copilot nicht-interaktiv im Checkout arbeiten.
+5. Ergebnisse landen im Run-Artefakt: geänderte Dateien unter `workflow-output/files/`,
+   `changes.patch`, `transcript.md`, Copilot-Log sowie `info/validate/overhang`
+   für jedes geänderte STL.
+6. Die App lädt das Artefakt, speichert Modelle und Berichte in der **IndexedDB**
+   des Browsers und öffnet STL-Dateien direkt im Viewer.
 
-### Aktuell unterstützte Workflow-Profile
+### Berechtigungen
 
-- `validate-stl-mesh` → `scripts/mesh_tool.py info|validate|overhang`
-- `optimize-stl-for-print` → `scripts/mesh_tool.py validate|overhang|measure`
-- `stl-from-image-measurements` → `scripts/make_contact_sheet.py` für den
-  verpflichtenden Kontaktblatt-Schritt
+| Wer | Was | Warum |
+| --- | --- | --- |
+| Benutzer-PAT (fine-grained) | `Metadata: Read` + `Actions: Read and write` | Minimum, das GitHub für `workflow_dispatch` verlangt. **Kein `Contents`-Recht** – die App kann grundsätzlich keine Dateien ins Repository schreiben. |
+| Benutzerkonto | Repo-Rolle `Write` | GitHub erlaubt `workflow_dispatch` nur ab Schreibrolle; das PAT bleibt trotzdem auf Actions beschränkt. |
+| Repo-Secret `COPILOT_GITHUB_TOKEN` | Fine-grained PAT des Repo-Eigentümers mit `Copilot Requests` | Damit die Action Copilot nutzen darf. Das Token hat bewusst keine Schreibrechte, Copilot kann also nichts pushen. |
+| Repo-Variable `PAGES_RUNNER_ALLOWLIST` (optional) | Kommaliste erlaubter GitHub-Logins | Begrenzt, wer Runs auf Kosten des Copilot-Kontingents starten darf. |
 
-### Grenzen dieses MVPs
+### Referenzbilder
 
-- GitHub Pages hostet weiterhin **kein Backend** und hält keine Secrets.
-- Der Token bleibt absichtlich nur im Browser-`sessionStorage` der aktuellen
-  Tabsitzung; lokal gesicherte Modelldateien und der zuletzt verifizierte
-  Benutzer bleiben im Browser-`localStorage`.
-- Für Bild-Uploads braucht der Benutzer-PAT **Contents: Read and write**, weil die
-  Bilder in einen benutzereigenen Workspace-Branch geschrieben werden. In diesem
-  öffentlichen Repository bleibt die Upload-Funktion deshalb deaktiviert, damit
-  Benutzerfotos nicht öffentlich im Git-Verlauf landen.
-- Es gibt noch keinen eingebetteten Copilot-Chat und keine serverseitige
-  LLM-Orchestrierung. Dafür wäre später eine GitHub-App- oder Broker-Schicht
-  nötig.
-- Bild- und STL-Verarbeitung läuft nur auf Dateien, die bereits im Repository
-  liegen; Browser-Uploads sind nicht Teil dieses MVPs.
+Bild-Upload ist immer verfügbar und **rein clientseitig**: Bilder liegen in der
+IndexedDB des Browsers, werden nie ins Repository geschrieben und nie an die
+Action übertragen. Die App erzeugt lokal ein nummeriertes Kontaktblatt
+(`_index.png`, gleiche Idee wie `scripts/make_contact_sheet.py`), damit im Prompt
+auf Kacheln verwiesen werden kann. Gemessene Werte gehören als Text in den
+Prompt – Copilot sieht die Fotos nicht.
+
+### Grenzen
+
+- Prompt maximal 12 KB (12 × 1024 Zeichen, GitHub-Input-Limit).
+- Copilot in der Action kann weder committen noch pushen; alles kommt als
+  Artefakt zurück.
+- Jeder Run verbraucht Premium Requests des Kontos hinter
+  `COPILOT_GITHUB_TOKEN`.
+- Bilder erreichen die Action nicht (siehe oben).
 
 ## Coordinate Convention
 

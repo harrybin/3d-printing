@@ -1,0 +1,301 @@
+name: Copilot model agent
+
+run-name: Copilot run ${{ inputs.correlation_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: Request for Copilot (part 1 of up to 12, 1024 characters each)
+        required: true
+        type: string
+      prompt_2:
+        description: Prompt continuation 2
+        required: false
+        type: string
+      prompt_3:
+        description: Prompt continuation 3
+        required: false
+        type: string
+      prompt_4:
+        description: Prompt continuation 4
+        required: false
+        type: string
+      prompt_5:
+        description: Prompt continuation 5
+        required: false
+        type: string
+      prompt_6:
+        description: Prompt continuation 6
+        required: false
+        type: string
+      prompt_7:
+        description: Prompt continuation 7
+        required: false
+        type: string
+      prompt_8:
+        description: Prompt continuation 8
+        required: false
+        type: string
+      prompt_9:
+        description: Prompt continuation 9
+        required: false
+        type: string
+      prompt_10:
+        description: Prompt continuation 10
+        required: false
+        type: string
+      prompt_11:
+        description: Prompt continuation 11
+        required: false
+        type: string
+      prompt_12:
+        description: Prompt continuation 12
+        required: false
+        type: string
+      correlation_id:
+        description: Client-generated id used by the Pages app to find this run
+        required: false
+        type: string
+      model:
+        description: Optional model override for the Copilot CLI
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: copilot-agent-${{ github.actor }}
+  cancel-in-progress: false
+
+jobs:
+  run-copilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check actor allowlist
+        env:
+          ALLOWLIST: ${{ vars.PAGES_RUNNER_ALLOWLIST }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ALLOWLIST:-}" ]; then
+            echo "No PAGES_RUNNER_ALLOWLIST configured; every collaborator may dispatch this workflow."
+            exit 0
+          fi
+          if printf '%s' "$ALLOWLIST" | tr ',' '\n' | tr -d '[:space:]' | grep -Fxqi "$ACTOR"; then
+            echo "Actor $ACTOR is allowed."
+          else
+            echo "Actor $ACTOR is not in PAGES_RUNNER_ALLOWLIST." >&2
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install Python dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Copilot CLI
+        run: |
+          set -euo pipefail
+          npm install -g @github/copilot
+          copilot --version
+
+      - name: Assemble prompt
+        env:
+          PROMPT_1: ${{ inputs.prompt }}
+          PROMPT_2: ${{ inputs.prompt_2 }}
+          PROMPT_3: ${{ inputs.prompt_3 }}
+          PROMPT_4: ${{ inputs.prompt_4 }}
+          PROMPT_5: ${{ inputs.prompt_5 }}
+          PROMPT_6: ${{ inputs.prompt_6 }}
+          PROMPT_7: ${{ inputs.prompt_7 }}
+          PROMPT_8: ${{ inputs.prompt_8 }}
+          PROMPT_9: ${{ inputs.prompt_9 }}
+          PROMPT_10: ${{ inputs.prompt_10 }}
+          PROMPT_11: ${{ inputs.prompt_11 }}
+          PROMPT_12: ${{ inputs.prompt_12 }}
+          CORRELATION_ID: ${{ inputs.correlation_id }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+          mkdir -p workflow-output
+          {
+            printf '%s' "${PROMPT_1:-}"
+            printf '%s' "${PROMPT_2:-}"
+            printf '%s' "${PROMPT_3:-}"
+            printf '%s' "${PROMPT_4:-}"
+            printf '%s' "${PROMPT_5:-}"
+            printf '%s' "${PROMPT_6:-}"
+            printf '%s' "${PROMPT_7:-}"
+            printf '%s' "${PROMPT_8:-}"
+            printf '%s' "${PROMPT_9:-}"
+            printf '%s' "${PROMPT_10:-}"
+            printf '%s' "${PROMPT_11:-}"
+            printf '%s' "${PROMPT_12:-}"
+          } > workflow-output/request-prompt.txt
+          if [ ! -s workflow-output/request-prompt.txt ]; then
+            echo "The assembled prompt is empty." >&2
+            exit 1
+          fi
+          cat .github/copilot-runner-preamble.md workflow-output/request-prompt.txt > full-prompt.txt
+          printf '%s\n' "Prompt characters: $(wc -c < workflow-output/request-prompt.txt)"
+          python - > workflow-output/request.json <<'PY'
+          import json
+          import os
+          import pathlib
+
+          print(
+              json.dumps(
+                  {
+                      "correlation_id": os.environ.get("CORRELATION_ID", ""),
+                      "model": os.environ.get("MODEL", ""),
+                      "prompt": pathlib.Path("workflow-output/request-prompt.txt").read_text(encoding="utf-8"),
+                      "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+                      "run_number": os.environ.get("GITHUB_RUN_NUMBER", ""),
+                      "actor": os.environ.get("GITHUB_ACTOR", ""),
+                      "ref": os.environ.get("GITHUB_REF_NAME", ""),
+                      "sha": os.environ.get("GITHUB_SHA", ""),
+                  },
+                  indent=2,
+              )
+          )
+          PY
+
+      - name: Record baseline commit
+        id: baseline
+        run: |
+          set -euo pipefail
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Run Copilot CLI
+        id: copilot
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          set -uo pipefail
+          set +e
+          if [ -z "${COPILOT_GITHUB_TOKEN:-}" ]; then
+            echo "Repository secret COPILOT_GITHUB_TOKEN is not configured." >&2
+            echo "exit_code=78" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          args=(--allow-all-tools --no-ask-user --share workflow-output/transcript.md)
+          if [ -n "${MODEL:-}" ]; then
+            args+=(--model "$MODEL")
+          fi
+          copilot -p "$(cat full-prompt.txt)" "${args[@]}" 2>&1 | tee workflow-output/copilot-log.txt
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          echo "Copilot CLI exited with $code"
+
+      - name: Collect results
+        if: always()
+        env:
+          BASELINE_SHA: ${{ steps.baseline.outputs.sha }}
+        run: |
+          set -uo pipefail
+          set +e
+          mkdir -p workflow-output
+          git add -A --intent-to-add -- . ':!workflow-output' ':!full-prompt.txt' >/dev/null 2>&1
+          git diff --name-status "$BASELINE_SHA" -- . ':!workflow-output' ':!full-prompt.txt' > workflow-output/changed-files.txt
+          git diff "$BASELINE_SHA" -- . ':!workflow-output' ':!full-prompt.txt' > workflow-output/changes.patch
+          if [ ! -s workflow-output/changes.patch ]; then
+            rm -f workflow-output/changes.patch
+          fi
+          while IFS= read -r path; do
+            [ -f "$path" ] || continue
+            target="workflow-output/files/$path"
+            mkdir -p "$(dirname "$target")"
+            cp -f "$path" "$target"
+          done < <(git diff --name-only "$BASELINE_SHA" -- models docs scripts)
+
+      - name: Validate changed STL files
+        if: always()
+        run: |
+          set -uo pipefail
+          set +e
+          shopt -s nullglob globstar
+          changed=(workflow-output/files/models/**/*.stl)
+          if [ ${#changed[@]} -eq 0 ]; then
+            echo "No changed STL files to validate."
+            exit 0
+          fi
+          for stl in "${changed[@]}"; do
+            name="$(basename "$stl" .stl)"
+            echo "== $stl"
+            python scripts/mesh_tool.py info "$stl" --json > "workflow-output/${name}.info.json" 2>&1 || true
+            python scripts/mesh_tool.py validate "$stl" > "workflow-output/${name}.validate.txt" 2>&1 || true
+            python scripts/mesh_tool.py overhang "$stl" > "workflow-output/${name}.overhang.txt" 2>&1 || true
+          done
+
+      - name: Write run summary
+        if: always()
+        env:
+          CORRELATION_ID: ${{ inputs.correlation_id }}
+          MODEL: ${{ inputs.model }}
+          EXIT_CODE: ${{ steps.copilot.outputs.exit_code }}
+        run: |
+          set -uo pipefail
+          set +e
+          {
+            echo "# Copilot model agent"
+            echo
+            echo "- Correlation id: \`${CORRELATION_ID:-none}\`"
+            echo "- Model: \`${MODEL:-default}\`"
+            echo "- Copilot exit code: \`${EXIT_CODE:-unknown}\`"
+            echo
+            echo "## Request"
+            echo
+            echo '```text'
+            head -c 4000 workflow-output/request-prompt.txt 2>/dev/null || true
+            echo
+            echo '```'
+            echo
+            echo "## Changed files"
+            echo
+            if [ -s workflow-output/changed-files.txt ]; then
+              echo '```'
+              cat workflow-output/changed-files.txt
+              echo '```'
+            else
+              echo "No repository files were changed."
+            fi
+            echo
+            echo "Changes are delivered as the run artifact only; this workflow has no write access to the repository."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: copilot-run-${{ github.run_number }}
+          path: workflow-output
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Fail job when Copilot failed
+        if: always()
+        env:
+          EXIT_CODE: ${{ steps.copilot.outputs.exit_code }}
+        run: |
+          code="${EXIT_CODE:-1}"
+          if [ "$code" -ne 0 ]; then
+            echo "Copilot CLI returned exit code $code." >&2
+            exit 1
+          fi
