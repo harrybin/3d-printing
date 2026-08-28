@@ -5,8 +5,12 @@ on:
     branches: [main]
     paths:
       - '.github/extensions/stl-canvas/**'
+      - '.github/skills/**'
+      - '.github/workflows/pages-skill-runner.yml'
       - 'web/**'
+      - 'scripts/**'
       - 'models/**'
+      - 'requirements.txt'
       - '.github/workflows/pages-spa.yml'
   workflow_dispatch:
 
@@ -16,11 +20,12 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
   build:
+    if: github.ref_name == 'main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -46,6 +51,8 @@ jobs:
 
       - name: Build
         working-directory: web
+        env:
+          PAGES_WORKFLOW_REF: main
         run: npm run build
 
       - name: Setup Pages
@@ -57,6 +64,7 @@ jobs:
           path: web/dist
 
   deploy:
+    if: github.ref_name == 'main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

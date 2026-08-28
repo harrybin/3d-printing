@@ -1,0 +1,263 @@
+name: Pages skill runner
+
+run-name: ${{ inputs.skill }} · ${{ inputs.model_path || inputs.image_dir || github.ref_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      skill:
+        description: Skill id from web/public/skills-manifest.json
+        required: true
+        type: choice
+        options:
+          - validate-stl-mesh
+          - optimize-stl-for-print
+          - stl-from-image-measurements
+      model_path:
+        description: Repo-relative STL path for mesh workflows
+        required: false
+        type: string
+      image_dir:
+        description: Repo-relative image directory for contact sheet generation
+        required: false
+        type: string
+      workspace_branch:
+        description: Optional branch containing uploaded browser images
+        required: false
+        type: string
+      infill_percent:
+        description: Optional infill percentage for measure command
+        required: false
+        type: string
+      prompt:
+        description: Optional free-form note from the Pages UI
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  run-skill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Prepare output folder
+        run: mkdir -p workflow-output
+
+      - name: Record request
+        env:
+          SKILL: ${{ inputs.skill }}
+          MODEL_PATH: ${{ inputs.model_path }}
+          IMAGE_DIR: ${{ inputs.image_dir }}
+          WORKSPACE_BRANCH: ${{ inputs.workspace_branch }}
+          INFILL_PERCENT: ${{ inputs.infill_percent }}
+          PROMPT: ${{ inputs.prompt }}
+        run: |
+          python - <<'PY'
+          import json, os, pathlib
+          payload = {
+              "skill": os.environ.get("SKILL", ""),
+              "model_path": os.environ.get("MODEL_PATH", ""),
+              "image_dir": os.environ.get("IMAGE_DIR", ""),
+              "workspace_branch": os.environ.get("WORKSPACE_BRANCH", ""),
+              "infill_percent": os.environ.get("INFILL_PERCENT", ""),
+              "prompt": os.environ.get("PROMPT", ""),
+          }
+          pathlib.Path("workflow-output/request.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+          PY
+
+      - name: Copy selected skill source
+        env:
+          SKILL: ${{ inputs.skill }}
+        run: |
+          case "$SKILL" in
+            validate-stl-mesh) skill_path=".github/skills/validate-stl-mesh/skill.md" ;;
+            optimize-stl-for-print) skill_path=".github/skills/optimize-stl-for-print/skill.md" ;;
+            stl-from-image-measurements) skill_path=".github/skills/stl-from-image-measurements/SKILL.md" ;;
+            *) echo "Unsupported skill: $SKILL" >&2; exit 1 ;;
+          esac
+          cp "$skill_path" workflow-output/skill.md
+          echo "skill_path=$skill_path" >> "$GITHUB_OUTPUT"
+        id: selected_skill
+
+      - name: Run selected workflow profile
+        id: execute_workflow
+        env:
+          SKILL: ${{ inputs.skill }}
+          MODEL_PATH: ${{ inputs.model_path }}
+          IMAGE_DIR: ${{ inputs.image_dir }}
+          WORKSPACE_BRANCH: ${{ inputs.workspace_branch }}
+          INFILL_PERCENT: ${{ inputs.infill_percent }}
+        run: |
+          set -uo pipefail
+          rc=0
+          resolve_repo_path() {
+            python - "$1" <<'PY'
+            import pathlib
+            import sys
+
+            root = pathlib.Path.cwd().resolve()
+            candidate = (root / sys.argv[1]).resolve()
+            if not candidate.is_relative_to(root):
+                raise SystemExit(f"Path escapes repository root: {sys.argv[1]}")
+            print(candidate)
+            PY
+          }
+          normalize_repo_path() {
+           python - "$1" <<'PY'
+           import pathlib
+           import sys
+
+           root = pathlib.Path.cwd().resolve()
+           candidate = (root / sys.argv[1]).resolve()
+           if not candidate.is_relative_to(root):
+               raise SystemExit(f"Path escapes repository root: {sys.argv[1]}")
+           print(candidate.relative_to(root).as_posix())
+           PY
+          }
+          record_failure() {
+           echo "$1" | tee -a workflow-output/error.txt >&2
+           rc=1
+          }
+          case "$SKILL" in
+           validate-stl-mesh)
+             if [ -z "$MODEL_PATH" ]; then
+               record_failure "MODEL_PATH is required for validate-stl-mesh."
+             elif ! MODEL_FILE="$(resolve_repo_path "$MODEL_PATH")"; then
+               record_failure "MODEL_PATH escapes the repository root: $MODEL_PATH"
+             elif [ ! -f "$MODEL_FILE" ]; then
+               record_failure "MODEL_PATH not found: $MODEL_PATH"
+             else
+               mkdir -p workflow-output/models
+               cp "$MODEL_FILE" "workflow-output/models/$(basename "$MODEL_FILE")"
+               python scripts/mesh_tool.py info "$MODEL_FILE" --json | tee workflow-output/info.json
+               cmd_rc=${PIPESTATUS[0]}
+               [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
+               python scripts/mesh_tool.py validate "$MODEL_FILE" | tee workflow-output/validate.txt
+               cmd_rc=${PIPESTATUS[0]}
+               [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
+               python scripts/mesh_tool.py overhang "$MODEL_FILE" | tee workflow-output/overhang.txt
+               cmd_rc=${PIPESTATUS[0]}
+               [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
+             fi
+             ;;
+           optimize-stl-for-print)
+             if [ -z "$MODEL_PATH" ]; then
+               record_failure "MODEL_PATH is required for optimize-stl-for-print."
+             elif ! MODEL_FILE="$(resolve_repo_path "$MODEL_PATH")"; then
+               record_failure "MODEL_PATH escapes the repository root: $MODEL_PATH"
+             elif [ ! -f "$MODEL_FILE" ]; then
+               record_failure "MODEL_PATH not found: $MODEL_PATH"
+             else
+               INFILL_VALUE="${INFILL_PERCENT:-20}"
+               mkdir -p workflow-output/models
+               cp "$MODEL_FILE" "workflow-output/models/$(basename "$MODEL_FILE")"
+               python scripts/mesh_tool.py validate "$MODEL_FILE" | tee workflow-output/validate.txt
+               cmd_rc=${PIPESTATUS[0]}
+               [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
+               python scripts/mesh_tool.py overhang "$MODEL_FILE" | tee workflow-output/overhang.txt
+               cmd_rc=${PIPESTATUS[0]}
+               [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
+               python scripts/mesh_tool.py measure "$MODEL_FILE" --infill "$INFILL_VALUE" | tee workflow-output/measure.txt
+               cmd_rc=${PIPESTATUS[0]}
+               [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
+             fi
+             ;;
+           stl-from-image-measurements)
+             if [ -z "$IMAGE_DIR" ]; then
+               record_failure "IMAGE_DIR is required for stl-from-image-measurements."
+             elif ! NORMALIZED_IMAGE_DIR="$(normalize_repo_path "$IMAGE_DIR")"; then
+               record_failure "IMAGE_DIR escapes the repository root: $IMAGE_DIR"
+             else
+               if [ -n "${WORKSPACE_BRANCH:-}" ]; then
+                 if ! echo "$WORKSPACE_BRANCH" | grep -qE '^[a-zA-Z0-9_/][a-zA-Z0-9_./-]*$'; then
+                   record_failure "WORKSPACE_BRANCH contains invalid characters: $WORKSPACE_BRANCH"
+                 else
+                 rm -rf workflow-input
+                 mkdir -p workflow-input
+                 if ! git fetch origin "refs/heads/$WORKSPACE_BRANCH:refs/remotes/origin/pages-skill-workspace"; then
+                   record_failure "WORKSPACE_BRANCH could not be fetched: $WORKSPACE_BRANCH"
+                 elif ! git archive --format=tar refs/remotes/origin/pages-skill-workspace -- "$NORMALIZED_IMAGE_DIR" | tar -xf - -C workflow-input; then
+                   record_failure "IMAGE_DIR not found on workspace branch: $IMAGE_DIR"
+                 else
+                   IMAGE_FOLDER="$PWD/workflow-input/$NORMALIZED_IMAGE_DIR"
+                 fi
+                 fi
+               else
+                 IMAGE_FOLDER="$(resolve_repo_path "$IMAGE_DIR")"
+               fi
+             fi
+             if [ "${rc}" -eq 0 ] && [ ! -d "${IMAGE_FOLDER:-}" ]; then
+               record_failure "IMAGE_DIR not found: $IMAGE_DIR"
+             fi
+             if [ "${rc}" -eq 0 ]; then
+               python scripts/make_contact_sheet.py "$IMAGE_FOLDER" --out "workflow-output/_index.png" | tee workflow-output/contact-sheet.txt
+               cmd_rc=${PIPESTATUS[0]}
+               [ "$cmd_rc" -ne 0 ] && rc="$cmd_rc"
+             fi
+             ;;
+           *)
+             record_failure "Unsupported skill: $SKILL"
+             ;;
+          esac
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+
+      - name: Add workflow summary
+        if: always()
+        env:
+          SKILL: ${{ inputs.skill }}
+          MODEL_PATH: ${{ inputs.model_path }}
+          IMAGE_DIR: ${{ inputs.image_dir }}
+          WORKSPACE_BRANCH: ${{ inputs.workspace_branch }}
+          PROMPT: ${{ inputs.prompt }}
+          SKILL_PATH: ${{ steps.selected_skill.outputs.skill_path }}
+          EXIT_CODE: ${{ steps.execute_workflow.outputs.exit_code }}
+        run: |
+          {
+           echo "# Pages skill runner"
+           echo
+           echo "- Skill: \\`$SKILL\\`"
+           echo "- Skill reference: \\`$SKILL_PATH\\`"
+           [ -n "$MODEL_PATH" ] && echo "- Model path: \\`$MODEL_PATH\\`"
+           [ -n "$IMAGE_DIR" ] && echo "- Image dir: \\`$IMAGE_DIR\\`"
+           [ -n "$WORKSPACE_BRANCH" ] && echo "- Workspace branch: \\`$WORKSPACE_BRANCH\\`"
+           [ -n "$PROMPT" ] && echo "- Prompt note: $PROMPT"
+           echo "- Exit code: \\`${EXIT_CODE:-0}\\`"
+           echo
+           echo "This run was triggered by the GitHub Pages app."
+           echo
+           echo "The selected skill file is attached as reference documentation. In this MVP, execution is determined by the selected workflow profile and the repository scripts it maps to."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload workflow artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pages-skill-runner-${{ github.run_number }}-${{ inputs.skill }}
+          path: workflow-output
+          if-no-files-found: error
+
+      - name: Fail job when workflow profile failed
+        if: always()
+        env:
+          EXIT_CODE: ${{ steps.execute_workflow.outputs.exit_code }}
+        run: |
+          code="${EXIT_CODE:-0}"
+          if [ "$code" -ne 0 ]; then
+           echo "Failing job because the selected workflow profile returned exit code $code." >&2
+           exit "$code"
+          fi

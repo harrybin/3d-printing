@@ -6,3 +6,4 @@ web/dist/
 web/package-lock.json
 web/public/models/*.stl
 web/public/models/models.json
+web/public/build-info.json

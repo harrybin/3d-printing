@@ -1,1 +1,299 @@
 @import '../../.github/extensions/stl-canvas/viewer.css';
+
+:root {
+  color-scheme: dark;
+  font-family: Inter, system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  background: #0d1117;
+  color: #e6edf3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #0d1117;
+  color: #e6edf3;
+}
+
+a {
+  color: #58a6ff;
+}
+
+code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.page-shell {
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(360px, 0.9fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 12px 30px rgba(1, 4, 9, 0.22);
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: start;
+  margin-bottom: 20px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #7d8590;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin-top: 0;
+}
+
+.hero h1 {
+  margin-bottom: 10px;
+}
+
+.lede,
+.muted,
+.hint {
+  color: #9da7b3;
+}
+
+.repo-badge {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  white-space: nowrap;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.section-header.compact {
+  margin-bottom: 8px;
+}
+
+.viewer-root {
+  min-height: 760px;
+}
+
+.viewer-root .viewer-container {
+  min-height: 620px;
+}
+
+.stack {
+  display: grid;
+  gap: 12px;
+}
+
+.runner-card {
+  display: grid;
+  gap: 18px;
+}
+
+.field-block span:first-child {
+  font-weight: 600;
+}
+
+.field-block input,
+.field-block select,
+.field-block textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #e6edf3;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.button-row button,
+.artifact-list button {
+  border: 1px solid #1f6feb;
+  background: #1f6feb;
+  color: white;
+  border-radius: 10px;
+  padding: 9px 12px;
+}
+
+.button-row button.secondary {
+  background: transparent;
+  color: #e6edf3;
+  border-color: #30363d;
+}
+
+button.secondary {
+  background: transparent;
+  color: #e6edf3;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  padding: 9px 12px;
+}
+
+.status-panel {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+}
+
+.status-panel[data-tone='success'] {
+  border-color: #238636;
+}
+
+.status-panel[data-tone='warning'] {
+  border-color: #9e6a03;
+}
+
+.status-panel[data-tone='danger'] {
+  border-color: #da3633;
+}
+
+.skill-card {
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  padding: 12px;
+  background: #0d1117;
+}
+
+.skill-card ul,
+.artifact-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.runs-list {
+  display: grid;
+  gap: 12px;
+}
+
+.runs-list.empty {
+  padding: 18px;
+  border: 1px dashed #30363d;
+  border-radius: 14px;
+  color: #9da7b3;
+}
+
+.run-card {
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  padding: 14px;
+  background: #0d1117;
+}
+
+.run-card[data-tone='success'] {
+  border-color: #238636;
+}
+
+.run-card[data-tone='warning'] {
+  border-color: #9e6a03;
+}
+
+.run-card[data-tone='danger'] {
+  border-color: #da3633;
+}
+
+.run-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.run-card-header h4,
+.run-card-header p,
+.run-body {
+  margin-bottom: 0;
+}
+
+.run-card details {
+  margin-top: 10px;
+}
+
+.artifact-list li + li {
+  margin-top: 8px;
+}
+
+.artifact-list button {
+  margin-left: 8px;
+  padding: 4px 8px;
+  font-size: 0.9rem;
+}
+
+.compact-row {
+  align-items: center;
+}
+
+@media (max-width: 1200px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .viewer-root {
+    min-height: 640px;
+  }
+}
+
+@media (max-width: 720px) {
+  .page-shell {
+    padding: 12px;
+  }
+
+  .hero,
+  .run-card-header {
+    flex-direction: column;
+  }
+
+  .viewer-root {
+    min-height: 520px;
+  }
+}
