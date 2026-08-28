@@ -184,6 +184,9 @@ jobs:
                record_failure "IMAGE_DIR escapes the repository root: $IMAGE_DIR"
              else
                if [ -n "${WORKSPACE_BRANCH:-}" ]; then
+                 if ! echo "$WORKSPACE_BRANCH" | grep -qE '^[a-zA-Z0-9_/][a-zA-Z0-9_./-]*$'; then
+                   record_failure "WORKSPACE_BRANCH contains invalid characters: $WORKSPACE_BRANCH"
+                 else
                  rm -rf workflow-input
                  mkdir -p workflow-input
                  if ! git fetch origin "refs/heads/$WORKSPACE_BRANCH:refs/remotes/origin/pages-skill-workspace"; then
@@ -192,6 +195,7 @@ jobs:
                    record_failure "IMAGE_DIR not found on workspace branch: $IMAGE_DIR"
                  else
                    IMAGE_FOLDER="$PWD/workflow-input/$NORMALIZED_IMAGE_DIR"
+                 fi
                  fi
                else
                  IMAGE_FOLDER="$(resolve_repo_path "$IMAGE_DIR")"

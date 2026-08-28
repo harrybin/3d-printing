@@ -37,7 +37,14 @@ function loadStoredJson(key, fallback) {
 }
 
 function saveStoredJson(key, value) {
-  localStorage.setItem(key, JSON.stringify(value))
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+      throw new Error(`Storage quota exceeded while saving "${key}". Free up space by removing unused models.`)
+    }
+    throw e
+  }
 }
 
 function getStoredModels() {
@@ -132,7 +139,7 @@ function installModelFetchShim() {
         const data = response.ok ? await response.clone().json() : { files: [] }
         const files = Array.from(new Set([...(Array.isArray(data.files) ? data.files : []), ...viewerModels.map((entry) => entry.key)])).sort((a, b) => a.localeCompare(b))
         return new Response(JSON.stringify({ ...data, files }), {
-          status: response.status,
+          status: 200,
           headers: { 'Content-Type': 'application/json' },
         })
       } catch {
