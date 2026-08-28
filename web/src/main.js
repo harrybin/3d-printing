@@ -171,6 +171,8 @@ const state = {
   images: [],
   journal: loadStoredJson(JOURNAL_STORAGE_KEY, {}),
   openDetails: new Set(),
+  targetOwner: null,
+  setupReady: false,
   pollHandle: null,
 }
 
@@ -230,6 +232,7 @@ app.innerHTML = `
             <button type="button" id="clearTokenBtn" class="secondary">Token löschen</button>
           </div>
           <p class="hint" id="tokenHint">Lade Token-Anforderungen…</p>
+          <div id="setupHint" class="status-panel" hidden></div>
           <div id="authStatus" class="status-panel">Nicht verbunden.</div>
         </section>
 
@@ -336,6 +339,7 @@ const imageStatus = document.querySelector('#imageStatus')
 const imageList = document.querySelector('#imageList')
 const storageNotice = document.querySelector('#storageNotice')
 const authStatus = document.querySelector('#authStatus')
+const setupHint = document.querySelector('#setupHint')
 const promptExamples = document.querySelector('#promptExamples')
 const promptInput = document.querySelector('#promptInput')
 const promptCounter = document.querySelector('#promptCounter')
@@ -423,8 +427,18 @@ async function updateStorageNotice() {
   )
 }
 
+function forkMode() {
+  return state.config?.execution?.mode === 'fork'
+}
+
+function upstreamSlug() {
+  const { owner, repo } = state.config.repository
+  return `${owner}/${repo}`
+}
+
 function repoSlug() {
   const { owner, repo } = state.config.repository
+  if (forkMode()) return `${state.targetOwner || owner}/${repo}`
   return `${owner}/${repo}`
 }
 
@@ -436,8 +450,14 @@ function currentWorkflowRef() {
   return state.buildInfo?.workflowRef || state.config.repository.defaultBranch
 }
 
+function dispatchRef() {
+  // In fork mode the upstream build SHA does not exist in the user's fork.
+  if (forkMode()) return state.config.repository.defaultBranch
+  return currentWorkflowRef()
+}
+
 function githubBlobUrl(path) {
-  return `https://github.com/${repoSlug()}/blob/${state.buildInfo?.commit || currentWorkflowRef()}/${path}`
+  return `https://github.com/${upstreamSlug()}/blob/${state.buildInfo?.commit || currentWorkflowRef()}/${path}`
 }
 
 function renderSkillList() {
@@ -509,6 +529,8 @@ async function connectToken() {
     sessionStorage.removeItem(TOKEN_STORAGE_KEY)
     localStorage.removeItem(USER_STORAGE_KEY)
     state.user = null
+    state.targetOwner = null
+    state.setupReady = false
     setStatus(authStatus, 'Token fehlt.', 'warning')
     renderRuns([])
     await updateStorageNotice()
@@ -518,10 +540,18 @@ async function connectToken() {
   try {
     const user = await githubRequest('/user')
     state.user = { login: user.login, id: user.id }
+    if (forkMode()) state.targetOwner = user.login
     sessionStorage.setItem(TOKEN_STORAGE_KEY, state.token)
     saveStoredJson(USER_STORAGE_KEY, state.user)
+    updateRepoBadge()
+    updateTokenHint()
     setStatus(authStatus, `Verbunden als ${user.login}.`, 'success')
     await updateStorageNotice()
+    await verifyTargetRepository()
+    if (forkMode() && !state.setupReady) {
+      renderRuns([])
+      return
+    }
     await refreshRuns()
     ensurePolling()
   } catch (error) {
@@ -530,17 +560,122 @@ async function connectToken() {
       localStorage.removeItem(USER_STORAGE_KEY)
       state.user = null
       state.token = ''
+      state.targetOwner = null
       tokenInput.value = ''
     }
+    state.setupReady = false
     await updateStorageNotice()
     setStatus(authStatus, `Verbindung fehlgeschlagen: ${error.message}`, 'danger')
     throw error
   }
 }
 
+function renderSetupHint(tone, html) {
+  if (!html) {
+    setupHint.hidden = true
+    setupHint.innerHTML = ''
+    return
+  }
+  setupHint.hidden = false
+  setupHint.dataset.tone = tone
+  setupHint.innerHTML = html
+}
+
+function forkSetupInstructions(missingStep) {
+  const upstream = upstreamSlug()
+  const secret = state.config?.execution?.secretName || 'COPILOT_GITHUB_TOKEN'
+  const known = Boolean(state.targetOwner)
+  const target = known ? repoSlug() : `<dein-account>/${state.config.repository.repo}`
+  const link = (path, label) =>
+    known
+      ? `<a href="https://github.com/${escapeHtml(repoSlug())}${path}" target="_blank" rel="noreferrer">${escapeHtml(label)}</a>`
+      : escapeHtml(label)
+  return `
+    <strong>Einrichtung deines Forks nötig.</strong>
+    <p>${escapeHtml(missingStep)}</p>
+    <ol>
+      <li><a href="https://github.com/${escapeHtml(upstream)}/fork" target="_blank" rel="noreferrer">${escapeHtml(upstream)} forken</a></li>
+      <li>${link('/actions', 'Actions im Fork aktivieren')} (einmaliger Bestätigungsklick)</li>
+      <li>Secret <code>${escapeHtml(secret)}</code> anlegen (${link(
+        '/settings/secrets/actions/new',
+        'Secret hinzufügen',
+      )}) – Wert ist ein fine-grained PAT mit der Berechtigung <code>Copilot Requests</code>.</li>
+      <li>Diese App mit einem PAT für <code>${escapeHtml(target)}</code> verbinden (${escapeHtml(
+        (state.config?.auth?.requiredPermissions || []).join(' + '),
+      )}).</li>
+    </ol>
+    <p class="muted">Copilot-Nutzung, Actions-Minuten und Ergebnisse bleiben damit vollständig in deinem eigenen Account.</p>
+  `
+}
+
+async function verifyTargetRepository() {
+  state.setupReady = false
+  if (!forkMode()) {
+    state.setupReady = true
+    renderSetupHint('neutral', '')
+    return
+  }
+  try {
+    await githubRequest(`/repos/${repoSlug()}`)
+  } catch (error) {
+    if (error.status === 404) {
+      renderSetupHint('warning', forkSetupInstructions(`${repoSlug()} wurde nicht gefunden oder der Token hat keinen Zugriff darauf.`))
+      return
+    }
+    throw error
+  }
+  try {
+    await githubRequest(`/repos/${repoSlug()}/actions/workflows/${workflowFile()}`)
+  } catch (error) {
+    if (error.status === 404) {
+      renderSetupHint(
+        'warning',
+        forkSetupInstructions(
+          `Der Workflow ${workflowFile()} fehlt im Fork oder Actions sind dort noch deaktiviert. Fork mit dem Upstream synchronisieren und Actions aktivieren.`,
+        ),
+      )
+      return
+    }
+    throw error
+  }
+  state.setupReady = true
+  const secret = state.config?.execution?.secretName || 'COPILOT_GITHUB_TOKEN'
+  try {
+    await githubRequest(`/repos/${repoSlug()}/actions/secrets/${secret}`)
+    renderSetupHint('success', `Fork <code>${escapeHtml(repoSlug())}</code> ist einsatzbereit.`)
+  } catch (error) {
+    if (error.status === 404) {
+      renderSetupHint(
+        'warning',
+        `Secret <code>${escapeHtml(secret)}</code> fehlt in <code>${escapeHtml(repoSlug())}</code>.
+         <a href="https://github.com/${escapeHtml(repoSlug())}/settings/secrets/actions/new" target="_blank" rel="noreferrer">Jetzt anlegen</a>
+         – fine-grained PAT mit <code>Copilot Requests</code>. Ohne dieses Secret bricht jeder Run sofort ab.`,
+      )
+    } else {
+      renderSetupHint('success', `Fork <code>${escapeHtml(repoSlug())}</code> ist erreichbar.`)
+    }
+  }
+}
+
+function updateRepoBadge() {
+  const suffix = forkMode() && state.targetOwner ? ' · dein Fork' : forkMode() ? ' · Fork erforderlich' : ''
+  repoBadge.textContent = `${repoSlug()} · ${state.config.workflow.name} · ref ${dispatchRef()}${suffix}`
+}
+
+function updateTokenHint() {
+  const permissions = (state.config?.auth?.requiredPermissions || []).join(' + ')
+  tokenHint.innerHTML = forkMode()
+    ? `Fine-grained PAT für deinen eigenen Fork <code>${escapeHtml(repoSlug())}</code> mit ${escapeHtml(permissions)}.
+       Kein <code>Contents</code>-Recht nötig – die App schreibt nie in ein Repository.`
+    : `Fine-grained PAT für <code>${escapeHtml(repoSlug())}</code> mit ${escapeHtml(permissions)}.
+       Kein <code>Contents</code>-Recht nötig – die App schreibt nie in das Repository.`
+}
+
 async function clearToken() {
   state.token = ''
   state.user = null
+  state.targetOwner = null
+  state.setupReady = false
   tokenInput.value = ''
   sessionStorage.removeItem(TOKEN_STORAGE_KEY)
   localStorage.removeItem(USER_STORAGE_KEY)
@@ -548,6 +683,9 @@ async function clearToken() {
     window.clearInterval(state.pollHandle)
     state.pollHandle = null
   }
+  renderSetupHint('neutral', '')
+  updateRepoBadge()
+  updateTokenHint()
   await updateStorageNotice()
   setStatus(authStatus, 'Token gelöscht. Lokale Dateien bleiben erhalten.', 'neutral')
   renderRuns([])
@@ -569,6 +707,9 @@ function correlationIdFromRun(run) {
 
 async function dispatchWorkflow() {
   if (!state.token) throw new Error('Bitte zuerst einen GitHub-Token verbinden.')
+  if (forkMode() && !state.setupReady) {
+    throw new Error(`Fork ${repoSlug()} ist noch nicht einsatzbereit – siehe Einrichtungshinweis oben.`)
+  }
   const prompt = promptInput.value.trim()
   if (!prompt) throw new Error('Bitte einen Prompt eingeben.')
   const chunks = chunkPrompt(prompt)
@@ -591,11 +732,11 @@ async function dispatchWorkflow() {
 
   let response = null
   try {
-    response = await post({ ref: currentWorkflowRef(), inputs, return_run_details: true })
+    response = await post({ ref: dispatchRef(), inputs, return_run_details: true })
   } catch (error) {
     // Older GitHub deployments reject the run-details flag; fall back to a plain dispatch.
     if (error.status !== 422) throw error
-    response = await post({ ref: currentWorkflowRef(), inputs })
+    response = await post({ ref: dispatchRef(), inputs })
   }
 
   rememberRun(correlationId, {
@@ -1162,11 +1303,9 @@ async function bootstrap() {
       document.title = config.app.title
     }
     if (config.app?.tagline) appTagline.textContent = config.app.tagline
-    repoBadge.textContent = `${repoSlug()} · ${config.workflow.name} · ref ${currentWorkflowRef()}`
+    updateRepoBadge()
     manifestSummary.textContent = manifest.description || ''
-    tokenHint.innerHTML = `Fine-grained PAT für <code>${escapeHtml(repoSlug())}</code> mit ${escapeHtml(
-      (config.auth?.requiredPermissions || []).join(' + '),
-    )}. Kein <code>Contents</code>-Recht nötig – die App schreibt nie in das Repository.`
+    updateTokenHint()
 
     localStorage.removeItem(LEGACY_WORKSPACE_STORAGE_KEY)
     renderPromptExamples()
@@ -1191,6 +1330,12 @@ async function bootstrap() {
         renderRuns([])
       }
     } else {
+      if (forkMode()) {
+        renderSetupHint(
+          'warning',
+          forkSetupInstructions('Der Auftrag läuft in deinem eigenen Fork – dort brauchst du einmalig folgende Einrichtung:'),
+        )
+      }
       await updateStorageNotice()
       renderRuns([])
     }

@@ -78,11 +78,17 @@ jobs:
         env:
           ALLOWLIST: ${{ vars.PAGES_RUNNER_ALLOWLIST }}
           ACTOR: ${{ github.actor }}
+          OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
           if [ -z "${ALLOWLIST:-}" ]; then
-            echo "No PAGES_RUNNER_ALLOWLIST configured; every collaborator may dispatch this workflow."
-            exit 0
+            if [ "$ACTOR" = "$OWNER" ]; then
+              echo "Actor $ACTOR is the repository owner."
+              exit 0
+            fi
+            echo "Actor $ACTOR is not the repository owner and PAGES_RUNNER_ALLOWLIST is not set." >&2
+            echo "Run this workflow in your own fork, or add the actor to the PAGES_RUNNER_ALLOWLIST variable." >&2
+            exit 1
           fi
           if printf '%s' "$ALLOWLIST" | tr ',' '\n' | tr -d '[:space:]' | grep -Fxqi "$ACTOR"; then
             echo "Actor $ACTOR is allowed."
@@ -192,6 +198,8 @@ jobs:
           set +e
           if [ -z "${COPILOT_GITHUB_TOKEN:-}" ]; then
             echo "Repository secret COPILOT_GITHUB_TOKEN is not configured." >&2
+            echo "Add it under Settings > Secrets and variables > Actions in THIS repository (your fork)." >&2
+            echo "Use a fine-grained PAT with the 'Copilot Requests' permission - Copilot usage is billed to that account." >&2
             echo "exit_code=78" >> "$GITHUB_OUTPUT"
             exit 0
           fi

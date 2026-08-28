@@ -167,6 +167,26 @@ GitHub-Action im vollständigen Repository. Der Browser bleibt reines Frontend,
 es gibt kein Backend und keine Secrets in der Seite. Ausführung passiert über
 `.github/workflows/copilot-agent.yml`.
 
+### Einmalige Einrichtung (pro Benutzer)
+
+Jeder Benutzer führt die Action in **seinem eigenen Fork** aus. Damit läuft
+nichts auf Kosten des Upstream-Repos: eigene Actions-Minuten, eigenes
+Copilot-Kontingent, eigene Artefakte – und niemand braucht Schreibrechte auf
+`harrybin/3d-printing`.
+
+1. [`harrybin/3d-printing` forken](https://github.com/harrybin/3d-printing/fork).
+2. Im Fork unter *Actions* die Workflows einmalig aktivieren.
+3. Im Fork das Secret `COPILOT_GITHUB_TOKEN` anlegen (*Settings → Secrets and
+   variables → Actions*): ein feingranulares PAT mit der Berechtigung
+   `Copilot Requests`.
+4. Ein zweites feingranulares PAT für den eigenen Fork erstellen
+   (`Metadata: Read` + `Actions: Read and write`) und in der App eintragen.
+5. Den Fork gelegentlich mit dem Upstream synchronisieren, damit Skills,
+   Skripte und Workflow aktuell bleiben.
+
+Die App erkennt den Fork automatisch am Login des verbundenen PAT und zeigt
+fehlende Schritte inklusive Direktlinks an.
+
 ### Ablauf
 
 1. Benutzer öffnet die Pages-App und verbindet ein feingranulares PAT, das nur in
@@ -175,8 +195,8 @@ es gibt kein Backend und keine Secrets in der Seite. Ausführung passiert über
    Skill-Auswahl** – alle Skills unter `.github/skills/` stehen jedem Run
    automatisch zur Verfügung, ebenso `AGENTS.md` und alle Skripte aus `scripts/`.
 3. Die App zerlegt den Prompt in Blöcke à 1024 Zeichen (GitHub-Limit pro
-   `workflow_dispatch`-Input, maximal 12 Blöcke = 12 KB) und startet den Run mit
-   einer selbst erzeugten `correlation_id`.
+   `workflow_dispatch`-Input, maximal 12 Blöcke = 12 KB) und startet den Run im
+   Fork des Benutzers mit einer selbst erzeugten `correlation_id`.
 4. Die Action installiert `@github/copilot`, die Python-Abhängigkeiten aus
    `requirements.txt` und lässt Copilot nicht-interaktiv im Checkout arbeiten.
 5. Ergebnisse landen im Run-Artefakt: geänderte Dateien unter `workflow-output/files/`,
@@ -189,10 +209,10 @@ es gibt kein Backend und keine Secrets in der Seite. Ausführung passiert über
 
 | Wer | Was | Warum |
 | --- | --- | --- |
-| Benutzer-PAT (fine-grained) | `Metadata: Read` + `Actions: Read and write` | Minimum, das GitHub für `workflow_dispatch` verlangt. **Kein `Contents`-Recht** – die App kann grundsätzlich keine Dateien ins Repository schreiben. |
-| Benutzerkonto | Repo-Rolle `Write` | GitHub erlaubt `workflow_dispatch` nur ab Schreibrolle; das PAT bleibt trotzdem auf Actions beschränkt. |
-| Repo-Secret `COPILOT_GITHUB_TOKEN` | Fine-grained PAT des Repo-Eigentümers mit `Copilot Requests` | Damit die Action Copilot nutzen darf. Das Token hat bewusst keine Schreibrechte, Copilot kann also nichts pushen. |
-| Repo-Variable `PAGES_RUNNER_ALLOWLIST` (optional) | Kommaliste erlaubter GitHub-Logins | Begrenzt, wer Runs auf Kosten des Copilot-Kontingents starten darf. |
+| Benutzer-PAT (fine-grained) | `Metadata: Read` + `Actions: Read and write` auf den **eigenen Fork** | Minimum, das GitHub für `workflow_dispatch` verlangt. **Kein `Contents`-Recht** – die App schreibt nie Dateien in ein Repository. |
+| Benutzerkonto | Eigentümer des eigenen Forks | Keine Rolle im Upstream-Repo nötig; `workflow_dispatch` läuft im eigenen Repository. |
+| Secret `COPILOT_GITHUB_TOKEN` **im Fork** | Fine-grained PAT des Benutzers mit `Copilot Requests` | Damit die Action Copilot nutzen darf. Verbrauch geht auf das Konto des Benutzers. Das Token hat keine Schreibrechte, Copilot kann also nichts pushen. |
+| Repo-Variable `PAGES_RUNNER_ALLOWLIST` (optional) | Kommaliste erlaubter GitHub-Logins | Nur nötig, wenn außer dem Fork-Eigentümer weitere Personen Runs starten sollen. Ohne die Variable darf nur der Repo-Eigentümer dispatchen. |
 
 ### Referenzbilder
 
@@ -209,7 +229,8 @@ Prompt – Copilot sieht die Fotos nicht.
 - Copilot in der Action kann weder committen noch pushen; alles kommt als
   Artefakt zurück.
 - Jeder Run verbraucht Premium Requests des Kontos hinter
-  `COPILOT_GITHUB_TOKEN`.
+  `COPILOT_GITHUB_TOKEN` – also des jeweiligen Benutzers, nicht des
+  Upstream-Eigentümers.
 - Bilder erreichen die Action nicht (siehe oben).
 
 ## Coordinate Convention

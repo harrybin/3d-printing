@@ -9,6 +9,10 @@
     "defaultBranch": "main",
     "visibility": "public"
   },
+  "execution": {
+    "mode": "fork",
+    "secretName": "COPILOT_GITHUB_TOKEN"
+  },
   "workflow": {
     "file": "copilot-agent.yml",
     "name": "Copilot model agent"
