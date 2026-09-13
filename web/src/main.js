@@ -357,6 +357,7 @@ tokenInput.value = state.token
 initStlCanvas({
   root: document.querySelector('#viewerRoot'),
   viewStorageKey: 'stl-canvas-pages-view-defaults',
+  modelStorageKey: 'stl-canvas-pages-selected-model',
 })
 
 const PROMPT_EXAMPLES = [

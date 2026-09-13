@@ -4,7 +4,7 @@
     {
       "id": "anycubic-kobra-s1-ace-pro-profile",
       "name": "anycubic-kobra-s1-ace-pro-profile",
-      "description": "Anycubic Kobra S1 Combo + ACE Pro defaults and constraints for STL authoring and editing.",
+      "description": "Anycubic Kobra S1 Combo + ACE Pro defaults and constraints for STL/3MF authoring and editing.",
       "source": ".github/skills/anycubic-kobra-s1-ace-pro-profile/skill.md"
     },
     {
@@ -20,10 +20,28 @@
       "source": ".github/skills/edit-stl-transform/skill.md"
     },
     {
+      "id": "image-relief-vectorize",
+      "name": "image-relief-vectorize",
+      "description": "Turn reference images into a relief/height-map aided vector outline before building 3D geometry.",
+      "source": ".github/skills/image-relief-vectorize/skill.md"
+    },
+    {
       "id": "optimize-stl-for-print",
       "name": "optimize-stl-for-print",
       "description": "Optimize an existing STL for FDM printing on the Anycubic Kobra S1 - orientation, overhangs, wall and hole compensation, elephant foot, bed layout and material estimate.",
       "source": ".github/skills/optimize-stl-for-print/skill.md"
+    },
+    {
+      "id": "partial-rebuild-instead-of-mutate",
+      "name": "partial-rebuild-instead-of-mutate",
+      "description": "Replace unstable local mutation with a controlled partial rebuild from frozen datums and a constrained scope.",
+      "source": ".github/skills/partial-rebuild-instead-of-mutate/skill.md"
+    },
+    {
+      "id": "photo-anchor-candidate-fit",
+      "name": "photo-anchor-candidate-fit",
+      "description": "Refine a model toward image references with frozen datums, landmark alignment, and candidate sweeps to avoid iterative drift.",
+      "source": ".github/skills/photo-anchor-candidate-fit/skill.md"
     },
     {
       "id": "research-part-specs",
@@ -34,7 +52,7 @@
     {
       "id": "stl-create-edit-interview",
       "name": "stl-create-edit-interview",
-      "description": "Guided question flow for STL authoring/editing choices (wall strategy, mesh pattern, infill strategy, and fit intent).",
+      "description": "Guided question flow for STL/3MF authoring/editing choices (wall strategy, mesh pattern, infill strategy, and fit intent).",
       "source": ".github/skills/stl-create-edit-interview/skill.md"
     },
     {
@@ -48,6 +66,12 @@
       "name": "validate-stl-mesh",
       "description": "Validate STL meshes for manifold correctness and FDM printability readiness.",
       "source": ".github/skills/validate-stl-mesh/skill.md"
+    },
+    {
+      "id": "visual-hull-envelope-fit",
+      "name": "visual-hull-envelope-fit",
+      "description": "Use multiple silhouettes or views to constrain the outer envelope before rebuilding or refining a model.",
+      "source": ".github/skills/visual-hull-envelope-fit/skill.md"
     }
   ]
 }

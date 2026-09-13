@@ -70,7 +70,8 @@ export function initStlCanvas(options = {}) {
 const root = options.root || document.querySelector('#app') || document.body
 root.innerHTML = APP_HTML
 const VIEW_STORAGE_KEY = options.viewStorageKey || 'stl-canvas-view-defaults'
-const defaultModelFile = new URLSearchParams(window.location.search).get('model') || options.defaultModelFile || ''
+const MODEL_STORAGE_KEY = options.modelStorageKey || 'stl-canvas-selected-model'
+const defaultModelFile = new URLSearchParams(window.location.search).get('model') || readStoredModelFile() || options.defaultModelFile || ''
 const runtimeMode = options.dataSource === 'extension' ? 'extension' : 'static'
 const modelsBasePath = options.modelsBasePath || './models'
 const modelsIndexUrl = options.modelsIndexUrl || `${modelsBasePath}/models.json`
@@ -97,6 +98,29 @@ const VIEW_BACKGROUND = '#0d1117'
 const CIRCLE_MIN_RADIUS_MM = 0.2
 const CIRCLE_RADIUS_VARIANCE_RATIO = 0.02
 const CIRCLE_PLANAR_TOLERANCE_MM = 0.02
+
+ function readStoredModelFile() {
+   try {
+     return localStorage.getItem(MODEL_STORAGE_KEY) || ''
+   } catch {
+     return ''
+   }
+ }
+
+ function writeStoredModelFile(file) {
+   try {
+     if (file) localStorage.setItem(MODEL_STORAGE_KEY, file)
+     else localStorage.removeItem(MODEL_STORAGE_KEY)
+   } catch {}
+ }
+
+ function updateModelUrl(file) {
+   if (runtimeMode === 'extension' || !window.history?.replaceState) return
+   const url = new URL(window.location.href)
+   if (file) url.searchParams.set('model', file)
+   else url.searchParams.delete('model')
+   window.history.replaceState(window.history.state, '', url)
+ }
 
 function sanitizeView(input) {
   const out = {}
@@ -306,6 +330,22 @@ let knownFiles = [];
 let savedZoom = Number.isFinite(baseView.zoom) ? baseView.zoom : null;
 let saveTimer = null;
 let pollTimer = null;
+const activePointers = new Map();
+let touchGesture = null;
+function clampZoom(value) {
+  return Math.max(0.1, Math.min(5, value));
+}
+function setZoomValue(value) {
+  zoomInput.value = String(clampZoom(value));
+}
+function syncCurrentFile(file) {
+  currentFile = file || ''
+  writeStoredModelFile(currentFile)
+  updateModelUrl(currentFile)
+  if (fileChooser.value !== currentFile && [...fileChooser.options].some((option) => option.value === currentFile)) {
+    fileChooser.value = currentFile
+  }
+}
 function saveView() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
@@ -563,7 +603,7 @@ function loadModel(file, preserveView) {
         triangles = []
         rawTriangles = []
         modelBounds = null
-        currentFile = file
+        syncCurrentFile(file)
         currentMtime = runtimeMode === 'extension' ? 0 : ''
         return false
       }
@@ -580,7 +620,7 @@ function loadModel(file, preserveView) {
       }
       modelBounds = b || computeBounds(rawTriangles)
       applyModelRotation()
-      currentFile = file
+      syncCurrentFile(file)
       currentMtime = data.mtime || (runtimeMode === 'extension' ? 0 : '')
       if (!preserveView) applySavedOrFit()
       draw()
@@ -593,11 +633,15 @@ function loadModel(file, preserveView) {
 }
 
 function refreshFileChooser(files) {
-  if (files.join('|') === knownFiles.join('|')) return;
-  knownFiles = files;
-  const keep = fileChooser.value;
-  fileChooser.innerHTML = files.map((name) => '<option value="' + name + '">' + name + '</option>').join('');
-  fileChooser.value = files.indexOf(keep) >= 0 ? keep : files[0];
+  const keep = fileChooser.value || currentFile
+  const merged = files.slice()
+  for (const extra of [keep, currentFile]) {
+    if (extra && merged.indexOf(extra) < 0) merged.unshift(extra)
+  }
+  if (merged.join('|') === knownFiles.join('|')) return;
+  knownFiles = merged;
+  fileChooser.innerHTML = merged.map((name) => '<option value="' + name + '">' + name + '</option>').join('');
+  fileChooser.value = merged.indexOf(keep) >= 0 ? keep : merged[0];
 }
 // Poll models/ so externally rewritten STL files refresh the viewer automatically.
 function pollForChanges() {
@@ -1078,20 +1122,129 @@ function draw() {
 resizeCanvas();
 window.addEventListener('resize', () => { resizeCanvas(); draw(); });
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-canvas.addEventListener('mousedown', (e) => { isDragging = true; dragMoved = 0; isShiftDrag = e.shiftKey; isRightDrag = e.button === 2; lastX = e.clientX; lastY = e.clientY; });
-document.addEventListener('mousemove', (e) => {
-  if (!isDragging) {
-    if (measureModeInput.checked) {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left, y = e.clientY - rect.top;
-      if (x >= 0 && y >= 0 && x <= rect.width && y <= rect.height) {
-        lastPointer = [x, y];
-        const f = pickFeature(x, y);
-        const changed = JSON.stringify(f && [f.kind, f.tri, f.id]) !== JSON.stringify(hoverFeature && [hoverFeature.kind, hoverFeature.tri, hoverFeature.id]);
-        hoverFeature = f;
-        if (changed) draw();
-      }
+function updateHover(clientX, clientY) {
+  if (!measureModeInput.checked) return
+  const rect = canvas.getBoundingClientRect();
+  const x = clientX - rect.left, y = clientY - rect.top;
+  if (x < 0 || y < 0 || x > rect.width || y > rect.height) return
+  lastPointer = [x, y];
+  const f = pickFeature(x, y);
+  const changed = JSON.stringify(f && [f.kind, f.tri, f.id]) !== JSON.stringify(hoverFeature && [hoverFeature.kind, hoverFeature.tri, hoverFeature.id]);
+  hoverFeature = f;
+  if (changed) draw();
+}
+function measurePickAt(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const f = pickFeature(clientX - rect.left, clientY - rect.top);
+  if (!f) { clearMeasurement(); draw(); return; }
+  if (pickedFeatures.length >= 2) pickedFeatures = [];
+  pickedFeatures.push(f);
+  draw();
+}
+function gestureSnapshot() {
+  const points = [...activePointers.values()]
+  if (points.length < 2) return null
+  const [a, b] = points
+  const centerX = (a.x + b.x) / 2
+  const centerY = (a.y + b.y) / 2
+  return {
+    centerX,
+    centerY,
+    distance: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+    zoom: parseFloat(zoomInput.value),
+    objectX,
+    objectY,
+  }
+}
+function beginPointerDrag(event) {
+  const isMouse = event.pointerType === 'mouse'
+  const tracked = {
+    x: event.clientX,
+    y: event.clientY,
+    startX: event.clientX,
+    startY: event.clientY,
+  }
+  activePointers.set(event.pointerId, tracked)
+  if (!isMouse) event.preventDefault()
+  if (activePointers.size === 1) {
+    isDragging = true
+    dragMoved = 0
+    isShiftDrag = isMouse && event.shiftKey
+    isRightDrag = isMouse && event.button === 2
+    lastX = event.clientX
+    lastY = event.clientY
+  } else if (!isMouse && activePointers.size === 2) {
+    touchGesture = gestureSnapshot()
+  }
+}
+function updatePointerDrag(event) {
+  const tracked = activePointers.get(event.pointerId)
+  if (!tracked) return false
+  tracked.x = event.clientX
+  tracked.y = event.clientY
+  const isMouse = event.pointerType === 'mouse'
+  if (activePointers.size >= 2 && !isMouse) {
+    if (!touchGesture) touchGesture = gestureSnapshot()
+    const next = gestureSnapshot()
+    if (!touchGesture || !next) return true
+    const centerDx = next.centerX - touchGesture.centerX
+    const centerDy = next.centerY - touchGesture.centerY
+    const scale = next.distance / touchGesture.distance
+    dragMoved += Math.abs(centerDx) + Math.abs(centerDy) + Math.abs(next.distance - touchGesture.distance)
+    objectX = touchGesture.objectX + centerDx * 0.05
+    objectY = touchGesture.objectY - centerDy * 0.05
+    setZoomValue(touchGesture.zoom * scale)
+    draw()
+    return true
+  }
+  const dx = event.clientX - lastX; const dy = event.clientY - lastY;
+  dragMoved += Math.abs(dx) + Math.abs(dy);
+  if (isRightDrag) { objectX += dx * 0.05; objectY -= dy * 0.05; } else if (isShiftDrag) { panX += dx * 0.5; panY += dy * 0.5; } else { rotY += dx * 0.5; rotX += dy * 0.5; }
+  lastX = event.clientX; lastY = event.clientY; draw();
+  return true
+}
+function endPointerDrag(event) {
+  const tracked = activePointers.get(event.pointerId)
+  if (!tracked) return false
+  const moved = Math.abs(tracked.x - tracked.startX) + Math.abs(tracked.y - tracked.startY)
+  activePointers.delete(event.pointerId)
+  if (event.pointerType !== 'mouse' && measureModeInput.checked && activePointers.size === 0 && moved <= 10 && dragMoved <= 10) {
+    measurePickAt(event.clientX, event.clientY)
+  }
+  if (activePointers.size >= 2) touchGesture = gestureSnapshot()
+  else if (activePointers.size === 1) {
+    const remaining = [...activePointers.values()][0]
+    lastX = remaining.x
+    lastY = remaining.y
+    touchGesture = null
+  } else {
+    touchGesture = null
+    if (isDragging) {
+      isDragging = false
+      saveView()
     }
+  }
+  return true
+}
+canvas.addEventListener('pointerdown', (event) => {
+  if (event.pointerType === 'mouse' && event.button !== 0 && event.button !== 2) return
+  beginPointerDrag(event)
+});
+document.addEventListener('pointermove', (e) => {
+  if (!activePointers.has(e.pointerId)) {
+    if (e.pointerType === 'mouse') updateHover(e.clientX, e.clientY)
+    return;
+  }
+  if (!isDragging) return;
+  if (e.pointerType !== 'mouse') e.preventDefault()
+  updatePointerDrag(e)
+});
+document.addEventListener('pointerup', (event) => { endPointerDrag(event); });
+document.addEventListener('pointercancel', (event) => { endPointerDrag(event); });
+document.addEventListener('mousemove', (e) => {
+  if (activePointers.size) return
+  if (!isDragging) {
+    updateHover(e.clientX, e.clientY)
     return;
   }
   const dx = e.clientX - lastX; const dy = e.clientY - lastY;
@@ -1117,7 +1270,7 @@ measureModeInput.addEventListener('change', () => {
 });
 measureClearBtn.addEventListener('click', () => { clearMeasurement(); draw(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { clearMeasurement(); draw(); } });
-canvas.addEventListener('wheel', (e) => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.1 : 0.1; zoomInput.value = Math.max(0.1, Math.min(5, parseFloat(zoomInput.value) + delta)); draw(); saveView(); });
+canvas.addEventListener('wheel', (e) => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.1 : 0.1; setZoomValue(parseFloat(zoomInput.value) + delta); draw(); saveView(); });
 canvas.addEventListener('dblclick', () => { rotX = baseView.rotX; rotY = baseView.rotY; rotZ = baseView.rotZ || 0; panX = baseView.panX; panY = baseView.panY; savedZoom = Number.isFinite(baseView.zoom) ? baseView.zoom : null; applySavedOrFit(); draw(); saveView(); });
 zoomInput.addEventListener('input', () => { draw(); saveView(); });
 wireframeInput.addEventListener('change', () => { draw(); saveView(); });
@@ -1167,6 +1320,7 @@ readViewDefaults().then((view) => {
     fileChooser.innerHTML = files.map((name) => '<option value="' + name + '">' + name + '</option>').join('')
     fileChooser.value = files.indexOf(currentFile) >= 0 ? currentFile : files[0]
     knownFiles = files
+    syncCurrentFile(fileChooser.value)
     return loadModel(fileChooser.value)
   }).catch((err) => {
     fileChooser.innerHTML = '<option value="">Failed to list files</option>'
