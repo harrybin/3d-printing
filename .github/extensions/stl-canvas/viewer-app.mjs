@@ -1264,10 +1264,6 @@ function endPointerDrag(event) {
 }
 canvas.addEventListener('pointerdown', (event) => {
   if (event.pointerType === 'mouse' && event.button !== 0 && event.button !== 2) return
-  if (event.pointerType === 'pen' && measureModeInput.checked) {
-    updateHover(event.clientX, event.clientY)
-    return
-  }
   if (event.pointerType !== 'mouse' && measureModeInput.checked) updateHover(event.clientX, event.clientY)
   beginPointerDrag(event)
 });
