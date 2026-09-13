@@ -35,6 +35,7 @@ Those must still come from measured dimensions, specs, or explicit parametric de
 - use at least three views when possible
 - normalize orientation across the photos first
 - establish scale from measured landmarks
+- define the projection model before carving (calibrated camera intrinsics/extrinsics, or an explicit orthographic approximation)
 - prefer views with low foreshortening on the region being constrained
 
 ### 2. Extract silhouettes per view
@@ -47,7 +48,7 @@ Those must still come from measured dimensions, specs, or explicit parametric de
 
 Use the silhouettes to constrain the outside only:
 
-- intersect or carve a voxel occupancy volume from the accepted views
+- intersect or carve a voxel occupancy volume only when all accepted views share that defined projection model
 - or use the silhouettes as profile limits for a manual rebuild
 - convert the occupancy volume to a surface only after the envelope is stable
 
@@ -92,7 +93,8 @@ Stop and switch back to a parametric local-fit method when:
 - the carved envelope is less informative than the measured dimensions already are
 - the problem is not the broad outer envelope but one local subsystem that should be cut out and rebuilt cleanly
 
-If that happens, switch to `partial-rebuild-instead-of-mutate`.
+For the first four cases, switch to `photo-anchor-candidate-fit` or a manual measured rebuild path.
+Use `partial-rebuild-instead-of-mutate` only for the final local-subsystem condition with a trustworthy boundary.
 
 ## Output evidence
 

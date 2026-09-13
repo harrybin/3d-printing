@@ -99,7 +99,8 @@ When merging rebuilt and frozen geometry:
 
 - overlap solids slightly where the design allows
 - avoid tangential contacts that create non-manifold edges
-- re-run the standard trimesh repair/export path after the rebuild
+- run a manifold-engine boolean union on the overlapping solids before repair/export so intersecting internal faces are removed
+- re-run the standard trimesh repair/export path after the unioned rebuild
 
 ### 6. Re-validate the seam and the function
 

@@ -217,7 +217,7 @@ If the reference indicates multiple materials, inserts, coatings, or color regio
 
 ### 6. Compose or edit the output geometry
 
-Use the project libraries for all geometry work — never hand-write STL facets or manually computed triangle meshes for complex objects: **build123d** for engineering solids (sketches, hulls, countersinks, bosses, ribs), **trimesh + manifold3d** for simple CSG, repair, and export, **vedo** for render verification, **opencv-python-headless** for frame extraction, relief preprocessing, and silhouette comparison, plus optional helpers such as **scikit-image** when they materially improve contour cleanup.
+Use the project libraries for all geometry work — never hand-write STL facets or manually computed triangle meshes for complex objects: **build123d** for engineering solids (sketches, hulls, countersinks, bosses, ribs), **trimesh + manifold3d** for simple CSG, repair, and export, **vedo** for render verification, **opencv-python-headless** for frame extraction, relief preprocessing, and silhouette comparison, plus optional helpers such as **scikit-image** when they materially improve contour cleanup. When material/color regions must remain distinct, package the preserved separate solids in a slicer-managed **3MF** handoff and include evidence (3MF path plus slicer preview/screenshot); this repository's mesh CLI validates STL meshes only.
 
 Allowed operations include:
 
