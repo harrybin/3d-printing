@@ -1202,10 +1202,19 @@ function updatePointerDrag(event) {
     const centerDx = next.centerX - touchGesture.centerX
     const centerDy = next.centerY - touchGesture.centerY
     const scale = next.distance / touchGesture.distance
+    const currentZoom = parseFloat(zoomInput.value)
     dragMoved += Math.abs(centerDx) + Math.abs(centerDy) + Math.abs(next.distance - touchGesture.distance)
-    objectX = touchGesture.objectX + centerDx * 0.05
-    objectY = touchGesture.objectY - centerDy * 0.05
-    setZoomValue(touchGesture.zoom * scale)
+    objectX += centerDx * 0.05
+    objectY -= centerDy * 0.05
+    setZoomValue(currentZoom * scale)
+    touchGesture = {
+      centerX: next.centerX,
+      centerY: next.centerY,
+      distance: next.distance,
+      zoom: parseFloat(zoomInput.value),
+      objectX,
+      objectY,
+    }
     draw()
     return true
   }
