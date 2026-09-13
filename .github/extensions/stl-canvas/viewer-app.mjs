@@ -1235,6 +1235,10 @@ function endPointerDrag(event) {
   }
   if (activePointers.size >= 2) touchGesture = gestureSnapshot()
   else if (activePointers.size === 1) {
+    if (pendingViewSave) {
+      saveView()
+      pendingViewSave = false
+    }
     const remaining = [...activePointers.values()][0]
     lastX = remaining.x
     lastY = remaining.y
