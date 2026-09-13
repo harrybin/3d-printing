@@ -104,7 +104,7 @@ used repo libraries (`build123d`, `trimesh`, `manifold3d`, `vedo`).
 | Library | Typical use | Notes |
 | --- | --- | --- |
 | `opencv-python-headless` | Frame extraction, contour comparison, overlay checks | Already used in this repo |
-| `scikit-image` | Relief-style preprocessing, contour extraction, polygon simplification | Already used in this repo |
+| `scikit-image` | Relief-style preprocessing, contour extraction, polygon simplification | Preferred image-to-vector helper in the repo Python stack (`requirements.txt`) |
 | `pillow` | Image processing and contact sheets | Already used in this repo |
 
 ### F) 2D vector cleanup / tracing
