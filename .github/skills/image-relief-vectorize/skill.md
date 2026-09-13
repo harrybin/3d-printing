@@ -100,7 +100,7 @@ After the 2D basis is accepted:
 
 ## Library notes
 
-- `scikit-image` is the preferred contour library in this repo's Python stack (`requirements.txt`).
+- `scikit-image` is the preferred contour library for this workflow.
 - `Shapely` is useful for polygon cleanup but is **not** part of the supported default repo stack today.
 - Potrace-style tracers can work for logos, but do not make them the default dependency path here; license and over-tracing risk must be checked first.
 
