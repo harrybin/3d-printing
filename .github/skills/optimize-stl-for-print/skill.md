@@ -130,8 +130,9 @@ python scripts\mesh_tool.py arrange models\a.stl models\b.stl -o models\plate.st
 
 ## ACE Pro multi-color
 
-- Model each color region as its own solid and export separate STLs, then combine
-  in the slicer - a single mesh cannot carry color regions.
+- Model each color region as its own solid.
+- If the delivered output must preserve distinct material/color regions, keep the final deliverable as **3MF**.
+- Separate STL files may still be useful as intermediate inspection or slicer-import artifacts, but they do not replace the 3MF deliverable when color semantics must be preserved.
 - Put color boundaries on a chamfer, fillet or step so the seam is not on a flat face.
 - Avoid tiny isolated islands of a second color: each one costs a full tool change
   plus purge.
@@ -147,6 +148,17 @@ Report:
 - elephant-foot decision
 - footprint, placement convention, centered yes/no
 - volume plus estimated mass and filament length
+- output format choice when multi-color/material semantics matter (STL vs 3MF)
+
+## Mandatory canvas preview after writing an optimized STL
+
+If this skill writes a new STL file for orientation, layout, or compensated geometry, preview that written STL immediately in the STL canvas.
+
+- Write optimized STL outputs under the workspace `models/` folder.
+- Call `open_canvas` with `canvasId: "stl-canvas"` and `input.stlPath` set to the workspace-relative path.
+- Use a stable `instanceId` such as `stl-preview` so repeated previews refresh the same panel.
+- If the optimization result is a 3MF-first deliverable, report the 3MF path explicitly and preview an STL counterpart when one exists for inspection.
+- If the canvas fails to open, report the failure and the file path explicitly.
 
 ## Sources
 

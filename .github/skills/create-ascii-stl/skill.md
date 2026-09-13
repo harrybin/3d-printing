@@ -9,7 +9,7 @@ Use this skill to generate new STL files for FDM printing.
 
 ## Mandatory library usage
 
-Never write STL facets or triangle lists by hand and never assemble complex geometry from manually computed vertices. Always generate geometry through a parametric Python script (in `scripts/`, run with the project venv `.venv`) using these libraries from `requirements.txt`:
+Never write STL facets or triangle lists by hand and never assemble complex geometry from manually computed vertices. Always generate geometry through a parametric Python script (in `scripts/`, run with the project venv `.venv`) using the supported repo libraries first, plus optional helpers only when the repo explicitly adopts them:
 
 | Task                                                                                 | Library                                |
 | ------------------------------------------------------------------------------------ | -------------------------------------- |
@@ -18,7 +18,7 @@ Never write STL facets or triangle lists by hand and never assemble complex geom
 | Numeric parameters and vertex post-processing                                        | **numpy**                              |
 | Offscreen rendering for visual verification                                          | **vedo**                               |
 | Photo/video frame analysis for reference comparison                                  | **opencv-python-headless**, **pillow** |
-| Relief/vector preprocessing for photo-derived outlines                               | **scikit-image** + **opencv-python-headless** |
+| Relief/vector preprocessing for photo-derived outlines                               | **opencv-python-headless** (+ optional **scikit-image**) |
 
 Hand-written meshes (raw `Trimesh(vertices, faces)` constructions, manual `solid ... endsolid` text) are only acceptable for trivial primitives that the libraries cannot express more simply — and even then a library primitive (`trimesh.creation.box`, `Cylinder`, `convex_hull`) is preferred.
 
