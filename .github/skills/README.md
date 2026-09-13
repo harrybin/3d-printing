@@ -111,7 +111,7 @@ used repo libraries (`build123d`, `trimesh`, `manifold3d`, `vedo`).
 
 | Library | Typical use | Notes |
 | --- | --- | --- |
-| `shapely` | Polygon cleanup, boolean cleanup, simplification after contour extraction | Useful optional companion for the new relief/vector workflow; not installed in this repo venv today |
+| `shapely` | Polygon cleanup, boolean cleanup, simplification after contour extraction | Useful only as an out-of-repo optional companion for experiments; not installed in this repo venv today and should not be relied on in committed default workflows |
 | Potrace-style Python wrappers | Bitmap-to-vector tracing for glyph/logo style inputs | Treat as optional only; check license before adoption and do not make it the default path |
 
 ## Rule for introducing new libraries
