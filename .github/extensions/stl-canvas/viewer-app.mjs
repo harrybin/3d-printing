@@ -1343,8 +1343,7 @@ readViewDefaults().then((view) => {
       document.getElementById('meta').textContent = 'No STL files found in models/.'
       return false
     }
-    setFileChooserOptions(files, files.indexOf(currentFile) >= 0 ? currentFile : files[0])
-    knownFiles = files
+    refreshFileChooser(files)
     syncCurrentFile(fileChooser.value)
     return loadModel(fileChooser.value)
   }).catch((err) => {
