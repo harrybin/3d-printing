@@ -1260,6 +1260,7 @@ document.addEventListener('pointermove', (e) => {
 });
 document.addEventListener('pointerup', (event) => { endPointerDrag(event); });
 document.addEventListener('pointercancel', (event) => { endPointerDrag(event); });
+canvas.addEventListener('lostpointercapture', (event) => { endPointerDrag(event); });
 document.addEventListener('mousemove', (e) => {
   if (activePointers.size) return
   if (!isDragging) {
