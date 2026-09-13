@@ -281,6 +281,7 @@ let modelRotX = 0, modelRotY = 0, modelRotZ = 0;
 let isDragging = false, isShiftDrag = false, isRightDrag = false, lastX = 0, lastY = 0, dragMoved = 0;
 let gestureMoved = false;
 let suppressTouchPick = false;
+let viewChangedSincePointerDown = false;
 const canvas = document.getElementById('view');
 const ctx = canvas.getContext('2d');
 const fileChooser = document.getElementById('fileChooser');
@@ -644,6 +645,12 @@ function setFileChooserOptions(files, selected) {
     fileChooser.append(option)
   }
   fileChooser.value = files.indexOf(selected) >= 0 ? selected : files[0] || ''
+}
+function setFileChooserMessage(message) {
+  const option = document.createElement('option')
+  option.value = ''
+  option.textContent = message
+  fileChooser.replaceChildren(option)
 }
 // Poll models/ so externally rewritten STL files refresh the viewer automatically.
 function pollForChanges() {
@@ -1173,6 +1180,7 @@ function beginPointerDrag(event) {
     dragMoved = 0
     gestureMoved = false
     suppressTouchPick = false
+    viewChangedSincePointerDown = false
     isShiftDrag = isMouse && event.shiftKey
     isRightDrag = isMouse && event.button === 2
     lastX = event.clientX
@@ -1200,6 +1208,7 @@ function updatePointerDrag(event) {
     objectX += centerDx * 0.05
     objectY -= centerDy * 0.05
     setZoomValue(currentZoom * scale)
+    viewChangedSincePointerDown = true
     touchGesture = { centerX: next.centerX, centerY: next.centerY, distance: next.distance }
     draw()
     return true
@@ -1209,6 +1218,7 @@ function updatePointerDrag(event) {
   dragMoved += Math.abs(dx) + Math.abs(dy);
   if (dragMoved > 0) gestureMoved = true
   if (isRightDrag) { objectX += dx * 0.05; objectY -= dy * 0.05; } else if (isShiftDrag) { panX += dx * 0.5; panY += dy * 0.5; } else { rotY += dx * 0.5; rotX += dy * 0.5; }
+  viewChangedSincePointerDown = true
   lastX = event.clientX; lastY = event.clientY; draw();
   return true
 }
@@ -1235,11 +1245,12 @@ function endPointerDrag(event) {
     isRightDrag = false
     touchGesture = null
   } else {
-    const shouldSaveView = isDragging || dragMoved > 0 || gestureMoved
+    const shouldSaveView = isDragging || viewChangedSincePointerDown
     touchGesture = null
     isDragging = false
     gestureMoved = false
     suppressTouchPick = false
+    viewChangedSincePointerDown = false
     if (shouldSaveView) saveView()
   }
   return true
@@ -1333,7 +1344,7 @@ readViewDefaults().then((view) => {
   applyBaseView(view)
   return readModelManifest().then(({ files }) => {
     if (!files.length) {
-      fileChooser.innerHTML = '<option value="">No STL files in models/</option>'
+      setFileChooserMessage('No STL files in models/')
       document.getElementById('meta').textContent = 'No STL files found in models/.'
       return false
     }
@@ -1341,7 +1352,7 @@ readViewDefaults().then((view) => {
     syncCurrentFile(fileChooser.value)
     return loadModel(fileChooser.value)
   }).catch((err) => {
-    fileChooser.innerHTML = '<option value="">Failed to list files</option>'
+    setFileChooserMessage('Failed to list files')
     document.getElementById('meta').textContent = 'Failed to list files: ' + err
     return false
   })
