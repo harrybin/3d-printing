@@ -1218,6 +1218,7 @@ function updatePointerDrag(event) {
     draw()
     return true
   }
+  if (!isMouse && measureModeInput.checked) updateHover(event.clientX, event.clientY)
   const dx = event.clientX - lastX; const dy = event.clientY - lastY;
   dragMoved += Math.abs(dx) + Math.abs(dy);
   if (isRightDrag) { objectX += dx * 0.05; objectY -= dy * 0.05; } else if (isShiftDrag) { panX += dx * 0.5; panY += dy * 0.5; } else { rotY += dx * 0.5; rotX += dy * 0.5; }
@@ -1240,6 +1241,7 @@ function endPointerDrag(event) {
     const remaining = [...activePointers.values()][0]
     lastX = remaining.x
     lastY = remaining.y
+    dragMoved = 0
     isShiftDrag = false
     isRightDrag = false
     touchGesture = null
