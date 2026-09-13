@@ -280,7 +280,7 @@ let rotX = baseView.rotX, rotY = baseView.rotY, rotZ = baseView.rotZ || 0, panX 
 let modelRotX = 0, modelRotY = 0, modelRotZ = 0;
 let isDragging = false, isShiftDrag = false, isRightDrag = false, lastX = 0, lastY = 0, dragMoved = 0;
 let gestureMoved = false;
-let suppressTouchPick = false;
+let suppressedTouchPointerId = null;
 let pendingViewSave = false;
 const canvas = document.getElementById('view');
 const ctx = canvas.getContext('2d');
@@ -1180,16 +1180,13 @@ function beginPointerDrag(event) {
     isDragging = true
     dragMoved = 0
     gestureMoved = false
-    suppressTouchPick = false
+    suppressedTouchPointerId = null
     pendingViewSave = false
     isShiftDrag = isMouse && event.shiftKey
     isRightDrag = isMouse && event.button === 2
     lastX = event.clientX
     lastY = event.clientY
-  } else if (isTouch && activePointers.size === 2) {
-    suppressTouchPick = true
-    touchGesture = gestureSnapshot()
-  }
+  } else if (isTouch && activePointers.size === 2) touchGesture = gestureSnapshot()
 }
 function updatePointerDrag(event) {
   const tracked = activePointers.get(event.pointerId)
@@ -1232,7 +1229,7 @@ function endPointerDrag(event) {
     try { canvas.releasePointerCapture(event.pointerId) } catch {}
   }
   activePointers.delete(event.pointerId)
-  if (event.pointerType !== 'mouse' && measureModeInput.checked && activePointers.size === 0 && moved <= 10 && !gestureMoved && !suppressTouchPick) {
+  if (event.pointerType !== 'mouse' && measureModeInput.checked && activePointers.size === 0 && moved <= 10 && !gestureMoved && event.pointerId !== suppressedTouchPointerId) {
     measurePickAt(event.clientX, event.clientY)
   }
   if (activePointers.size >= 2) touchGesture = gestureSnapshot()
@@ -1242,13 +1239,14 @@ function endPointerDrag(event) {
       pendingViewSave = false
     }
     const remaining = [...activePointers.values()][0]
+    const remainingPointerId = [...activePointers.keys()][0]
     lastX = remaining.x
     lastY = remaining.y
     remaining.startX = remaining.x
     remaining.startY = remaining.y
     dragMoved = 0
     gestureMoved = false
-    suppressTouchPick = true
+    suppressedTouchPointerId = remainingPointerId
     isDragging = true
     isShiftDrag = false
     isRightDrag = false
@@ -1258,7 +1256,7 @@ function endPointerDrag(event) {
     touchGesture = null
     isDragging = false
     gestureMoved = false
-    suppressTouchPick = false
+    suppressedTouchPointerId = null
     pendingViewSave = false
     if (shouldSaveView) saveView()
   }
