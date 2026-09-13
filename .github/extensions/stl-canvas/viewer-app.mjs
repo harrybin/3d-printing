@@ -279,6 +279,7 @@ const VIEW_PRESETS = {
 let rotX = baseView.rotX, rotY = baseView.rotY, rotZ = baseView.rotZ || 0, panX = baseView.panX, panY = baseView.panY, objectX = 0, objectY = 0;
 let modelRotX = 0, modelRotY = 0, modelRotZ = 0;
 let isDragging = false, isShiftDrag = false, isRightDrag = false, lastX = 0, lastY = 0, dragMoved = 0;
+let gestureMoved = false;
 const canvas = document.getElementById('view');
 const ctx = canvas.getContext('2d');
 const fileChooser = document.getElementById('fileChooser');
@@ -1169,6 +1170,7 @@ function beginPointerDrag(event) {
   if (activePointers.size === 1) {
     isDragging = true
     dragMoved = 0
+    gestureMoved = false
     isShiftDrag = isMouse && event.shiftKey
     isRightDrag = isMouse && event.button === 2
     lastX = event.clientX
@@ -1192,6 +1194,7 @@ function updatePointerDrag(event) {
     const scale = next.distance / touchGesture.distance
     const currentZoom = parseFloat(zoomInput.value)
     dragMoved += Math.abs(centerDx) + Math.abs(centerDy) + Math.abs(next.distance - touchGesture.distance)
+    if (dragMoved > 0) gestureMoved = true
     objectX += centerDx * 0.05
     objectY -= centerDy * 0.05
     setZoomValue(currentZoom * scale)
@@ -1202,6 +1205,7 @@ function updatePointerDrag(event) {
   if (!isMouse && measureModeInput.checked) updateHover(event.clientX, event.clientY)
   const dx = event.clientX - lastX; const dy = event.clientY - lastY;
   dragMoved += Math.abs(dx) + Math.abs(dy);
+  if (dragMoved > 0) gestureMoved = true
   if (isRightDrag) { objectX += dx * 0.05; objectY -= dy * 0.05; } else if (isShiftDrag) { panX += dx * 0.5; panY += dy * 0.5; } else { rotY += dx * 0.5; rotX += dy * 0.5; }
   lastX = event.clientX; lastY = event.clientY; draw();
   return true
@@ -1214,7 +1218,7 @@ function endPointerDrag(event) {
     try { canvas.releasePointerCapture(event.pointerId) } catch {}
   }
   activePointers.delete(event.pointerId)
-  if (event.pointerType !== 'mouse' && measureModeInput.checked && activePointers.size === 0 && moved <= 10 && dragMoved <= 10) {
+  if (event.pointerType !== 'mouse' && measureModeInput.checked && activePointers.size === 0 && moved <= 10 && !gestureMoved) {
     measurePickAt(event.clientX, event.clientY)
   }
   if (activePointers.size >= 2) touchGesture = gestureSnapshot()
@@ -1227,9 +1231,10 @@ function endPointerDrag(event) {
     isRightDrag = false
     touchGesture = null
   } else {
-    const shouldSaveView = isDragging || dragMoved > 0
+    const shouldSaveView = isDragging || dragMoved > 0 || gestureMoved
     touchGesture = null
     isDragging = false
+    gestureMoved = false
     if (shouldSaveView) saveView()
   }
   return true
