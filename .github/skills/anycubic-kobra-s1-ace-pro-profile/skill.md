@@ -1,20 +1,20 @@
 ---
 name: anycubic-kobra-s1-ace-pro-profile
-description: Anycubic Kobra S1 Combo + ACE Pro defaults and constraints for STL authoring and editing.
+description: Anycubic Kobra S1 Combo + ACE Pro defaults and constraints for STL/3MF authoring and editing.
 ---
 
 # Anycubic Kobra S1 Combo + ACE Pro profile
 
-Use this skill whenever creating or editing STL files intended for the Anycubic Kobra S1 Combo with ACE Pro multi-color workflow.
+Use this skill whenever creating or editing STL or 3MF outputs intended for the Anycubic Kobra S1 Combo with ACE Pro workflow.
 
 ## Official defaults gathered from Anycubic docs
 
 - Stock nozzle/hotend: **0.4 mm** (supported alternatives: 0.25 / 0.6 / 0.8 mm).
 - Hotend temperature capability: up to **320 C**.
 
-## Authoring defaults for STL geometry
+## Authoring defaults for printable geometry
 
-When generating new STL geometry, apply these defaults unless user overrides:
+When generating new printable geometry, apply these defaults unless user overrides:
 
 - Units assumption: **millimeters**.
 - Minimum printable wall (0.4 nozzle): **0.8 mm** (2 lines) recommended baseline.
@@ -24,7 +24,7 @@ When generating new STL geometry, apply these defaults unless user overrides:
   - General fit: **0.30 mm**
   - Easy/sliding fit: **0.40 mm**
 - Minimum embossed/debossed text stroke: **0.5 mm**; depth/height >= **0.4 mm**.
-- Overhang guidance for STL shaping: prefer <= **45 degrees** unsupported.
+- Overhang guidance for printable shaping: prefer <= **45 degrees** unsupported.
 - Bridging guidance: keep unsupported bridge spans <= **10 mm**; add ribs or chamfers for spans between **10-25 mm**; require supports beyond **25 mm**.
 
 ## Non-default nozzle handling
@@ -37,10 +37,11 @@ When generating new STL geometry, apply these defaults unless user overrides:
 - Add color boundaries at geometric transitions (fillets/chamfers/steps) to hide seams.
 - Avoid tiny isolated color islands that cause excessive tool changes and purge waste.
 - For multi-part assemblies, design keyed alignment features to simplify post-assembly.
+- If distinct material/color regions must stay preserved in the delivered model, the final output format should be **3MF**, not STL.
 
-## Required validation before finalizing STL
+## Required validation before finalizing output
 
-- If any validation check fails, halt finalization, report the specific failing check(s) with the affected geometry location if determinable, and ask the user how to proceed before outputting the STL.
+- If any validation check fails, halt finalization, report the specific failing check(s) with the affected geometry location if determinable, and ask the user how to proceed before outputting the model.
 
 - Mesh is watertight/manifold.
 - No self-intersections or zero-area triangles.

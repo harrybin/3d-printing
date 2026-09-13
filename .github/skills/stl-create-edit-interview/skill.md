@@ -1,11 +1,11 @@
 ---
 name: stl-create-edit-interview
-description: Guided question flow for STL authoring/editing choices (wall strategy, mesh pattern, infill strategy, and fit intent).
+description: Guided question flow for STL/3MF authoring/editing choices (wall strategy, mesh pattern, infill strategy, and fit intent).
 ---
 
 # STL Create/Edit Interview
 
-Use this skill before creating or editing STL files. It forces key printability decisions up front.
+Use this skill before creating or editing STL or 3MF outputs. It forces key printability decisions up front.
 
 ## Step-by-step user interview (ask one question at a time)
 

@@ -75,6 +75,24 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Dimension sourcing policy: [.github/skills/research-part-specs/skill.md](.github/skills/research-part-specs/skill.md)
 - Image-to-STL workflow: [.github/skills/stl-from-image-measurements/SKILL.md](.github/skills/stl-from-image-measurements/SKILL.md)
 
+## Central consistency matrix
+
+| Concern | Source of truth | Primary skill | Secondary skills | Non-negotiable rule |
+| --- | --- | --- | --- | --- |
+| Fit-critical dimensions | user measurements or cited specs in `docs/` | `research-part-specs` | `stl-from-image-measurements`, `photo-anchor-candidate-fit`, `create-ascii-stl` | Never invent a fit-critical dimension. |
+| Image-based reconstruction gate | task intent | `stl-from-image-measurements` | `image-relief-vectorize`, `photo-anchor-candidate-fit`, `visual-hull-envelope-fit` | Photo-driven skills apply only when reconstructing a pictured object or motif. |
+| Free-design / no-original parts | functional constraints and measurements | `create-ascii-stl` | `stl-create-edit-interview`, `research-part-specs` | Do not force photo-tracing workflows onto invented or function-first parts. |
+| Relief-first contour extraction | accepted calibrated overlay | `image-relief-vectorize` | `stl-from-image-measurements` | Treat traced contours as candidate outlines, not authority for fit-critical geometry. |
+| Refining an existing model toward photos | frozen datums plus branched candidates from one baseline | `photo-anchor-candidate-fit` | `stl-from-image-measurements`, `validate-stl-mesh` | Do not chain uncontrolled edits from the latest STL; branch candidates from the same baseline script. |
+| Multi-view outer-envelope recovery | accepted silhouettes from several views | `visual-hull-envelope-fit` | `image-relief-vectorize`, `photo-anchor-candidate-fit` | Use visual hulls only for outer-envelope guidance, not hidden or mating geometry. |
+| Rebuild-vs-mutate decision | stable local boundary plus frozen trusted geometry | `partial-rebuild-instead-of-mutate` | `photo-anchor-candidate-fit`, `visual-hull-envelope-fit`, `create-ascii-stl` | If a local region is structurally wrong, rebuild that region from the script instead of continuing STL mutation. |
+| Source of geometry edits | parametric scripts in `scripts/` | `create-ascii-stl` | `edit-stl-transform`, `photo-anchor-candidate-fit` | Regenerate from script instead of hand-editing STL facets. |
+| STL vs 3MF decision | confirmed material/color semantics | `stl-create-edit-interview` | `create-ascii-stl`, `stl-from-image-measurements`, `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Distinct material/color regions require a 3MF deliverable; STL is only for merged single-region output. |
+| Coordinate convention | mesh coordinates and user intent | `validate-stl-mesh` | `edit-stl-transform`, `optimize-stl-for-print` | Auto-detect center-origin vs corner-origin unless the user specifies it. |
+| Mesh proof and feature existence | `scripts/mesh_tool.py` checks | `validate-stl-mesh` | `stl-from-image-measurements`, `photo-anchor-candidate-fit` | Prove ambiguous internal features with probes/slices, not screenshots alone. |
+| STL canvas preview | written output path under `models/` | `create-ascii-stl` | `edit-stl-transform`, `stl-from-image-measurements`, `validate-stl-mesh`, `optimize-stl-for-print` | Preview any written STL immediately; for 3MF-first outputs, report the 3MF path and preview an STL counterpart when available. |
+| Optional helper libraries | repo support status | `.github/skills/README.md` | all skills | Mark non-default helpers such as `scikit-image` or `shapely` explicitly as optional where applicable. |
+
 ## Session-Learned Friction To Avoid
 
 Recent sessions in this repo skew heavily toward mesh-quality issues. Default behavior should be:
@@ -85,3 +103,6 @@ Recent sessions in this repo skew heavily toward mesh-quality issues. Default be
 4. Prove new internal features with a volume probe, not just mesh stats, and confirm which file the STL canvas actually rendered before believing "the feature is missing".
 5. Determine feature sides by normalising several photos to one orientation; a single photo is not enough and has already caused a mirrored feature.
 6. Pick contour parameters by projecting candidate outlines onto a landmark-calibrated photo, not by automatic silhouette extraction, which bleeds into shadows.
+7. When refining a model toward photos, freeze measured datums and compare branched candidates from the same baseline instead of chaining edits on the last STL.
+8. If local tweaking keeps fighting across views, constrain the outer shell from multiple silhouettes first and then rebuild against that envelope.
+9. If one local region is structurally wrong, cut at a stable boundary and partially rebuild it instead of continuing mutation across the whole model.
