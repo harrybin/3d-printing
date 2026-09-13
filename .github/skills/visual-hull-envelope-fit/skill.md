@@ -90,6 +90,9 @@ Stop and switch back to a parametric local-fit method when:
 - silhouettes are too ambiguous to trust
 - internal or mating geometry dominates the task
 - the carved envelope is less informative than the measured dimensions already are
+- the problem is not the broad outer envelope but one local subsystem that should be cut out and rebuilt cleanly
+
+If that happens, switch to `partial-rebuild-instead-of-mutate`.
 
 ## Output evidence
 

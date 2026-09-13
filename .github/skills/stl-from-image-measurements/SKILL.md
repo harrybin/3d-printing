@@ -146,6 +146,7 @@ When a usable baseline model already exists but iterative photo-based tweaking k
 - prefer landmark-calibrated overlays and explicit metrics over subjective "looks closer" editing
 - reject any candidate that improves one view but moves a fit-critical frozen feature
 - if the mismatch is broad and view-to-view contradictory, switch to `visual-hull-envelope-fit` instead of continuing local tweaks
+- if one local region is structurally wrong and keeps dragging the rest of the model away, switch to `partial-rebuild-instead-of-mutate`
 
 ### 3. Shape-first classification and strategy selection (mandatory)
 
@@ -294,6 +295,7 @@ Guardrail:
 
 - do not keep editing the newest STL blindly from one round to the next; when drift appears, branch candidate variants from the same baseline script via `photo-anchor-candidate-fit`
 - when single-view tuning keeps fighting across views, constrain the outer envelope first with `visual-hull-envelope-fit`
+- when one zone is constructionally wrong, partially rebuild that zone from a stable script boundary via `partial-rebuild-instead-of-mutate`
 
 ### 8c. Deriving a contour from a photo (session-verified)
 
@@ -380,6 +382,7 @@ When relevant, also use these workspace skills:
 - `image-relief-vectorize` when a photo should first be converted into a relief/height-like image and then into a cleaned vector outline before 3D modeling
 - `photo-anchor-candidate-fit` when an existing model should be brought closer to image references without moving already-correct datums
 - `visual-hull-envelope-fit` when multiple views should constrain the outer shell before rebuild or refinement
+- `partial-rebuild-instead-of-mutate` when one local region should be replaced from a clean parametric rebuild instead of being further mutated
 - `research-part-specs` before modeling a real, identifiable product, so fit-critical
   dimensions come from a cited spec instead of photo scaling
 - `stl-create-edit-interview` to collect missing print-intent decisions

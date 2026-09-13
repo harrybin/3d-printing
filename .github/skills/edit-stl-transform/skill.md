@@ -43,6 +43,7 @@ script and regenerate.
 - If a requested transform would create features below the minimum wall thickness, warn the user with the specific offending dimension, propose the maximum safe transform value that preserves printability, and do not apply the transform until the user confirms.
 - If the edit is driven by reference photos, build or refresh the numbered contact sheet first (`python scripts/make_contact_sheet.py <image folder>`), read it once, and open only the tiles that show the feature being changed. See `stl-from-image-measurements` step 0.
 - If the goal is to make an existing model match photos more closely, do not keep chaining ad-hoc transforms on the latest STL. Freeze trusted dimensions and switch to `photo-anchor-candidate-fit`; if the outer shell itself is under-constrained across several views, switch to `visual-hull-envelope-fit`.
+- If a local region is structurally wrong, do not keep patching it with transforms and booleans. Switch to `partial-rebuild-instead-of-mutate`.
 
 ## Printability checks after editing
 

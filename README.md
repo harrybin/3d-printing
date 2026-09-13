@@ -136,6 +136,7 @@ If the fit is too tight or too loose, adjust `HOLE_DIA` / `PRESS_CLEAR` in
 | `image-relief-vectorize` | Conditionally converts noisy reference photos into a relief/height-like image and a cleaned vector-style contour when a pictured object itself must be reconstructed. |
 | `photo-anchor-candidate-fit` | Refines an existing model toward image references by freezing trusted geometry, branching controlled candidates, and comparing them against calibrated landmarks. |
 | `visual-hull-envelope-fit` | Uses multiple accepted silhouettes or views to constrain the outer envelope before rebuild or refinement. |
+| `partial-rebuild-instead-of-mutate` | Rebuilds one wrong local region from a stable boundary instead of continuing to mutate a drifting model. |
 | `stl-from-image-measurements` | Creates or edits STL/3MF outputs from user photos plus measurements: identifies the whole shape first, researches existing models, applies reuse-vs-segmentation strategy, derives scale from reference objects, and validates against printer constraints. |
 | `research-part-specs` | Sources real published dimensions for an identifiable product before modeling, records origin/source/confidence per value in `docs/`, and forbids invented fit-critical numbers. |
 | `validate-stl-mesh` | Validates an STL for manifold correctness and FDM printability: syntax, triangle count, watertight topology, normal consistency, and bed-fit. |
@@ -152,6 +153,7 @@ If the fit is too tight or too loose, adjust `HOLE_DIA` / `PRESS_CLEAR` in
 | Relief-first contour extraction | `image-relief-vectorize` | Traced contours are candidate outlines only, not authority for fit-critical geometry. |
 | Anti-drift model refinement | `photo-anchor-candidate-fit` | Freeze trusted datums and compare branched candidates from one baseline instead of chaining STL tweaks. |
 | Multi-view outer-envelope recovery | `visual-hull-envelope-fit` | Use silhouette-derived hulls only to constrain outer envelopes, not hidden or mating geometry. |
+| Partial rebuild | `partial-rebuild-instead-of-mutate` | If one local region is structurally wrong, rebuild that region from a stable script boundary instead of continuing mutation. |
 | Source of geometry edits | `create-ascii-stl` | Regenerate from parametric scripts in `scripts/`; do not hand-edit STL facets. |
 | STL vs 3MF | `stl-create-edit-interview` | Distinct material/color regions require a 3MF deliverable; STL is only for merged single-region output. |
 | Coordinate convention | `validate-stl-mesh` | Auto-detect center-origin vs corner-origin unless the user specifies it. |

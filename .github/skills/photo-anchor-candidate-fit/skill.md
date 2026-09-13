@@ -146,8 +146,9 @@ Stop and switch strategy when:
 - the same feature needs contradictory changes across views
 - the baseline model is structurally wrong rather than locally wrong
 - silhouette mismatch is too large for parameter tweaking and needs multi-view envelope reconstruction instead
+- the local structure itself is wrong and should be replaced from a clean boundary instead of kept alive through further mutation
 
-In those cases, move to `visual-hull-envelope-fit` or a partial rebuild.
+In those cases, move to `visual-hull-envelope-fit` or `partial-rebuild-instead-of-mutate`.
 
 ## Output evidence
 

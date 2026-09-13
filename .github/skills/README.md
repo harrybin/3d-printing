@@ -20,6 +20,7 @@ If a procedure is needed more than once, it belongs in a skill file.
 | Image preprocessing | `image-relief-vectorize` | Conditional relief-first image cleanup and contour vectorization when reconstructing a pictured object before 3D modeling |
 | Photo-guided refinement | `photo-anchor-candidate-fit` | Freeze trusted geometry, branch candidates from one baseline, and compare them against calibrated image landmarks |
 | Multi-view envelope | `visual-hull-envelope-fit` | Constrain an outer shell from several silhouettes before rebuilding or refining the model |
+| Partial rebuild | `partial-rebuild-instead-of-mutate` | Rebuild only the wrong local region from a stable boundary instead of continuing to mutate a drifting model |
 | Spec sourcing | `research-part-specs` | Fit-critical dimension sourcing and measurement docs in `docs/` |
 | Preflight interview | `stl-create-edit-interview` | Required intent questions before creating/editing |
 | Mesh quality | `validate-stl-mesh` | Integrity checks, feature probes, stale-file checks |
@@ -35,6 +36,7 @@ If a procedure is needed more than once, it belongs in a skill file.
 | Relief-first contour extraction | accepted calibrated overlay | `image-relief-vectorize` | `stl-from-image-measurements` | Treat traced contours as candidate outlines, not authority for fit-critical geometry. |
 | Refining an existing model toward photos | frozen datums plus branched candidates from one baseline | `photo-anchor-candidate-fit` | `stl-from-image-measurements`, `validate-stl-mesh` | Do not chain uncontrolled edits from the latest STL; branch candidates from the same baseline script. |
 | Multi-view outer-envelope recovery | accepted silhouettes from several views | `visual-hull-envelope-fit` | `image-relief-vectorize`, `photo-anchor-candidate-fit` | Use visual hulls only for outer-envelope guidance, not hidden or mating geometry. |
+| Rebuild-vs-mutate decision | stable local boundary plus frozen trusted geometry | `partial-rebuild-instead-of-mutate` | `photo-anchor-candidate-fit`, `visual-hull-envelope-fit`, `create-ascii-stl` | If a local region is structurally wrong, rebuild that region from the script instead of continuing STL mutation. |
 | Source of geometry edits | parametric scripts in `scripts/` | `create-ascii-stl` | `edit-stl-transform`, `photo-anchor-candidate-fit` | Regenerate from script instead of hand-editing STL facets. |
 | STL vs 3MF decision | confirmed material/color semantics | `stl-create-edit-interview` | `create-ascii-stl`, `stl-from-image-measurements`, `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Distinct material/color regions require a 3MF deliverable; STL is only for merged single-region output. |
 | Coordinate convention | mesh coordinates and user intent | `validate-stl-mesh` | `edit-stl-transform`, `optimize-stl-for-print` | Auto-detect center-origin vs corner-origin unless the user specifies it. |
