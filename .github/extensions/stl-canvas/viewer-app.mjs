@@ -1260,7 +1260,7 @@ canvas.addEventListener('pointerdown', (event) => {
   if (event.pointerType !== 'mouse' && measureModeInput.checked) updateHover(event.clientX, event.clientY)
   beginPointerDrag(event)
 });
-document.addEventListener('pointermove', (e) => {
+canvas.addEventListener('pointermove', (e) => {
   if (!activePointers.has(e.pointerId)) {
     if (e.pointerType === 'mouse') updateHover(e.clientX, e.clientY)
     return;
@@ -1269,8 +1269,8 @@ document.addEventListener('pointermove', (e) => {
   if (e.pointerType !== 'mouse') e.preventDefault()
   updatePointerDrag(e)
 });
-document.addEventListener('pointerup', (event) => { endPointerDrag(event); });
-document.addEventListener('pointercancel', (event) => { endPointerDrag(event); });
+canvas.addEventListener('pointerup', (event) => { endPointerDrag(event); });
+canvas.addEventListener('pointercancel', (event) => { endPointerDrag(event); });
 canvas.addEventListener('lostpointercapture', (event) => { endPointerDrag(event); });
 document.addEventListener('mousemove', (e) => {
   if (activePointers.size) return
