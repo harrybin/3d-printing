@@ -133,7 +133,7 @@ When images are the main template, try a **relief -> vector -> 3D** preprocessin
 
 - Invoke `image-relief-vectorize` for glyphs, logos, embossed/debossed motifs, shallow reliefs, or silhouettes corrupted by shadow/glare/background clutter.
 - Build one or more relief-like candidates from the cropped image first (grayscale + contrast normalization + gradient emphasis), then extract contours from that relief instead of tracing the raw RGB photo.
-- Prefer `scikit-image` (`measure.find_contours`, `measure.approximate_polygon`) plus OpenCV for the extraction/simplification pass; use optional polygon cleanup only when the contour is structurally close but noisy.
+- Prefer OpenCV for the default extraction/simplification pass, and use `scikit-image` (`measure.find_contours`, `measure.approximate_polygon`) as an optional helper when a marching-squares contour or cleaner polygon simplification is useful; use optional polygon cleanup only when the contour is structurally close but noisy.
 - Accept the traced contour only after overlaying it back onto the calibrated photo at well-lit landmarks.
 - Treat the result as a candidate outline, not as authority for fit-critical dimensions. User measurements and cited specs still override it.
 
@@ -206,7 +206,7 @@ If the reference indicates multiple materials, inserts, coatings, or color regio
 
 ### 6. Compose or edit the output geometry
 
-Use the project libraries for all geometry work — never hand-write STL facets or manually computed triangle meshes for complex objects: **build123d** for engineering solids (sketches, hulls, countersinks, bosses, ribs), **trimesh + manifold3d** for simple CSG, repair, and export, **vedo** for render verification, **opencv-python-headless** + **scikit-image** for frame extraction, relief preprocessing, and silhouette comparison.
+Use the project libraries for all geometry work — never hand-write STL facets or manually computed triangle meshes for complex objects: **build123d** for engineering solids (sketches, hulls, countersinks, bosses, ribs), **trimesh + manifold3d** for simple CSG, repair, and export, **vedo** for render verification, **opencv-python-headless** for frame extraction, relief preprocessing, and silhouette comparison, plus optional helpers such as **scikit-image** when they materially improve contour cleanup.
 
 Allowed operations include:
 

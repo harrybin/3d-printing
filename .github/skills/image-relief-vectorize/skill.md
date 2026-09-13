@@ -24,17 +24,18 @@ Prefer this skill for:
 
 Do **not** let this skill override fit-critical measurements. User caliper values and cited specs still win.
 
-## Default library stack
+## Core stack plus optional helpers
 
-Use the lightest stack that already fits this repo:
+Use the lightest stack that fits the task:
 
 | Stage | Preferred libraries | Purpose |
 | --- | --- | --- |
 | Crop / normalize / denoise | **opencv-python-headless**, **pillow**, **numpy** | grayscale, CLAHE, blur, masking, scale landmarks |
-| Relief / height-like preprocessing | **opencv-python-headless**, **scikit-image** | gradient maps, edge-weighted relief, contrast flattening |
-| Contour extraction | **scikit-image** (`measure.find_contours`), **OpenCV** (`findContours`) | convert relief bands or masks into polylines |
-| Contour simplification | **scikit-image** (`measure.approximate_polygon`) | reduce noise before CAD import |
-| Default contour cleanup | **OpenCV**, **scikit-image** | morphological cleanup, contour filtering, polygon simplification |
+| Relief / height-like preprocessing | **opencv-python-headless** | gradient maps, edge-weighted relief, contrast flattening |
+| Contour extraction | **OpenCV** (`findContours`) | convert relief bands or masks into polylines |
+| Default contour simplification | **OpenCV**, **numpy** | contour filtering, decimation, area/perimeter cleanup |
+| Default contour cleanup | **OpenCV** | morphological cleanup, contour filtering, polygon simplification |
+| Optional contour extraction / simplification | **scikit-image** (`measure.find_contours`, `measure.approximate_polygon`) | cleaner marching-squares style contour extraction when available |
 | Out-of-repo optional polygon cleanup | **Shapely** if deliberately installed | close gaps, `buffer(0)`, simplify, union nested loops |
 | 3D build / extrusion | **build123d**, **trimesh** | import cleaned outline, extrude, add exact engineering features |
 | Visual verification | **vedo**, **opencv-python-headless** | overlay render vs reference photo |
@@ -69,7 +70,7 @@ Preferred order:
 
 1. threshold one relief candidate or a narrow band of it
 2. extract contours with `skimage.measure.find_contours` or `cv2.findContours`
-3. simplify with `skimage.measure.approximate_polygon`
+3. simplify with OpenCV contour filtering, and optionally `skimage.measure.approximate_polygon` when available
 4. clean noise with morphology, contour-area filtering, and polygon simplification; only use Shapely if the repo explicitly adopts it later
 
 Keep multiple candidate outlines when needed. Do not assume the first trace is correct.
@@ -100,7 +101,7 @@ After the 2D basis is accepted:
 
 ## Library notes
 
-- `scikit-image` is the preferred contour library for this workflow.
+- `scikit-image` is a useful optional helper for this workflow, especially for marching-squares contour extraction and polygon simplification.
 - `Shapely` is useful for polygon cleanup but is **not** part of the supported default repo stack today.
 - Potrace-style tracers can work for logos, but do not make them the default dependency path here; license and over-tracing risk must be checked first.
 
