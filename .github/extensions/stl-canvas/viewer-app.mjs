@@ -1234,6 +1234,7 @@ function endPointerDrag(event) {
   }
   if (activePointers.size >= 2) touchGesture = gestureSnapshot()
   else if (activePointers.size === 1) {
+    const shouldSuppressRemainingTouchPick = pendingViewSave
     if (pendingViewSave) {
       saveView()
       pendingViewSave = false
@@ -1246,7 +1247,7 @@ function endPointerDrag(event) {
     remaining.startY = remaining.y
     dragMoved = 0
     gestureMoved = false
-    suppressedTouchPointerId = remainingPointerId
+    suppressedTouchPointerId = shouldSuppressRemainingTouchPick ? remainingPointerId : null
     isDragging = true
     isShiftDrag = false
     isRightDrag = false
