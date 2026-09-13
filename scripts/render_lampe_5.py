@@ -16,9 +16,10 @@ import lampe_5
 
 OUT_DIR = Path(__file__).resolve().parents[1] / "docs" / "images"
 BLACK = "#171717"
-WHITE = "#f5f5ef"
+WHITE = "#e8f7f9"
 TRANSPARENT = "#b9e9f5"
 BACKGROUND = "#24211f"
+BED = "#5c5c5c"
 
 
 def _top_polygons(mesh, z):
@@ -34,83 +35,38 @@ def _style_2d(ax):
     ax.margins(0.035)
 
 
-def render_construction(transparent, black, panels):
-    figure, axes = plt.subplots(1, 3, figsize=(15, 7), facecolor=BACKGROUND)
-    stages = [
-        ("1 · Transparenter Rückrahmen", [(transparent, TRANSPARENT, 20)]),
-        ("2 · Schwarzer Frontrahmen", [(black, BLACK, 40)]),
-        ("3 · Vier separate Leuchtflächen", [(panel, WHITE, 40) for panel in panels]),
-    ]
-
-    for axis, (title, entries) in zip(axes, stages):
-        axis.set_facecolor(BACKGROUND)
-        for mesh, color, z in entries:
-            axis.add_collection(
-                PolyCollection(
-                    _top_polygons(mesh, z),
-                    facecolor=color,
-                    edgecolor="#111111",
-                    linewidth=0.18,
-                )
-            )
-        _style_2d(axis)
-        axis.set_title(title, color="white", fontsize=14, pad=12)
-
-    figure.suptitle(
-        "Lampe „5“ · Aufbau der getrennten Materialkörper",
-        color="white",
-        fontsize=19,
-        y=0.97,
-    )
-    figure.tight_layout()
-    path = OUT_DIR / "lampe-5-aufbau.png"
-    figure.savefig(path, dpi=180, bbox_inches="tight", facecolor=figure.get_facecolor())
-    plt.close(figure)
-    return path
-
-
-def render_front(black, panels):
-    figure, axis = plt.subplots(figsize=(8, 10), facecolor=BACKGROUND)
+def render_panel_bed(panel_layout):
+    figure, axis = plt.subplots(figsize=(9, 9), facecolor=BACKGROUND)
     axis.set_facecolor(BACKGROUND)
-
-    # A soft halo indicates the transparent rear half without obscuring the model.
-    outline = np.vstack([polygon for polygon in _top_polygons(black, 40)])
-    for width, alpha in ((18, 0.035), (10, 0.06), (5, 0.09)):
-        axis.scatter(
-            outline[:, 0],
-            outline[:, 1],
-            s=width * width,
-            color="#ffe6a4",
-            alpha=alpha,
-            linewidths=0,
+    axis.add_patch(
+        plt.Rectangle(
+            (-125, -125),
+            250,
+            250,
+            facecolor=BED,
+            edgecolor="white",
+            linewidth=1.5,
         )
-
+    )
     axis.add_collection(
         PolyCollection(
-            _top_polygons(black, 40),
-            facecolor=BLACK,
-            edgecolor="#050505",
-            linewidth=0.25,
+            _top_polygons(panel_layout, 2),
+            facecolor=WHITE,
+            edgecolor="#25464d",
+            linewidth=0.35,
         )
     )
-    for panel in panels:
-        axis.add_collection(
-            PolyCollection(
-                _top_polygons(panel, 40),
-                facecolor=WHITE,
-                edgecolor="#cfcfc7",
-                linewidth=0.2,
-            )
-        )
-
-    _style_2d(axis)
+    axis.set_xlim(-130, 130)
+    axis.set_ylim(-130, 130)
+    axis.set_aspect("equal")
+    axis.axis("off")
     axis.set_title(
-        "Fertiges Modell · Frontansicht · 240 mm hoch",
+        "Datei 2 · Vier Leuchtflächen auf 250 × 250 mm Druckbett",
         color="white",
         fontsize=17,
         pad=12,
     )
-    path = OUT_DIR / "lampe-5-frontansicht.png"
+    path = OUT_DIR / "lampe-5-leuchtflaechen-druckbett.png"
     figure.savefig(path, dpi=200, bbox_inches="tight", facecolor=figure.get_facecolor())
     plt.close(figure)
     return path
@@ -138,23 +94,20 @@ def _style_3d(axis):
     axis.set_axis_off()
 
 
-def render_perspective(transparent, black, panels):
+def render_frame(transparent, black):
     figure = plt.figure(figsize=(9, 11), facecolor=BACKGROUND)
     axis = figure.add_subplot(111, projection="3d")
     axis.set_facecolor(BACKGROUND)
     _add_mesh(axis, transparent, TRANSPARENT, alpha=0.42)
     _add_mesh(axis, black, BLACK)
-    for panel in panels:
-        _add_mesh(axis, panel, WHITE)
     _style_3d(axis)
     axis.set_title(
-        "Fertiges Modell · Perspektive\n"
-        "20 mm transparent + 20 mm schwarz · separate Leuchtflächen",
+        "Datei 1 · Rahmen\n20 mm transparent + 20 mm schwarz",
         color="white",
         fontsize=16,
         pad=4,
     )
-    path = OUT_DIR / "lampe-5-perspektive.png"
+    path = OUT_DIR / "lampe-5-rahmen.png"
     figure.savefig(path, dpi=200, bbox_inches="tight", facecolor=figure.get_facecolor())
     plt.close(figure)
     return path
@@ -163,10 +116,10 @@ def render_perspective(transparent, black, panels):
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     transparent, black, panels = lampe_5.build_parts()
+    panel_layout = lampe_5.arrange_panels(panels)
     for path in (
-        render_construction(transparent, black, panels),
-        render_front(black, panels),
-        render_perspective(transparent, black, panels),
+        render_frame(transparent, black),
+        render_panel_bed(panel_layout),
     ):
         print("out:", path)
 

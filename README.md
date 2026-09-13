@@ -10,7 +10,8 @@ A collection of ASCII STL models for the Anycubic Kobra S1 Combo + ACE Pro (250 
 | `models/lineal-clip-kappe.stl` | Snap-fit clip cap for the two holes at the end of a steel ruler ([see example](#example-from-photo-to-printable-stl)) |
 | `models/duschscharnier_ersatz.stl` | Shower-door hinge replacement body generated from `scripts/duschscharnier_ersatz.py` |
 | `models/zylinder_scheibe_2026_2027.stl` | Cylindrical/washer-style reference part |
-| `models/lampe-5.3mf` | 240 mm multi-material number-5 wall lamp with separate black frame, transparent rear frame, and white light panels |
+| `models/lampe-5-rahmen.3mf` | Multi-material frame for the 240 mm number-5 wall lamp |
+| `models/lampe-5-leuchtflaechen.stl` | All four translucent lamp panels arranged together on the 250 × 250 mm bed |
 
 ## Setup
 

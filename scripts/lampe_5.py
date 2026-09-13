@@ -29,10 +29,8 @@ PANEL_THICKNESS = 2.0
 PANEL_CLEARANCE = 0.30
 
 MODEL_DIR = Path(__file__).resolve().parents[1] / "models"
-OUT_3MF = MODEL_DIR / "lampe-5.3mf"
-OUT_PREVIEW = MODEL_DIR / "lampe-5-assembly.stl"
-OUT_TRANSPARENT = MODEL_DIR / "lampe-5-transparent-rear.stl"
-OUT_BLACK = MODEL_DIR / "lampe-5-black-front.stl"
+OUT_FRAME = MODEL_DIR / "lampe-5-rahmen.3mf"
+OUT_PANELS = MODEL_DIR / "lampe-5-leuchtflaechen.stl"
 
 RAW_HEIGHT = 240.0
 RAW_MIN_Y = 1.4861111119389534
@@ -47,7 +45,6 @@ class Material:
 
 TRANSPARENT = Material("Transparent", "#DCEFFFFF")
 BLACK = Material("Black", "#171717FF")
-WHITE = Material("White diffuser", "#F7F7F7FF")
 
 
 def _cubic(p0, p1, p2, p3, count=10) -> np.ndarray:
@@ -208,6 +205,38 @@ def _local_print_copy(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     return result
 
 
+def arrange_panels(panels: list[trimesh.Trimesh]) -> trimesh.Trimesh:
+    """Pack all four panels flat on the 250 mm bed with at least 5 mm gaps."""
+    placements = (
+        (3, 0.0, (-120.0, -120.0)),
+        (0, 90.0, (45.0, -120.0)),
+        (1, 0.0, (-120.0, 27.0)),
+        (2, 0.0, (-12.0, 27.0)),
+    )
+    arranged = []
+    for index, angle, lower_left in placements:
+        panel = _local_print_copy(panels[index])
+        if angle:
+            panel.apply_transform(
+                trimesh.transformations.rotation_matrix(
+                    np.radians(angle),
+                    [0.0, 0.0, 1.0],
+                )
+            )
+        panel.apply_translation(
+            [
+                lower_left[0] - panel.bounds[0, 0],
+                lower_left[1] - panel.bounds[0, 1],
+                0.0,
+            ]
+        )
+        arranged.append(panel)
+    layout = trimesh.util.concatenate(arranged)
+    center_xy = layout.bounds[:, :2].mean(axis=0)
+    layout.apply_translation([-center_xy[0], -center_xy[1], 0.0])
+    return layout
+
+
 def _write_ascii(mesh: trimesh.Trimesh, path: Path) -> None:
     path.write_text(trimesh.exchange.stl.export_stl_ascii(mesh), encoding="ascii")
 
@@ -223,7 +252,11 @@ def _write_3mf(path: Path, objects) -> None:
     resources = ET.SubElement(model, f"{{{core}}}resources")
     materials = ET.SubElement(resources, f"{{{core}}}basematerials", id="1")
     material_indices = {}
-    for index, material in enumerate((TRANSPARENT, BLACK, WHITE)):
+    used_materials = []
+    for _name, _mesh_value, material in objects:
+        if material not in used_materials:
+            used_materials.append(material)
+    for index, material in enumerate(used_materials):
         material_indices[material.name] = index
         ET.SubElement(
             materials,
@@ -308,36 +341,26 @@ def _validate(name: str, mesh: trimesh.Trimesh) -> None:
 def main() -> None:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     transparent, black, panels = build_parts()
-    objects = [
+    frame_objects = [
         ("transparent_rear", transparent, TRANSPARENT),
         ("black_front", black, BLACK),
-        *[
-            (f"light_panel_{index}", panel, WHITE)
-            for index, panel in enumerate(panels, start=1)
-        ],
     ]
 
-    for name, mesh, _material in objects:
+    for name, mesh, _material in frame_objects:
         _validate(name, mesh)
-
-    _write_ascii(_local_print_copy(transparent), OUT_TRANSPARENT)
-    _write_ascii(_local_print_copy(black), OUT_BLACK)
     for index, panel in enumerate(panels, start=1):
-        _write_ascii(
-            _local_print_copy(panel),
-            MODEL_DIR / f"lampe-5-light-panel-{index}.stl",
-        )
+        _validate(f"light_panel_{index}", panel)
 
-    assembly = trimesh.boolean.union(
-        [mesh for _name, mesh, _material in objects],
-        engine="manifold",
-    )
-    _validate("assembly_preview", assembly)
-    _write_ascii(assembly, OUT_PREVIEW)
-    _write_3mf(OUT_3MF, objects)
+    panel_layout = arrange_panels(panels)
+    if panel_layout.bounds[0, :2].min() < -125.0 or panel_layout.bounds[1, :2].max() > 125.0:
+        raise RuntimeError(f"Panel layout exceeds bed: {panel_layout.bounds.tolist()}")
+    _write_3mf(OUT_FRAME, frame_objects)
+    _write_ascii(panel_layout, OUT_PANELS)
 
-    print("assembly_extents:", np.round(assembly.extents, 3).tolist())
-    print("files:", OUT_3MF, OUT_PREVIEW)
+    frame_bounds = np.vstack([transparent.bounds, black.bounds])
+    print("frame_extents:", np.round(np.ptp(frame_bounds, axis=0), 3).tolist())
+    print("panel_layout_bounds:", np.round(panel_layout.bounds, 3).tolist())
+    print("files:", OUT_FRAME, OUT_PANELS)
 
 
 if __name__ == "__main__":

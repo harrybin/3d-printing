@@ -35,17 +35,22 @@ Deshalb wurde kein pixelgenauer Umriss behauptet. Der parametrisierte Umriss
 | Allgemeines Spiel der Leuchtflächen | 0.30 mm | Kobra-S1-Basiswert |
 | Auflagenstärke | 2.0 mm | druckbare Annahme |
 
-Die Ausgabe `models/lampe-5.3mf` enthält getrennte Objekte und
-Materialkennzeichnungen für transparent, schwarz und weiß. Die einzelnen STL
-sind in Drucklage auf Z=0 abgelegt; die 3MF und die Vorschau zeigen die
-zusammengesetzte Lage. Die Leuchtflächen liegen bei Z=38–40 mm auf den
-schwarzen Auflagen bei Z=36–38 mm.
+Die Ausgabe besteht aus zwei Druckdateien:
+
+- `models/lampe-5-rahmen.3mf` enthält den transparenten Rückrahmen und den
+  schwarzen Frontrahmen als getrennte Materialobjekte in gemeinsamer Lage.
+- `models/lampe-5-leuchtflaechen.stl` enthält alle vier durchscheinenden
+  Leuchtflächen nebeneinander in einer Datei.
+
+Im montierten Modell liegen die Leuchtflächen bei Z=38–40 mm auf den schwarzen
+Auflagen bei Z=36–38 mm.
 
 Rahmen und Leuchtflächen passen jeweils auf das 250 × 250 mm Druckbett. Bei
 240 mm Bauteilhöhe bleiben jedoch nur 5 mm Rand pro Seite; Skirt oder Brim muss
 entsprechend schmal eingestellt werden. Der schwarze Rahmenteil enthält an den
 10-mm-Auflagen kurze Brücken und sollte mit aktivierter Brückenerkennung
-gedruckt werden.
+gedruckt werden. Die vier Leuchtflächen sind mit mindestens 5 mm Abstand
+angeordnet, gemeinsam zentriert und belegen 237,6 × 221,1 mm.
 
 ## Renderkontrolle
 
@@ -53,8 +58,6 @@ Die Ansichten werden reproduzierbar mit
 `python scripts/render_lampe_5.py` aus derselben parametrischen Geometrie wie
 die Druckdateien erzeugt.
 
-![Getrennte Materialkörper und Leuchtflächen](images/lampe-5-aufbau.png)
+![Rahmendatei mit transparentem und schwarzem Bereich](images/lampe-5-rahmen.png)
 
-![Frontansicht des fertigen Modells](images/lampe-5-frontansicht.png)
-
-![Perspektivansicht des fertigen Modells](images/lampe-5-perspektive.png)
+![Leuchtflächen nebeneinander auf dem Druckbett](images/lampe-5-leuchtflaechen-druckbett.png)
