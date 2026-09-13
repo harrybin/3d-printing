@@ -1164,6 +1164,7 @@ function gestureSnapshot() {
 }
 function beginPointerDrag(event) {
   const isMouse = event.pointerType === 'mouse'
+  const isTouch = event.pointerType === 'touch'
   const tracked = {
     x: event.clientX,
     y: event.clientY,
@@ -1174,7 +1175,7 @@ function beginPointerDrag(event) {
     try { canvas.setPointerCapture(event.pointerId) } catch {}
   }
   activePointers.set(event.pointerId, tracked)
-  if (!isMouse) event.preventDefault()
+  if (isTouch) event.preventDefault()
   if (activePointers.size === 1) {
     isDragging = true
     dragMoved = 0
@@ -1185,7 +1186,7 @@ function beginPointerDrag(event) {
     isRightDrag = isMouse && event.button === 2
     lastX = event.clientX
     lastY = event.clientY
-  } else if (!isMouse && activePointers.size === 2) {
+  } else if (isTouch && activePointers.size === 2) {
     suppressTouchPick = true
     touchGesture = gestureSnapshot()
   }
@@ -1196,7 +1197,8 @@ function updatePointerDrag(event) {
   tracked.x = event.clientX
   tracked.y = event.clientY
   const isMouse = event.pointerType === 'mouse'
-  if (activePointers.size >= 2 && !isMouse) {
+  const isTouch = event.pointerType === 'touch'
+  if (activePointers.size >= 2 && isTouch) {
     if (!touchGesture) touchGesture = gestureSnapshot()
     const next = gestureSnapshot()
     if (!touchGesture || !next) return true
@@ -1242,10 +1244,12 @@ function endPointerDrag(event) {
     const remaining = [...activePointers.values()][0]
     lastX = remaining.x
     lastY = remaining.y
+    remaining.startX = remaining.x
+    remaining.startY = remaining.y
     dragMoved = 0
     gestureMoved = false
     suppressTouchPick = true
-    isDragging = false
+    isDragging = true
     isShiftDrag = false
     isRightDrag = false
     touchGesture = null
@@ -1262,16 +1266,20 @@ function endPointerDrag(event) {
 }
 canvas.addEventListener('pointerdown', (event) => {
   if (event.pointerType === 'mouse' && event.button !== 0 && event.button !== 2) return
+  if (event.pointerType === 'pen' && measureModeInput.checked) {
+    updateHover(event.clientX, event.clientY)
+    return
+  }
   if (event.pointerType !== 'mouse' && measureModeInput.checked) updateHover(event.clientX, event.clientY)
   beginPointerDrag(event)
 });
 canvas.addEventListener('pointermove', (e) => {
   if (!activePointers.has(e.pointerId)) {
-    if (e.pointerType === 'mouse') updateHover(e.clientX, e.clientY)
+    if (e.pointerType !== 'touch') updateHover(e.clientX, e.clientY)
     return;
   }
   if (!isDragging) return;
-  if (e.pointerType !== 'mouse') e.preventDefault()
+  if (e.pointerType === 'touch') e.preventDefault()
   updatePointerDrag(e)
 });
 canvas.addEventListener('pointerup', (event) => { endPointerDrag(event); });
