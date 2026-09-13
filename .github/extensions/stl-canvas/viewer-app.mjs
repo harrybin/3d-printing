@@ -1236,11 +1236,10 @@ function endPointerDrag(event) {
     isRightDrag = false
     touchGesture = null
   } else {
+    const shouldSaveView = isDragging || dragMoved > 0
     touchGesture = null
-    if (isDragging) {
-      isDragging = false
-      saveView()
-    }
+    isDragging = false
+    if (shouldSaveView) saveView()
   }
   return true
 }
