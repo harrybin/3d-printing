@@ -1240,6 +1240,8 @@ function endPointerDrag(event) {
     const remaining = [...activePointers.values()][0]
     lastX = remaining.x
     lastY = remaining.y
+    isShiftDrag = false
+    isRightDrag = false
     touchGesture = null
   } else {
     touchGesture = null
