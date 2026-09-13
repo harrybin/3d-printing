@@ -5,7 +5,7 @@ description: Turn reference images into a relief/height-map aided vector outline
 
 # Image Relief To Vector
 
-Use this skill when an image is the main template and the fastest reliable path is:
+Use this skill only when a pictured object or pictured surface detail is actually being reconstructed and the fastest reliable path is:
 
 1. derive a **relief / height-like image**
 2. extract and clean **vector-like contours**
@@ -23,6 +23,19 @@ Prefer this skill for:
 - photos where direct thresholding grabs shadows or table edges
 
 Do **not** let this skill override fit-critical measurements. User caliper values and cited specs still win.
+
+## Do not use this skill
+
+Do **not** invoke this skill just because an image exists in the task.
+
+Skip it when:
+
+- the user wants a **new design** inspired by an image rather than a reconstruction of the shown object
+- the original part no longer exists and the task is to design a replacement from function, mating geometry, or measurements only
+- the part never existed before and the image is only a mood board, sketch, or rough reference
+- the geometry is better driven by explicit dimensions, fit targets, or standard primitives than by tracing photo contours
+
+In those cases, stay with the normal parametric design flow (`create-ascii-stl`, `research-part-specs`, direct measured modeling) and use the image only as secondary context.
 
 ## Core stack plus optional helpers
 
@@ -98,6 +111,7 @@ After the 2D basis is accepted:
 - For **organic-or-mixed** silhouettes, use it as a candidate-outline generator before manual correction.
 - For **recognizable-part-family** engineering parts, use it only for the outer silhouette or decorative zones; do not derive critical bores, wall thicknesses, or mating geometry from the relief trace alone.
 - If the relief/vector result disagrees with the landmark-calibrated overlay or user measurements, discard it and fall back to the manual overlay method from `stl-from-image-measurements`.
+- If the job is an invented part, a function-first redesign, or a replacement for a no-longer-available original, do not activate this skill unless one specific pictured motif or outline truly needs to be reconstructed.
 
 ## Library notes
 

@@ -129,13 +129,14 @@ If a model's license prohibits modification or redistribution, do not use it as 
 
 ### 2b. Relief-first preprocessing branch (preferred when direct contours are noisy)
 
-When images are the main template, try a **relief -> vector -> 3D** preprocessing pass before building geometry whenever the raw photo edge is unstable.
+When images are the main template **and the task is to reconstruct the pictured object or pictured motif**, try a **relief -> vector -> 3D** preprocessing pass before building geometry whenever the raw photo edge is unstable.
 
 - Invoke `image-relief-vectorize` for glyphs, logos, embossed/debossed motifs, shallow reliefs, or silhouettes corrupted by shadow/glare/background clutter.
 - Build one or more relief-like candidates from the cropped image first (grayscale + contrast normalization + gradient emphasis), then extract contours from that relief instead of tracing the raw RGB photo.
 - Prefer OpenCV for the default extraction/simplification pass, and use `scikit-image` (`measure.find_contours`, `measure.approximate_polygon`) as an optional helper when a marching-squares contour or cleaner polygon simplification is useful; use optional polygon cleanup only when the contour is structurally close but noisy.
 - Accept the traced contour only after overlaying it back onto the calibrated photo at well-lit landmarks.
 - Treat the result as a candidate outline, not as authority for fit-critical dimensions. User measurements and cited specs still override it.
+- Do **not** invoke this branch for free designs, function-first replacements, or parts that never existed in the shown form; in those cases the image may inspire proportions, but the geometry should stay measurement- and constraint-driven.
 
 ### 3. Shape-first classification and strategy selection (mandatory)
 

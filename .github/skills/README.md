@@ -17,7 +17,7 @@ If a procedure is needed more than once, it belongs in a skill file.
 | New modeling | `create-ascii-stl` | Parametric modeling, CSG/repair workflow, export rules |
 | STL edits | `edit-stl-transform` | Transform/boolean rules and output/orientation policy |
 | Image to model | `stl-from-image-measurements` | Contact-sheet flow, research branch, render-compare loop |
-| Image preprocessing | `image-relief-vectorize` | Relief-first image cleanup and contour vectorization before 3D modeling |
+| Image preprocessing | `image-relief-vectorize` | Conditional relief-first image cleanup and contour vectorization when reconstructing a pictured object before 3D modeling |
 | Spec sourcing | `research-part-specs` | Fit-critical dimension sourcing and measurement docs in `docs/` |
 | Preflight interview | `stl-create-edit-interview` | Required intent questions before creating/editing |
 | Mesh quality | `validate-stl-mesh` | Integrity checks, feature probes, stale-file checks |
