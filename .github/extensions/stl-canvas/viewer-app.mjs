@@ -640,8 +640,17 @@ function refreshFileChooser(files) {
   }
   if (merged.join('|') === knownFiles.join('|')) return;
   knownFiles = merged;
-  fileChooser.innerHTML = merged.map((name) => '<option value="' + name + '">' + name + '</option>').join('');
-  fileChooser.value = merged.indexOf(keep) >= 0 ? keep : merged[0];
+  setFileChooserOptions(merged, merged.indexOf(keep) >= 0 ? keep : merged[0])
+}
+function setFileChooserOptions(files, selected) {
+  fileChooser.replaceChildren()
+  for (const name of files) {
+    const option = document.createElement('option')
+    option.value = name
+    option.textContent = name
+    fileChooser.append(option)
+  }
+  fileChooser.value = files.indexOf(selected) >= 0 ? selected : files[0] || ''
 }
 // Poll models/ so externally rewritten STL files refresh the viewer automatically.
 function pollForChanges() {
@@ -1323,8 +1332,7 @@ readViewDefaults().then((view) => {
       document.getElementById('meta').textContent = 'No STL files found in models/.'
       return false
     }
-    fileChooser.innerHTML = files.map((name) => '<option value="' + name + '">' + name + '</option>').join('')
-    fileChooser.value = files.indexOf(currentFile) >= 0 ? currentFile : files[0]
+    setFileChooserOptions(files, files.indexOf(currentFile) >= 0 ? currentFile : files[0])
     knownFiles = files
     syncCurrentFile(fileChooser.value)
     return loadModel(fileChooser.value)
