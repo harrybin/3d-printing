@@ -127,6 +127,16 @@ If a downloadable model is available from an accessible source, use it only when
 
 If a model's license prohibits modification or redistribution, do not use it as a base. Inform the user of the restriction, name the model and its license, and automatically fall back to recreate-from-reference using only the dimensional data as reference evidence.
 
+### 2b. Relief-first preprocessing branch (preferred when direct contours are noisy)
+
+When images are the main template, try a **relief -> vector -> 3D** preprocessing pass before building geometry whenever the raw photo edge is unstable.
+
+- Invoke `image-relief-vectorize` for glyphs, logos, embossed/debossed motifs, shallow reliefs, or silhouettes corrupted by shadow/glare/background clutter.
+- Build one or more relief-like candidates from the cropped image first (grayscale + contrast normalization + gradient emphasis), then extract contours from that relief instead of tracing the raw RGB photo.
+- Prefer `scikit-image` (`measure.find_contours`, `measure.approximate_polygon`) plus OpenCV for the extraction/simplification pass; use optional polygon cleanup only when the contour is structurally close but noisy.
+- Accept the traced contour only after overlaying it back onto the calibrated photo at well-lit landmarks.
+- Treat the result as a candidate outline, not as authority for fit-critical dimensions. User measurements and cited specs still override it.
+
 ### 3. Shape-first classification and strategy selection (mandatory)
 
 Do not start with fine segmentation. First classify the object as a whole, then choose the cheapest reliable strategy:
@@ -147,7 +157,7 @@ Glyph/number rule (example: "5"):
 
 - if the glyph is clearly recognizable, create the whole glyph envelope first (2D outline -> base solid), then add/refine the organic or local segments
 - do not begin by modeling isolated small segments without a confirmed whole glyph
-- for logos/text from photos, prefer a cleaned high-contrast contour and vector-like outline extraction before extrusion, then add local shape corrections
+- for logos/text from photos, prefer the `image-relief-vectorize` branch: cleaned relief candidate -> vector-like outline extraction -> extrusion, then add local shape corrections
 
 Choose the cheapest path that can still satisfy dimensional accuracy and printability. Do not force reuse when it would create hidden inaccuracies that are harder to fix than rebuilding.
 
@@ -196,7 +206,7 @@ If the reference indicates multiple materials, inserts, coatings, or color regio
 
 ### 6. Compose or edit the output geometry
 
-Use the project libraries for all geometry work — never hand-write STL facets or manually computed triangle meshes for complex objects: **build123d** for engineering solids (sketches, hulls, countersinks, bosses, ribs), **trimesh + manifold3d** for simple CSG, repair, and export, **vedo** for render verification, **opencv-python-headless** for frame extraction and silhouette comparison.
+Use the project libraries for all geometry work — never hand-write STL facets or manually computed triangle meshes for complex objects: **build123d** for engineering solids (sketches, hulls, countersinks, bosses, ribs), **trimesh + manifold3d** for simple CSG, repair, and export, **vedo** for render verification, **opencv-python-headless** + **scikit-image** for frame extraction, relief preprocessing, and silhouette comparison.
 
 Allowed operations include:
 
@@ -352,6 +362,7 @@ Before finishing, provide:
 When relevant, also use these workspace skills:
 
 - `anycubic-kobra-s1-ace-pro-profile` for printer defaults and constraints
+- `image-relief-vectorize` when a photo should first be converted into a relief/height-like image and then into a cleaned vector outline before 3D modeling
 - `research-part-specs` before modeling a real, identifiable product, so fit-critical
   dimensions come from a cited spec instead of photo scaling
 - `stl-create-edit-interview` to collect missing print-intent decisions

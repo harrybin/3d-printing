@@ -17,6 +17,7 @@ If a procedure is needed more than once, it belongs in a skill file.
 | New modeling | `create-ascii-stl` | Parametric modeling, CSG/repair workflow, export rules |
 | STL edits | `edit-stl-transform` | Transform/boolean rules and output/orientation policy |
 | Image to model | `stl-from-image-measurements` | Contact-sheet flow, research branch, render-compare loop |
+| Image preprocessing | `image-relief-vectorize` | Relief-first image cleanup and contour vectorization before 3D modeling |
 | Spec sourcing | `research-part-specs` | Fit-critical dimension sourcing and measurement docs in `docs/` |
 | Preflight interview | `stl-create-edit-interview` | Required intent questions before creating/editing |
 | Mesh quality | `validate-stl-mesh` | Integrity checks, feature probes, stale-file checks |
@@ -103,7 +104,15 @@ used repo libraries (`build123d`, `trimesh`, `manifold3d`, `vedo`).
 | Library | Typical use | Notes |
 | --- | --- | --- |
 | `opencv-python-headless` | Frame extraction, contour comparison, overlay checks | Already used in this repo |
+| `scikit-image` | Relief-style preprocessing, contour extraction, polygon simplification | Already used in this repo |
 | `pillow` | Image processing and contact sheets | Already used in this repo |
+
+### F) 2D vector cleanup / tracing
+
+| Library | Typical use | Notes |
+| --- | --- | --- |
+| `shapely` | Polygon cleanup, boolean cleanup, simplification after contour extraction | Useful optional companion for the new relief/vector workflow; not installed in this repo venv today |
+| Potrace-style Python wrappers | Bitmap-to-vector tracing for glyph/logo style inputs | Treat as optional only; check license before adoption and do not make it the default path |
 
 ## Rule for introducing new libraries
 

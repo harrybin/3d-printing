@@ -18,6 +18,7 @@ Never write STL facets or triangle lists by hand and never assemble complex geom
 | Numeric parameters and vertex post-processing                                        | **numpy**                              |
 | Offscreen rendering for visual verification                                          | **vedo**                               |
 | Photo/video frame analysis for reference comparison                                  | **opencv-python-headless**, **pillow** |
+| Relief/vector preprocessing for photo-derived outlines                               | **scikit-image** + **opencv-python-headless** |
 
 Hand-written meshes (raw `Trimesh(vertices, faces)` constructions, manual `solid ... endsolid` text) are only acceptable for trivial primitives that the libraries cannot express more simply — and even then a library primitive (`trimesh.creation.box`, `Cylinder`, `convex_hull`) is preferred.
 
@@ -55,6 +56,7 @@ Hand-written meshes (raw `Trimesh(vertices, faces)` constructions, manual `solid
   Walk head arc -> flank arc around `O` -> tip arc, then mirror for the -x half, and feed the point list to build123d `Polygon(*pts, align=None)`. Larger `Rf` approaches the straight hull; smaller `Rf` bulges more. Pick `Rf` by overlaying candidates on a reference photo.
 
 - **Offset property of the three-arc egg:** shrinking all three radii by the same wall thickness `t` leaves every arc centre unchanged. So one `egg_outline(head_r, tip_r, flank_r)` helper serves both the outer body and the inner pocket (`egg_outline(R - t, r - t, Rf - t)`), and the wall is automatically constant everywhere.
+- For outlines derived from photos, prefer the relief-first preprocessing branch from `image-relief-vectorize`: generate a contrast-normalized relief candidate, extract/simplify the vector outline, validate the overlay, and only then extrude or rebuild it as exact arcs/lines.
 - Avoid tangential (knife-edge) contact between contours: it creates a non-manifold edge in the tessellation. Overlap solids by >= 1 mm instead. For a ledge that hugs a wall, extend it ~0.5 mm *into* that wall for the same reason.
 - Sketch internal ledges, shelves and floor ribs on the plane they **sit on** (`Plane.XY.offset(floor_z)`) and extrude upwards. Sketching them in a side plane (`Plane.YZ`) and extruding across the cavity silently places a slab in mid-air where it is hidden behind bosses and ribs - a defect that looks like "the feature is missing" in the viewer.
 - OCCT STL exports are often not watertight. Always re-export through trimesh: `vertices = round(vertices, 3)` -> `merge_vertices()` -> `unique_faces()` -> `nondegenerate_faces()` -> verify `is_watertight` -> `export(file_type="stl_ascii")`.
