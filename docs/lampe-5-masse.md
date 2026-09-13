@@ -46,3 +46,15 @@ Rahmen und Leuchtflächen passen jeweils auf das 250 × 250 mm Druckbett. Bei
 entsprechend schmal eingestellt werden. Der schwarze Rahmenteil enthält an den
 10-mm-Auflagen kurze Brücken und sollte mit aktivierter Brückenerkennung
 gedruckt werden.
+
+## Renderkontrolle
+
+Die Ansichten werden reproduzierbar mit
+`python scripts/render_lampe_5.py` aus derselben parametrischen Geometrie wie
+die Druckdateien erzeugt.
+
+![Getrennte Materialkörper und Leuchtflächen](images/lampe-5-aufbau.png)
+
+![Frontansicht des fertigen Modells](images/lampe-5-frontansicht.png)
+
+![Perspektivansicht des fertigen Modells](images/lampe-5-perspektive.png)
