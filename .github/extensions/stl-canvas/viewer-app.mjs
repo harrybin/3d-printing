@@ -1246,7 +1246,7 @@ function endPointerDrag(event) {
     gestureMoved = false
     suppressTouchPick = true
     isShiftDrag = false
-    isRightDrag = false
+    isRightDrag = true
     touchGesture = null
   } else {
     const shouldSaveView = pendingViewSave
