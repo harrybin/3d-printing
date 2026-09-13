@@ -11,7 +11,7 @@ Use this skill when an image is the main template and the fastest reliable path 
 2. extract and clean **vector-like contours**
 3. only then build the 3D model
 
-This is the repo's own workflow because no credible public Copilot skill was found that already packages the full pipeline **reference image -> relief -> vector cleanup -> 3D model**.
+Use it when a direct photo trace is too noisy, but a cleaned relief/height-like intermediate can still produce a reliable 2D basis for later CAD work.
 
 ## Best fit
 
