@@ -1164,6 +1164,9 @@ function beginPointerDrag(event) {
     startX: event.clientX,
     startY: event.clientY,
   }
+  if (canvas.setPointerCapture) {
+    try { canvas.setPointerCapture(event.pointerId) } catch {}
+  }
   activePointers.set(event.pointerId, tracked)
   if (!isMouse) event.preventDefault()
   if (activePointers.size === 1) {
@@ -1207,6 +1210,9 @@ function endPointerDrag(event) {
   const tracked = activePointers.get(event.pointerId)
   if (!tracked) return false
   const moved = Math.abs(tracked.x - tracked.startX) + Math.abs(tracked.y - tracked.startY)
+  if (canvas.releasePointerCapture) {
+    try { canvas.releasePointerCapture(event.pointerId) } catch {}
+  }
   activePointers.delete(event.pointerId)
   if (event.pointerType !== 'mouse' && measureModeInput.checked && activePointers.size === 0 && moved <= 10 && dragMoved <= 10) {
     measurePickAt(event.clientX, event.clientY)
