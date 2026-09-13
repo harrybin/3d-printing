@@ -1160,9 +1160,6 @@ function gestureSnapshot() {
     centerX,
     centerY,
     distance: Math.hypot(a.x - b.x, a.y - b.y) || 1,
-    zoom: parseFloat(zoomInput.value),
-    objectX,
-    objectY,
   }
 }
 function beginPointerDrag(event) {
@@ -1207,14 +1204,7 @@ function updatePointerDrag(event) {
     objectX += centerDx * 0.05
     objectY -= centerDy * 0.05
     setZoomValue(currentZoom * scale)
-    touchGesture = {
-      centerX: next.centerX,
-      centerY: next.centerY,
-      distance: next.distance,
-      zoom: parseFloat(zoomInput.value),
-      objectX,
-      objectY,
-    }
+    touchGesture = { centerX: next.centerX, centerY: next.centerY, distance: next.distance }
     draw()
     return true
   }
@@ -1256,6 +1246,7 @@ function endPointerDrag(event) {
 }
 canvas.addEventListener('pointerdown', (event) => {
   if (event.pointerType === 'mouse' && event.button !== 0 && event.button !== 2) return
+  if (event.pointerType !== 'mouse' && measureModeInput.checked) updateHover(event.clientX, event.clientY)
   beginPointerDrag(event)
 });
 document.addEventListener('pointermove', (e) => {
