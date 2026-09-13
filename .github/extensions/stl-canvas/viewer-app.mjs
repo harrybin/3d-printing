@@ -280,6 +280,7 @@ let rotX = baseView.rotX, rotY = baseView.rotY, rotZ = baseView.rotZ || 0, panX 
 let modelRotX = 0, modelRotY = 0, modelRotZ = 0;
 let isDragging = false, isShiftDrag = false, isRightDrag = false, lastX = 0, lastY = 0, dragMoved = 0;
 let gestureMoved = false;
+let suppressTouchPick = false;
 const canvas = document.getElementById('view');
 const ctx = canvas.getContext('2d');
 const fileChooser = document.getElementById('fileChooser');
@@ -1171,11 +1172,13 @@ function beginPointerDrag(event) {
     isDragging = true
     dragMoved = 0
     gestureMoved = false
+    suppressTouchPick = false
     isShiftDrag = isMouse && event.shiftKey
     isRightDrag = isMouse && event.button === 2
     lastX = event.clientX
     lastY = event.clientY
   } else if (!isMouse && activePointers.size === 2) {
+    suppressTouchPick = true
     touchGesture = gestureSnapshot()
   }
 }
@@ -1194,7 +1197,6 @@ function updatePointerDrag(event) {
     const scale = next.distance / touchGesture.distance
     const currentZoom = parseFloat(zoomInput.value)
     dragMoved += Math.abs(centerDx) + Math.abs(centerDy) + Math.abs(next.distance - touchGesture.distance)
-    if (dragMoved > 0) gestureMoved = true
     objectX += centerDx * 0.05
     objectY -= centerDy * 0.05
     setZoomValue(currentZoom * scale)
@@ -1218,7 +1220,7 @@ function endPointerDrag(event) {
     try { canvas.releasePointerCapture(event.pointerId) } catch {}
   }
   activePointers.delete(event.pointerId)
-  if (event.pointerType !== 'mouse' && measureModeInput.checked && activePointers.size === 0 && moved <= 10 && !gestureMoved) {
+  if (event.pointerType !== 'mouse' && measureModeInput.checked && activePointers.size === 0 && moved <= 10 && !gestureMoved && !suppressTouchPick) {
     measurePickAt(event.clientX, event.clientY)
   }
   if (activePointers.size >= 2) touchGesture = gestureSnapshot()
@@ -1227,6 +1229,8 @@ function endPointerDrag(event) {
     lastX = remaining.x
     lastY = remaining.y
     dragMoved = 0
+    gestureMoved = false
+    suppressTouchPick = true
     isShiftDrag = false
     isRightDrag = false
     touchGesture = null
@@ -1235,6 +1239,7 @@ function endPointerDrag(event) {
     touchGesture = null
     isDragging = false
     gestureMoved = false
+    suppressTouchPick = false
     if (shouldSaveView) saveView()
   }
   return true
