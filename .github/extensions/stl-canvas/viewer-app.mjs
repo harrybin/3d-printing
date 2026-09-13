@@ -114,14 +114,6 @@ const CIRCLE_PLANAR_TOLERANCE_MM = 0.02
    } catch {}
  }
 
- function updateModelUrl(file) {
-   if (runtimeMode === 'extension' || !window.history?.replaceState) return
-   const url = new URL(window.location.href)
-   if (file) url.searchParams.set('model', file)
-   else url.searchParams.delete('model')
-   window.history.replaceState(window.history.state, '', url)
- }
-
 function sanitizeView(input) {
   const out = {}
   for (const key of ['rotX', 'rotY', 'rotZ', 'panX', 'panY', 'zoom']) {
@@ -341,7 +333,6 @@ function setZoomValue(value) {
 function syncCurrentFile(file) {
   currentFile = file || ''
   writeStoredModelFile(currentFile)
-  updateModelUrl(currentFile)
   if (fileChooser.value !== currentFile && [...fileChooser.options].some((option) => option.value === currentFile)) {
     fileChooser.value = currentFile
   }
