@@ -124,9 +124,9 @@ Report:
 ## Sources
 
 - OpenCV contour sample  
-  https://github.com/opencv/opencv/blob/4.x/samples/python/contours.py
+  https://github.com/opencv/opencv/blob/3d3fe5545559c918afed2590fdc8168c8d34e9b9/samples/python/snippets/contours.py
 - scikit-image contour and polygon simplification example  
-  https://github.com/scikit-image/scikit-image/blob/main/doc/examples/edges/plot_polygon.py
+  https://github.com/scikit-image/scikit-image/blob/v0.26.0/doc/examples/edges/plot_polygon.py
 - build123d docs  
   https://github.com/gumyr/build123d
 - trimesh docs  
