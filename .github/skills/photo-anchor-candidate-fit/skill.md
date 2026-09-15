@@ -125,6 +125,7 @@ If the candidate improves one view but breaks frozen geometry or another critica
 - **Engineering replacement part:** freeze mating geometry, fit only outer shell and visible non-mating features.
 - **Cast/molded shell:** fit silhouette families and rib locations in isolated rounds.
 - **Glyph/logo/decorative shape:** larger candidate sweeps are acceptable because fewer mechanical datums are frozen.
+- **Segmented illuminated/decorative face:** freeze the outer contour, divider width, and expected chamber count. Store the requested divider attachments as landmarks; adjust Bézier handles between those landmarks to stretch or compress the curve rather than translating an arbitrary curve section. A divider may pass through the outer frame only at an intentional frame attachment, where the frame trims its stroke cap. It must otherwise stay inside its assigned chamber and not intersect another divider. Reject a candidate if it creates a free round cap, merges two chambers, or creates a tiny residual chamber, even if the visual curve looks closer in isolation.
 
 ## Recommended libraries
 
