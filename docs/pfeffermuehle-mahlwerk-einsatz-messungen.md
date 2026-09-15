@@ -42,10 +42,21 @@ das Mahlwerk-Gehäuse/den Mahlstein.
 ## Konstruktionsentscheidungen (neu, nicht 1:1 vom alten Teil übernommen)
 
 - Schaft (unten, Mehrheit der Höhe): Ø 9,0 mm x 12,0 mm hoch
-- Kopf (oben, dicker, mit Nasen): Ø 10,5 mm (Kernkörper) x 5,0 mm hoch
-- 4 halbrunde Nasen am Kopf, Radius 0,9 mm, Mittelpunkte auf Ø 10,5 mm (Kopfkern-Oberfläche), Nasen-Spitze-zu-Spitze-Hüllkreis Ø 12,3 mm (0,29 mm Spiel zu den gemessenen 12,59 mm - allgemeine Passung)
+- Kopf (oben, dicker, mit Nasen): kein separater zylindrischer Kern mehr -
+  besteht ausschließlich aus 4 sich überlappenden Zylindern ("Nasen",
+  Radius 3,45 mm, Mittelpunkte auf Radius 2,7 mm), sodass der äußere Rand
+  durchgehend aus den 4 Rundungen gebildet wird (Kleeblatt-/Quatrefoil-Form)
+  statt an separaten kleinen Buckeln auf einem größeren Kernzylinder
+  abzureißen. Dadurch verbindet der Rand die Rundungen lückenlos, wie im
+  Referenzfoto (Kachel 02) zu sehen.
+  - Spitzenradius (durch eine Nase): 6,15 mm (Ø 12,3 mm Hüllkreis)
+  - Taillenradius (auf der 45°-Winkelhalbierenden zwischen zwei Nasen,
+    schmalste Stelle des Randes): 4,78 mm - liegt über dem Schaftradius
+    (4,5 mm), damit der Übergang Schaft -> Kopf keine Unterschneidung hat
 - Fünfkant-Durchgangsloch: 6,0 mm Schlüsselweite, volle Höhe 17 mm durchgehend
-- Resultierende Mindestwandstärke um die Fünfkant-Bohrung: 1,35 mm (Schaft) / 2,10 mm (Kopf) - erfüllt die vom Nutzer geforderte Mindestwandstärke von 1 mm
+- Resultierende Mindestwandstärke um die Fünfkant-Bohrung: 1,35 mm (Schaft) /
+  1,63 mm (Kopf-Taille) - erfüllt die vom Nutzer geforderte Mindestwandstärke
+  von 1 mm
 
 Höhen-Aufteilung Schaft/Kopf (12 mm / 5 mm) ist eine plausible, aber nicht
 separat vermessene Annahme - im Vorschau-STL prüfen und bei Bedarf per
@@ -63,8 +74,9 @@ gemessenen 5,75-mm-Schaft.
 
 - Material: PLA/PETG, 0,4 mm Düse
 - Mindestwandstärke überall >= 1,35 mm (deutlich über 0,8 mm Baseline)
-- Überhänge: 0 % unsupported (`mesh_tool.py overhang`), Bauteil ist
-  selbsttragend in der modellierten Ausrichtung (Achse vertikal)
+- Überhänge: 0,4 % unsupported (`mesh_tool.py overhang`), vernachlässigbar
+  kleine konkave Übergangsfläche am Schaft/Kopf-Ansatz; Bauteil ist praktisch
+  vollständig selbsttragend in der modellierten Ausrichtung (Achse vertikal)
 - Naht/Deckflächen (>=89°) 28,24 mm² - flache Deck-/Bodenflächen, unkritisch
 - Mesh: watertight, manifold, euler_number 0 (korrekt für ein durchgehendes
   Loch), keine degenerierten Facetten

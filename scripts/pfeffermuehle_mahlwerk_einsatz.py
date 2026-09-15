@@ -53,20 +53,36 @@ PENT_DIAGONAL = 2.0 * PENT_R * cos(radians(18.0))  # widest vertex-vertex span
 
 SHAFT_D = 9.0                 # lower cylindrical shaft, majority of height
 SHAFT_H = 12.0
-HEAD_D_CORE = 10.5            # thicker head core (without lobes)
 HEAD_H = H_TOTAL - SHAFT_H    # 5.0 mm
 
-LOBE_TIP_D = 12.30            # tip-to-tip envelope, ~0.29 mm clearance under the
-                               # 12.59 mm measured socket (general-fit baseline)
-LOBE_R = (LOBE_TIP_D - HEAD_D_CORE) / 2.0   # radius of each half-round lobe bump
-LOBE_CENTER_R = HEAD_D_CORE / 2.0           # lobe centres sit on the head core surface
+# Head is built as 4 overlapping cylinders ("Nasen"), 90 degrees apart, with
+# NO separate smaller core cylinder. Overlapping lobes keep the outer contour
+# a continuous run of arcs (a "quatrefoil"): the tip radius (through a lobe
+# centre) and the waist radius (on the 45-degree bisector between two lobes)
+# are both defined by lobe-circle geometry, so the rim connecting the
+# roundings is smooth everywhere instead of dropping to a plain cylindrical
+# core between lobes.
+LOBE_TIP_D = 12.30             # tip-to-tip envelope, ~0.29 mm clearance under the
+                                # 12.59 mm measured socket (general-fit baseline)
 LOBE_COUNT = 4
+LOBE_CENTER_R = 2.7            # lobe-centre offset from axis, chosen so adjacent
+                                # lobes overlap (continuous rim) while keeping
+                                # >= 1 mm wall at the 45-degree waist
+LOBE_R = LOBE_TIP_D / 2.0 - LOBE_CENTER_R   # radius of each half-round lobe
+
+
+def _quatrefoil_waist_radius() -> float:
+    """Distance from the axis to the head outline on the 45-degree bisector
+    between two adjacent lobe centres (the narrowest point of the connected
+    rim)."""
+    c45 = cos(radians(45.0))
+    return LOBE_CENTER_R * c45 + (LOBE_R ** 2 - 0.5 * LOBE_CENTER_R ** 2) ** 0.5
 
 SEGMENTS = 96
 
 
-def _wall_mm(outer_d: float) -> float:
-    return (outer_d - PENT_DIAGONAL) / 2.0
+def _wall_mm(outer_radius: float) -> float:
+    return outer_radius - PENT_DIAGONAL / 2.0
 
 
 def _pentagon_solid_mesh() -> trimesh.Trimesh:
@@ -88,9 +104,6 @@ def _body_mesh() -> trimesh.Trimesh:
     shaft = trimesh.creation.cylinder(radius=SHAFT_D / 2.0, height=SHAFT_H, sections=SEGMENTS)
     shaft.apply_translation([0.0, 0.0, SHAFT_H / 2.0])
 
-    head_core = trimesh.creation.cylinder(radius=HEAD_D_CORE / 2.0, height=HEAD_H, sections=SEGMENTS)
-    head_core.apply_translation([0.0, 0.0, SHAFT_H + HEAD_H / 2.0])
-
     lobes = []
     for k in range(LOBE_COUNT):
         angle = radians(360.0 / LOBE_COUNT * k)
@@ -100,7 +113,7 @@ def _body_mesh() -> trimesh.Trimesh:
         lobe.apply_translation([cx, cy, SHAFT_H + HEAD_H / 2.0])
         lobes.append(lobe)
 
-    body = trimesh.boolean.union([shaft, head_core] + lobes, engine="manifold")
+    body = trimesh.boolean.union([shaft] + lobes, engine="manifold")
     return body
 
 
@@ -119,12 +132,16 @@ def build() -> trimesh.Trimesh:
 
 
 def main() -> None:
+    waist_r = _quatrefoil_waist_radius()
     print("pentagon bore across-flats (target):", round(PENT_SW, 3), "mm")
     print("pentagon widest diagonal:", round(PENT_DIAGONAL, 3), "mm")
-    print("wall at shaft (D=%.2f mm):" % SHAFT_D, round(_wall_mm(SHAFT_D), 3), "mm")
-    print("wall at head core (D=%.2f mm):" % HEAD_D_CORE, round(_wall_mm(HEAD_D_CORE), 3), "mm")
-    assert _wall_mm(SHAFT_D) >= MIN_WALL, "shaft wall below required minimum"
-    assert _wall_mm(HEAD_D_CORE) >= MIN_WALL, "head wall below required minimum"
+    print("wall at shaft (r=%.2f mm):" % (SHAFT_D / 2.0), round(_wall_mm(SHAFT_D / 2.0), 3), "mm")
+    print("head lobe tip radius:", round(LOBE_TIP_D / 2.0, 3), "mm")
+    print("head quatrefoil waist radius (45deg, connecting rim):", round(waist_r, 3), "mm")
+    print("wall at head waist:", round(_wall_mm(waist_r), 3), "mm")
+    assert _wall_mm(SHAFT_D / 2.0) >= MIN_WALL, "shaft wall below required minimum"
+    assert _wall_mm(waist_r) >= MIN_WALL, "head waist wall below required minimum"
+    assert waist_r > SHAFT_D / 2.0, "lobes do not overlap enough to stay outside the shaft radius"
     assert LOBE_TIP_D < OLD_INSERT_OD, "lobe tip envelope exceeds measured socket size"
 
     mesh = build()
