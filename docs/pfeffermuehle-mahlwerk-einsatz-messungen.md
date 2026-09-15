@@ -8,8 +8,8 @@ Referenzfotos: `model-sources/pfeffermuehle-mahlwerk/` (Index: `_index.png`)
 
 Der Fünfkant-Antriebsschaft des Mahlwerks wird zentrisch durch den Einsatz
 gesteckt (volles Durchgangsloch, vom Nutzer explizit bestätigt trotz
-resultierender dünnerer Restwand). Der Einsatz ist zylindrisch, nur der obere
-Kopf ist dicker und trägt 4 halbrunde Nasen (90° versetzt), die in die
+resultierender dünnerer Restwand). Der Einsatz ist zylindrisch. Unter dem runden Kragen am oberen Ende sitzen
+4 halbrunde Nasen (90° versetzt), die in die
 vierfach geschwungene ("Kleeblatt") Vertiefung im Mahlwerk-Gehäuse einrasten
 (sichtbar auf Bild-Kachel 02, geprägt "CRUSHGRIND CO"). Damit dreht sich der
 Einsatz mit dem Fünfkant mit und überträgt das Drehmoment über die Nasen auf
@@ -38,29 +38,29 @@ das Mahlwerk-Gehäuse/den Mahlstein.
 | Bohrung im beschädigten Fragment | 7,06 mm | Kachel 01 | gemessen, aber **kein Konstruktionsmaß** - laut Nutzer hatte der alte, intakte Einsatz überall mind. 1 mm Wandstärke; 7,06 mm ist die durch den Bruch aufgeweitete Öffnung, nicht die ursprüngliche Bohrung |
 | Wandstärke Bruchstück | 2,12 mm | Kachel 06 | gemessen (Referenz für Mindestwandstärke) |
 | Nasen-Muster | 4 Nasen, 90° versetzt | Kachel 02, vom Nutzer bestätigt | bestätigt |
+| Länge Nase inklusive Kragen | 7,08 mm | Nutzerangabe | gemessen/bestätigt |
+| Kragenhöhe | 2,0 mm | Nutzerbestätigte Standardannahme | Annahme |
 
 ## Konstruktionsentscheidungen (neu, nicht 1:1 vom alten Teil übernommen)
 
-- Schaft (unten, Mehrheit der Höhe): Ø 9,0 mm x 12,0 mm hoch
-- Kopf (oben, dicker, mit Nasen): kein separater zylindrischer Kern mehr -
-  besteht ausschließlich aus 4 sich überlappenden Zylindern ("Nasen",
-  Radius 3,45 mm, Mittelpunkte auf Radius 2,7 mm), sodass der äußere Rand
-  durchgehend aus den 4 Rundungen gebildet wird (Kleeblatt-/Quatrefoil-Form)
-  statt an separaten kleinen Buckeln auf einem größeren Kernzylinder
-  abzureißen. Dadurch verbindet der Rand die Rundungen lückenlos, wie im
-  Referenzfoto (Kachel 02) zu sehen.
+- Schaft: Ø 9,0 mm, bis 9,92 mm Höhe glatt zylindrisch
+- Nasenzone: 4 voneinander getrennte Rundnasen, je Radius 1,65 mm mit
+  Mittelpunkten auf dem Schaftradius (4,5 mm). Jede Nase überlappt den
+  zylindrischen Schaft um 1,65 mm, die Nasen grenzen jedoch nicht
+  aneinander. Das entspricht den vier separaten runden Vertiefungen auf
+  Kachel 02. Die Nasen sind 5,08 mm hoch; zusammen mit dem Kragen
+  entsprechen sie dem gemessenen Maß von 7,08 mm.
   - Spitzenradius (durch eine Nase): 6,15 mm (Ø 12,3 mm Hüllkreis)
-  - Taillenradius (auf der 45°-Winkelhalbierenden zwischen zwei Nasen,
-    schmalste Stelle des Randes): 4,78 mm - liegt über dem Schaftradius
-    (4,5 mm), damit der Übergang Schaft -> Kopf keine Unterschneidung hat
+  - Zwischen den Nasen bleibt der Schaft bei Radius 4,50 mm sichtbar; die
+    runden Nasen berühren sich nicht.
+- Kragen: runde Deckscheibe, Ø 12,3 mm x 2,0 mm hoch, bündig über den Nasen
 - Fünfkant-Durchgangsloch: 6,0 mm Schlüsselweite, volle Höhe 17 mm durchgehend
-- Resultierende Mindestwandstärke um die Fünfkant-Bohrung: 1,35 mm (Schaft) /
-  1,63 mm (Kopf-Taille) - erfüllt die vom Nutzer geforderte Mindestwandstärke
-  von 1 mm
+- Resultierende Mindestwandstärke um die Fünfkant-Bohrung: 1,35 mm am
+  zylindrischen Schaft; an Nasenspitze/Kragen 3,00 mm. Die Mindestwandstärke
+  von 1 mm ist damit erfüllt.
 
-Höhen-Aufteilung Schaft/Kopf (12 mm / 5 mm) ist eine plausible, aber nicht
-separat vermessene Annahme - im Vorschau-STL prüfen und bei Bedarf per
-Skript-Parameter (`SHAFT_H`, `HEAD_H`) anpassen.
+Die Höhenaufteilung folgt der bestätigten Nasenlänge inklusive Kragen:
+9,92 mm glatter Schaft + 5,08 mm Nasenzone + 2,00 mm Kragen = 17,00 mm.
 
 ## Recherche
 
@@ -74,9 +74,11 @@ gemessenen 5,75-mm-Schaft.
 
 - Material: PLA/PETG, 0,4 mm Düse
 - Mindestwandstärke überall >= 1,35 mm (deutlich über 0,8 mm Baseline)
-- Überhänge: 0,4 % unsupported (`mesh_tool.py overhang`), vernachlässigbar
-  kleine konkave Übergangsfläche am Schaft/Kopf-Ansatz; Bauteil ist praktisch
-  vollständig selbsttragend in der modellierten Ausrichtung (Achse vertikal)
-- Naht/Deckflächen (>=89°) 28,24 mm² - flache Deck-/Bodenflächen, unkritisch
+- Ausgangsmodell (Schaft unten): 0,2 % unsupported
+  (`mesh_tool.py overhang`), praktisch vollständig selbsttragend.
+- Druckorientierte Datei `models/pfeffermuehle-mahlwerk-einsatz-druckorientiert.stl`
+  (Kragen unten, Schaft oben): 33,9 % unsupported; für diese bewusst
+  gewünschte Orientierung sind Stützstrukturen erforderlich.
+- Naht/Deckflächen (>=89°) 55,17 mm² - flache Deck-/Bodenflächen, unkritisch
 - Mesh: watertight, manifold, euler_number 0 (korrekt für ein durchgehendes
   Loch), keine degenerierten Facetten
