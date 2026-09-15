@@ -5,12 +5,12 @@ export const APP_HTML = `
     <select id="fileChooser"><option value="">Loading…</option></select>
   </div>
   <div class="field">
-  <button type="button" id="reloadBtn" title="Reload current STL">Reload</button>
+  <button type="button" id="reloadBtn" title="Reload current model">Reload</button>
 </div>
 <label class="field"><input id="autoReload" type="checkbox"> Auto reload</label>
 <div class="field">
   <label for="zoom">Zoom</label>
-    <input id="zoom" type="range" min="0.1" max="5" step="0.1" value="1.7">
+    <input id="zoom" type="range" min="0.1" max="30" step="0.1" value="1.7">
   </div>
   <div class="field">
     <label><input id="wireframe" type="checkbox"> Wireframe</label>
@@ -22,6 +22,7 @@ export const APP_HTML = `
       <option value="phong">Phong</option>
       <option value="normal">Normal</option>
       <option value="basic">Basic</option>
+      <option value="material">Material</option>
     </select>
   </div>
 </div>
@@ -78,7 +79,7 @@ const viewApiUrl = options.viewApiUrl || '/api/view'
 const modelsApiUrl = options.modelsApiUrl || '/api/models'
 const modelApiUrl = options.modelApiUrl || '/api/model'
 const pollIntervalMs = Number.isFinite(options.pollIntervalMs) ? options.pollIntervalMs : 1500
-const storageShadingModes = ['basic', 'lambert', 'normal', 'phong']
+const storageShadingModes = ['basic', 'lambert', 'normal', 'phong', 'material']
 const fallbackView = {
   rotX: -64.5,
   rotY: 8,
@@ -105,7 +106,7 @@ function sanitizeView(input) {
     if (raw === null || raw === undefined || raw === '') continue
     const value = Number(raw)
     if (!Number.isFinite(value)) continue
-    out[key] = key === 'zoom' ? Math.min(5, Math.max(0.1, value)) : value
+    out[key] = key === 'zoom' ? Math.min(30, Math.max(0.1, value)) : value
   }
   for (const key of ['showGrid', 'showAxes', 'showBoundingBox', 'showInfo', 'wireframe']) {
     if (typeof input?.[key] === 'boolean') out[key] = input[key]
@@ -251,6 +252,7 @@ function escapeHtml(value) {
 }
 
 let baseView = { ...configuredFallbackView };
+let reloadInFlight = false;
 const VIEW_PRESETS = {
   isometric: { rotX: -60, rotY: 45, rotZ: 0 },
   top: { rotX: 0, rotY: 0, rotZ: 0 },
@@ -287,6 +289,8 @@ wireframeInput.checked = baseView.wireframe;
 shadingInput.value = baseView.shading;
 let rawTriangles = [];
 let triangles = [];
+let rawTriangleColors = [];
+let triangleColors = [];
 // Crease-aware per-corner normals, rebuilt whenever the geometry changes.
 let cornerNormals = null, faceNormals = null;
 // Measure gizmo state: welded points, crease edges, fitted circles.
@@ -301,7 +305,7 @@ let currentFile = defaultModelFile;
 // Anycubic Kobra S1 build plate: 250 x 250 mm.
 const BED_SIZE_MM = 250;
 const MM_TO_PX = 1.8;
-let currentMtime = 0;
+let currentMtime = '';
 let knownFiles = [];
 let savedZoom = Number.isFinite(baseView.zoom) ? baseView.zoom : null;
 let saveTimer = null;
@@ -335,6 +339,7 @@ function applyModelRotation() {
     t = x * cz - y * sz; y = x * sz + y * cz; x = t;
     return [x, y, z];
   }));
+  triangleColors = [...rawTriangleColors];
   modelBounds = computeBounds(triangles) || modelBounds;
   computeCornerNormals();
 }
@@ -521,7 +526,7 @@ async function readModelManifest() {
 }
 
 async function readModelVersion(file) {
-  if (runtimeMode === 'extension') return currentMtime || 0;
+  if (runtimeMode === 'extension') return currentMtime || '';
   try {
     const res = await fetch(`${modelUrl(file)}?t=${Date.now()}`, { method: 'HEAD', cache: 'no-store' });
     if (!res.ok) return '';
@@ -557,31 +562,39 @@ function loadModel(file, preserveView) {
       const s = data.stats || {}
       const b = s.bounds
       const trianglesData = Array.isArray(data.triangles) ? data.triangles : []
+      const colorsData = Array.isArray(data.triangleColors) ? data.triangleColors : []
+      if (s.format === '3mf') shadingInput.value = 'material'
       if (!s.facets || s.facets <= 0 || !trianglesData.length) {
-        const msg = 'Failed to load STL: no facet data found. Check that the file is a valid STL export.'
+        const msg = 'Failed to load model: no triangle data found. Check that the file is a valid STL or 3MF export.'
         meta.textContent = msg
         triangles = []
         rawTriangles = []
+        rawTriangleColors = []
+        triangleColors = []
         modelBounds = null
         currentFile = file
-        currentMtime = runtimeMode === 'extension' ? 0 : ''
+        currentMtime = runtimeMode === 'extension' ? '' : ''
         return false
       }
       const safeFile = escapeHtml(data.path || file)
       meta.innerHTML = '<span><strong>File:</strong> ' + safeFile + '</span>' +
-        '<span><strong>Format:</strong> ' + (s.format === 'binary' ? 'Binary' : 'ASCII') + '</span>' +
+        '<span><strong>Format:</strong> ' + (s.format === 'binary' ? 'Binary STL' : s.format === 'ascii' ? 'ASCII STL' : '3MF') + '</span>' +
         '<span><strong>Facets:</strong> ' + s.facets + '</span>' +
         '<span><strong>Vertices:</strong> ' + s.vertices + '</span>' +
         (b ? '<span><strong>Size (mm):</strong> ' + b.size.x.toFixed(1) + ' x ' + b.size.y.toFixed(1) + ' x ' + b.size.z.toFixed(1) + '</span>' : '')
       triangles = []
       rawTriangles = []
+      rawTriangleColors = []
       for (const tri of trianglesData) {
-        if (Array.isArray(tri) && tri.length === 3) rawTriangles.push(tri)
+        if (Array.isArray(tri) && tri.length === 3) {
+          rawTriangles.push(tri)
+          rawTriangleColors.push(typeof colorsData[rawTriangles.length - 1] === 'string' ? colorsData[rawTriangles.length - 1] : '#d6d9de')
+        }
       }
       modelBounds = b || computeBounds(rawTriangles)
       applyModelRotation()
       currentFile = file
-      currentMtime = data.mtime || (runtimeMode === 'extension' ? 0 : '')
+      currentMtime = data.mtime || ''
       if (!preserveView) applySavedOrFit()
       draw()
       return true
@@ -599,25 +612,27 @@ function refreshFileChooser(files) {
   fileChooser.innerHTML = files.map((name) => '<option value="' + name + '">' + name + '</option>').join('');
   fileChooser.value = files.indexOf(keep) >= 0 ? keep : files[0];
 }
-// Poll models/ so externally rewritten STL files refresh the viewer automatically.
+// Poll models/ so externally rewritten model files refresh the viewer automatically.
 function pollForChanges() {
+  if (reloadInFlight) return
+  reloadInFlight = true
   readModelManifest().then(({ files, mtimes }) => {
     if (!files.length) return
     refreshFileChooser(files)
     const selected = fileChooser.value
     if (!selected || !autoReloadInput.checked) return
     if (runtimeMode === 'extension') {
-      const version = (mtimes || {})[selected] || 0
-      if (selected !== currentFile) { loadModel(selected, false); return }
-      if (version && version !== currentMtime) loadModel(selected, true)
+      const version = (mtimes || {})[selected] || ''
+      if (selected !== currentFile) return loadModel(selected, false)
+      if (version && version !== currentMtime) return loadModel(selected, true)
       return
     }
-    readModelVersion(selected).then((version) => {
+    return readModelVersion(selected).then((version) => {
       if (!version) return
-      if (selected !== currentFile) { loadModel(selected, false); return }
-      if (currentMtime && version !== currentMtime) loadModel(selected, true)
+      if (selected !== currentFile) return loadModel(selected, false)
+      if (currentMtime && version !== currentMtime) return loadModel(selected, true)
     }).catch(() => {})
-  }).catch(() => {})
+  }).catch(() => {}).finally(() => { reloadInFlight = false })
 }
 
 function resizeCanvas() { const rect = canvas.getBoundingClientRect(); canvas.width = rect.width * window.devicePixelRatio; canvas.height = rect.height * window.devicePixelRatio; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.scale(window.devicePixelRatio, window.devicePixelRatio); }
@@ -713,7 +728,7 @@ function drawBoundingBox(w, h, rx, ry, rz, zoom, offX, offY) {
 const LIGHT = (() => { const v = [-0.35, 0.45, 0.82]; const l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; })();
 const HALFWAY = (() => { const v = [LIGHT[0], LIGHT[1], LIGHT[2] + 1]; const l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; })();
 const SURFACE = [214, 217, 222];
-function shadeNormal(nx, ny, nz, mode, out) {
+function shadeNormal(nx, ny, nz, mode, out, material = SURFACE) {
   if (mode === 'basic') { out[0] = 31; out[1] = 111; out[2] = 235; return; }
   if (mode === 'normal') {
     out[0] = 127 + 128 * nx; out[1] = 127 + 128 * ny; out[2] = 127 + 128 * nz; return;
@@ -721,7 +736,8 @@ function shadeNormal(nx, ny, nz, mode, out) {
   const d = nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2];
   // Ambient plus a weak fill from behind keeps cavities readable.
   const intensity = 0.30 + 0.78 * Math.max(0, d) + 0.10 * Math.max(0, -d);
-  let r = SURFACE[0] * intensity, g = SURFACE[1] * intensity, b = SURFACE[2] * intensity;
+  const base = mode === 'material' ? material : SURFACE;
+  let r = base[0] * intensity, g = base[1] * intensity, b = base[2] * intensity;
   if (mode === 'phong') {
     const s = Math.max(0, nx * HALFWAY[0] + ny * HALFWAY[1] + nz * HALFWAY[2]);
     const spec = Math.pow(s, 30) * 190;
@@ -764,7 +780,9 @@ function rasterizeMesh(rx, ry, rz, zoom, w, h, centerX, centerY, baseZ) {
     for (let j = 0; j < 3; j++) {
       const b = i * 9 + j * 3;
       const n = rot([cornerNormals[b], cornerNormals[b + 1], cornerNormals[b + 2]], rx, ry, rz);
-      shadeNormal(n[0], n[1], n[2], mode, cols[j]);
+      const color = triangleColors[i] || '#d6d9de';
+      const material = [parseInt(color.slice(1, 3), 16), parseInt(color.slice(3, 5), 16), parseInt(color.slice(5, 7), 16)];
+      shadeNormal(n[0], n[1], n[2], mode, cols[j], material);
     }
     let minX = Math.max(0, Math.floor(Math.min(sx[0], sx[1], sx[2])));
     let maxX = Math.min(W - 1, Math.ceil(Math.max(sx[0], sx[1], sx[2])));
@@ -1117,7 +1135,7 @@ measureModeInput.addEventListener('change', () => {
 });
 measureClearBtn.addEventListener('click', () => { clearMeasurement(); draw(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { clearMeasurement(); draw(); } });
-canvas.addEventListener('wheel', (e) => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.1 : 0.1; zoomInput.value = Math.max(0.1, Math.min(5, parseFloat(zoomInput.value) + delta)); draw(); saveView(); });
+canvas.addEventListener('wheel', (e) => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.1 : 0.1; zoomInput.value = Math.max(0.1, Math.min(30, parseFloat(zoomInput.value) + delta)); draw(); saveView(); });
 canvas.addEventListener('dblclick', () => { rotX = baseView.rotX; rotY = baseView.rotY; rotZ = baseView.rotZ || 0; panX = baseView.panX; panY = baseView.panY; savedZoom = Number.isFinite(baseView.zoom) ? baseView.zoom : null; applySavedOrFit(); draw(); saveView(); });
 zoomInput.addEventListener('input', () => { draw(); saveView(); });
 wireframeInput.addEventListener('change', () => { draw(); saveView(); });
@@ -1160,8 +1178,8 @@ readViewDefaults().then((view) => {
   applyBaseView(view)
   return readModelManifest().then(({ files }) => {
     if (!files.length) {
-      fileChooser.innerHTML = '<option value="">No STL files in models/</option>'
-      document.getElementById('meta').textContent = 'No STL files found in models/.'
+      fileChooser.innerHTML = '<option value="">No STL or 3MF files in models/</option>'
+      document.getElementById('meta').textContent = 'No STL or 3MF files found in models/.'
       return false
     }
     fileChooser.innerHTML = files.map((name) => '<option value="' + name + '">' + name + '</option>').join('')

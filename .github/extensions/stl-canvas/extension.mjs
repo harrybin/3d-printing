@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, statSy
 import { resolve, join, dirname } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
+import { inflateRawSync } from "node:zlib";
 import { joinSession, createCanvas, CanvasError } from "@github/copilot-sdk/extension";
 
 const extensionDir = dirname(fileURLToPath(import.meta.url));
@@ -17,7 +18,7 @@ function selectDefaultModel() {
 const defaultStlPath = selectDefaultModel();
 const defaultModelFile = defaultStlPath.split(/[\\/]/).pop();
 
-const shadingModes = ["basic", "lambert", "normal", "phong"];
+const shadingModes = ["basic", "lambert", "normal", "phong", "material"];
 const fallbackView = {
     rotX: -64.5,
     rotY: 8,
@@ -58,7 +59,7 @@ function sanitizeView(input) {
         const value = Number(raw);
         if (!Number.isFinite(value)) continue;
         // Zoom must stay inside the slider's usable range or the viewer renders nothing.
-        out[key] = key === "zoom" ? Math.min(5, Math.max(0.1, value)) : value;
+        out[key] = key === "zoom" ? Math.min(30, Math.max(0.1, value)) : value;
     }
     for (const key of ["showGrid", "showAxes", "showBoundingBox", "showInfo", "wireframe"]) {
         const raw = input?.[key];
@@ -97,21 +98,24 @@ function listWorkspaceStlFiles() {
     const modelsDir = resolve(process.cwd(), "models");
     if (!existsSync(modelsDir)) return [];
     return readdirSync(modelsDir)
-        .filter((name) => name.toLowerCase().endsWith(".stl"))
+        .filter((name) => /\.(stl|3mf)$/i.test(name))
         .sort((a, b) => a.localeCompare(b));
 }
 
-function fileMtime(name) {
+function fileVersion(name) {
     try {
-        return statSync(modelLabelToPath(name)).mtimeMs;
+        const stat = statSync(modelLabelToPath(name));
+        // ZIP-based 3MF exports can be rewritten within one filesystem timestamp
+        // tick. Including size makes auto-reload detect those replacements too.
+        return `${stat.mtimeMs}:${stat.size}`;
     } catch {
-        return 0;
+        return "";
     }
 }
 
-function listWorkspaceStlMtimes() {
+function listWorkspaceModelVersions() {
     const out = {};
-    for (const name of listWorkspaceStlFiles()) out[name] = fileMtime(name);
+    for (const name of listWorkspaceStlFiles()) out[name] = fileVersion(name);
     return out;
 }
 
@@ -220,17 +224,125 @@ function parseStlBuffer(buffer) {
     return { ...parsed, triangles };
 }
 
+function meshStats(triangles, format) {
+    let min = [Infinity, Infinity, Infinity];
+    let max = [-Infinity, -Infinity, -Infinity];
+    for (const triangle of triangles) {
+        for (const vertex of triangle) {
+            min = [Math.min(min[0], vertex[0]), Math.min(min[1], vertex[1]), Math.min(min[2], vertex[2])];
+            max = [Math.max(max[0], vertex[0]), Math.max(max[1], vertex[1]), Math.max(max[2], vertex[2])];
+        }
+    }
+    return {
+        facets: triangles.length,
+        vertices: triangles.length * 3,
+        uniqueVertices: new Set(triangles.flat().map((vertex) => `${vertex[0]},${vertex[1]},${vertex[2]}`)).size,
+        bounds: triangles.length
+            ? {
+                  min: { x: min[0], y: min[1], z: min[2] },
+                  max: { x: max[0], y: max[1], z: max[2] },
+                  size: { x: max[0] - min[0], y: max[1] - min[1], z: max[2] - min[2] },
+              }
+            : null,
+        format,
+    };
+}
+
+function readZipEntry(buffer, entryName) {
+    for (let offset = buffer.length - 22; offset >= Math.max(0, buffer.length - 65557); offset -= 1) {
+        if (buffer.readUInt32LE(offset) !== 0x06054b50) continue;
+        let cursor = buffer.readUInt32LE(offset + 16);
+        const entries = buffer.readUInt16LE(offset + 10);
+        for (let index = 0; index < entries; index += 1) {
+            if (buffer.readUInt32LE(cursor) !== 0x02014b50) throw new Error("Invalid 3MF central directory");
+            const compression = buffer.readUInt16LE(cursor + 10);
+            const compressedSize = buffer.readUInt32LE(cursor + 20);
+            const nameLength = buffer.readUInt16LE(cursor + 28);
+            const extraLength = buffer.readUInt16LE(cursor + 30);
+            const commentLength = buffer.readUInt16LE(cursor + 32);
+            const localOffset = buffer.readUInt32LE(cursor + 42);
+            const name = buffer.subarray(cursor + 46, cursor + 46 + nameLength).toString("utf8");
+            if (name === entryName) {
+                if (buffer.readUInt32LE(localOffset) !== 0x04034b50) throw new Error("Invalid 3MF local header");
+                const localNameLength = buffer.readUInt16LE(localOffset + 26);
+                const localExtraLength = buffer.readUInt16LE(localOffset + 28);
+                const start = localOffset + 30 + localNameLength + localExtraLength;
+                const data = buffer.subarray(start, start + compressedSize);
+                if (compression === 0) return data;
+                if (compression === 8) return inflateRawSync(data);
+                throw new Error(`Unsupported 3MF compression method: ${compression}`);
+            }
+            cursor += 46 + nameLength + extraLength + commentLength;
+        }
+        break;
+    }
+    throw new Error(`3MF entry not found: ${entryName}`);
+}
+
+function transform3mfPoint(point, transform) {
+    if (!transform) return point;
+    const values = transform.trim().split(/\s+/).map(Number);
+    if (values.length !== 12 || values.some((value) => !Number.isFinite(value))) return point;
+    const [x, y, z] = point;
+    return [
+        values[0] * x + values[3] * y + values[6] * z + values[9],
+        values[1] * x + values[4] * y + values[7] * z + values[10],
+        values[2] * x + values[5] * y + values[8] * z + values[11],
+    ];
+}
+
+function parse3mfDocument(xml, transform, triangles, triangleColors) {
+    const materials = [...xml.matchAll(/<base\b[^>]*\bdisplaycolor="(#[0-9A-Fa-f]{6})(?:[0-9A-Fa-f]{2})?"[^>]*\/>/g)]
+        .map((match) => match[1]);
+    for (const object of xml.matchAll(/<object\b[\s\S]*?<\/object>/g)) {
+        const verticesBlock = object[0].match(/<vertices>([\s\S]*?)<\/vertices>/);
+        if (!verticesBlock) continue;
+        const materialIndex = Number(object[0].match(/<object\b[^>]*\bpindex="(\d+)"/)?.[1]);
+        const color = materials[materialIndex] || "#d6d9de";
+        const vertices = [...verticesBlock[1].matchAll(/<vertex\b[^>]*\bx="([^"]+)"[^>]*\by="([^"]+)"[^>]*\bz="([^"]+)"[^>]*\/>/g)]
+            .map((match) => transform3mfPoint([Number(match[1]), Number(match[2]), Number(match[3])], transform));
+        for (const triangle of object[0].matchAll(/<triangle\b[^>]*\bv1="(\d+)"[^>]*\bv2="(\d+)"[^>]*\bv3="(\d+)"[^>]*\/>/g)) {
+            const indices = [Number(triangle[1]), Number(triangle[2]), Number(triangle[3])];
+            if (indices.every((index) => vertices[index])) {
+                triangles.push(indices.map((index) => vertices[index]));
+                triangleColors.push(color);
+            }
+        }
+    }
+}
+
+function parse3mfBuffer(buffer) {
+    const rootXml = readZipEntry(buffer, "3D/3dmodel.model").toString("utf8");
+    const triangles = [];
+    const triangleColors = [];
+    parse3mfDocument(rootXml, null, triangles, triangleColors);
+
+    const buildTransform = rootXml.match(/<item\b[^>]*\btransform="([^"]+)"/)?.[1];
+    const externalDocuments = new Set(
+        [...rootXml.matchAll(/<component\b[^>]*\bp:path="\/([^"]+)"/g)].map((match) => match[1]),
+    );
+    for (const entryName of externalDocuments) {
+        const xml = readZipEntry(buffer, entryName).toString("utf8");
+        parse3mfDocument(xml, buildTransform, triangles, triangleColors);
+    }
+    return { ...meshStats(triangles, "3mf"), triangles, triangleColors };
+}
+
+function parseModelBuffer(modelPath, buffer) {
+    return modelPath.toLowerCase().endsWith(".3mf") ? parse3mfBuffer(buffer) : parseStlBuffer(buffer);
+}
+
 function readStlFile(modelPath) {
     const raw = readFileSync(modelPath);
-    const format = detectStlFormat(raw);
-    const parsed = parseStlBuffer(raw);
+    const parsed = parseModelBuffer(modelPath, raw);
     return {
         path: modelPath.split(/[\\/]/).pop(),
-        format,
-        stats: { ...parsed, triangles: undefined },
-        content: format === "ascii" ? raw.toString("utf8") : "",
+        format: parsed.format,
+        stats: { ...parsed, triangles: undefined, triangleColors: undefined },
+        content: parsed.format === "ascii" ? raw.toString("utf8") : "",
         triangles: parsed.triangles || [],
-        mtime: statSync(modelPath).mtimeMs,
+        triangleColors: parsed.triangleColors || [],
+        mtime: fileVersion(modelPath.split(/[\\/]/).pop()),
     };
 }
 
@@ -324,7 +436,7 @@ async function startServer(modelPath) {
         if (req.url && req.url.startsWith("/api/models")) {
             res.setHeader("Content-Type", "application/json; charset=utf-8");
             res.setHeader("Cache-Control", "no-store");
-            res.end(JSON.stringify({ files: listWorkspaceStlFiles(), mtimes: listWorkspaceStlMtimes() }));
+            res.end(JSON.stringify({ files: listWorkspaceStlFiles(), mtimes: listWorkspaceModelVersions() }));
             return;
         }
         if (req.url && req.url.startsWith("/api/model")) {
@@ -334,16 +446,17 @@ async function startServer(modelPath) {
                 const resolved = modelLabelToPath(requested);
                 if (!existsSync(resolved)) throw new Error(`Model file not found: models/${requested}`);
                 const raw = readFileSync(resolved);
-                const parsed = parseStlBuffer(raw);
-                const content = detectStlFormat(raw) === "ascii" ? raw.toString("utf8") : "";
+                const parsed = parseModelBuffer(resolved, raw);
+                const content = parsed.format === "ascii" ? raw.toString("utf8") : "";
                 res.setHeader("Content-Type", "application/json; charset=utf-8");
                 res.setHeader("Cache-Control", "no-store");
                 res.end(JSON.stringify({
                     path: requested,
                     stats: { ...parsed, triangles: undefined },
                     triangles: parsed.triangles || [],
+                    triangleColors: parsed.triangleColors || [],
                     content,
-                    mtime: fileMtime(requested),
+                    mtime: fileVersion(requested),
                 }));
                 return;
             } catch (err) {
@@ -367,7 +480,7 @@ await joinSession({
         createCanvas({
             id: "stl-canvas",
             displayName: "STL Canvas",
-            description: "Renders and inspects ASCII or binary STL files from the workspace",
+            description: "Renders and inspects STL and 3MF model files from the workspace",
             inputSchema: {
                 type: "object",
                 properties: { stlPath: { type: "string", default: defaultStlPath } },
@@ -414,8 +527,8 @@ await joinSession({
                         const { requested, modelPath } = resolveRequestedModelPath(ctx.input?.stlPath);
                         if (!existsSync(modelPath)) throw new CanvasError("stl_not_found", `Model file not found: ${requested}`);
                         const raw = readFileSync(modelPath);
-                        const parsed = parseStlBuffer(raw);
-                        return { ...parsed, triangles: undefined };
+                        const parsed = parseModelBuffer(modelPath, raw);
+                        return { ...parsed, triangles: undefined, triangleColors: undefined };
                     },
                 },
             ],
