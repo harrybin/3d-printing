@@ -20,13 +20,20 @@ import trimesh
 HEIGHT = 240.0
 DEPTH = 40.0
 LAYER_DEPTH = 20.0
-FRAME_WIDTH = 6.0
-DIVIDER_WIDTH = 5.0
-LEDGE_WIDTH = 10.0
-LEDGE_BOTTOM_Z = 36.0
-LEDGE_TOP_Z = 38.0
+FRAME_WIDTH = 1.0
+DIVIDER_WIDTH = 1.0
+LEDGE_WIDTH = 3.0
+LEDGE_BOTTOM_Z = 39.0
+LEDGE_TOP_Z = 40.0
 PANEL_THICKNESS = 2.0
+PANEL_BOTTOM_Z = 36.0
 PANEL_CLEARANCE = 0.30
+SNAP_TAB_WIDTH = 0.8
+SNAP_TAB_OVERHANG = 0.4
+SNAP_TAB_FRAME_FOOT = 0.6
+SNAP_TAB_BOTTOM_Z = 35.6
+SNAP_TAB_TOP_Z = 36.0
+EXPECTED_PANEL_COUNT = 4
 
 MODEL_DIR = Path(__file__).resolve().parents[1] / "models"
 OUT_FRAME = MODEL_DIR / "lampe-5-rahmen.3mf"
@@ -68,17 +75,17 @@ def _path(start, segments, count=10) -> np.ndarray:
 def _outer_outline() -> manifold.CrossSection:
     # Clockwise photograph-derived outline. EvenOdd avoids relying on winding.
     points = _path(
-        (36, 240),
+        (44, 240),
         [
             ((75, 240), (140, 240), (160, 238)),
             ((168, 237), (172, 231), (172, 223)),
-            ((172, 213), (171, 204), (166, 198)),
-            ((145, 190), (103, 193), (78, 192)),
+            ((172, 213), (171, 204), (163, 198)),
+            ((151, 193), (103, 193), (78, 192)),
             ((69, 191), (62, 185), (64, 176)),
             ((65, 168), (70, 164), (78, 164)),
             ((91, 166), (104, 165), (114, 162)),
             ((140, 156), (156, 146), (165, 131)),
-            ((175, 114), (180, 100), (177, 84)),
+            ((175, 114), (179, 101), (178, 84)),
             ((176, 58), (168, 40), (154, 27)),
             ((141, 12), (123, 3), (104, 2)),
             ((80, 0), (58, 4), (42, 11)),
@@ -91,9 +98,9 @@ def _outer_outline() -> manifold.CrossSection:
             ((99, 94), (90, 97), (82, 97)),
             ((67, 95), (53, 95), (45, 97)),
             ((32, 99), (24, 106), (22, 117)),
-            ((15, 134), (14, 151), (17, 165)),
-            ((18, 183), (17, 202), (22, 213)),
-            ((25, 225), (29, 235), (36, 240)),
+            ((16, 134), (16, 151), (18, 165)),
+            ((19, 183), (19, 201), (22, 213)),
+            ((27, 227), (32, 240), (44, 240)),
         ],
         count=12,
     )
@@ -113,6 +120,72 @@ def _stroke(start, segments, width) -> manifold.CrossSection:
     return manifold.CrossSection.compose(capsules).simplify(0.05)
 
 
+def _snap_tabs(interior: manifold.CrossSection) -> manifold.CrossSection:
+    """Attach each retaining tab to the nearest inner frame edge."""
+    requested_positions = (
+        (78.0, 238.0),
+        (160.0, 220.0),
+        (78.0, 188.0),
+        (127.0, 164.0),
+        (30.0, 145.0),
+        (176.0, 108.0),
+        (103.0, 72.0),
+        (13.0, 57.0),
+        (55.0, 28.0),
+        (102.0, 4.0),
+        (143.0, 55.0),
+        (106.0, 43.0),
+    )
+    inner_contours = interior.to_polygons()
+    tabs = []
+    for requested in requested_positions:
+        target = _path(requested, [])[0]
+        edge_point = min(
+            (point for contour in inner_contours for point in contour),
+            key=lambda point: np.linalg.norm(point - target),
+        )
+        inward = target - edge_point
+        inward_length = np.linalg.norm(inward)
+        if inward_length == 0.0:
+            continue
+        inward /= inward_length
+        positive_center = edge_point + inward * SNAP_TAB_OVERHANG
+        negative_center = edge_point - inward * SNAP_TAB_OVERHANG
+        probe_radius = 0.25
+        positive_inside = (
+            (
+                manifold.CrossSection.circle(probe_radius, 12).translate(
+                    tuple(positive_center)
+                )
+                ^ interior
+            ).area()
+        )
+        negative_inside = (
+            (
+                manifold.CrossSection.circle(probe_radius, 12).translate(
+                    tuple(negative_center)
+                )
+                ^ interior
+            ).area()
+        )
+        inward = inward if positive_inside >= negative_inside else -inward
+        frame_foot = edge_point - inward * SNAP_TAB_FRAME_FOOT
+        opening_tip = edge_point + inward * SNAP_TAB_OVERHANG
+        tabs.append(
+            manifold.CrossSection.batch_hull(
+                [
+                    manifold.CrossSection.circle(SNAP_TAB_WIDTH / 2.0, 12).translate(
+                        tuple(frame_foot)
+                    ),
+                    manifold.CrossSection.circle(SNAP_TAB_WIDTH / 2.0, 12).translate(
+                        tuple(opening_tip)
+                    ),
+                ]
+            )
+        )
+    return manifold.CrossSection.compose(tabs).simplify(0.05)
+
+
 def _layout():
     outer = _outer_outline()
     interior = outer.offset(-FRAME_WIDTH).simplify(0.05)
@@ -126,22 +199,23 @@ def _layout():
     middle = _stroke(
         (16, 111),
         [
-            ((42, 108), (60, 126), (79, 141)),
-            ((98, 156), (130, 155), (163, 135)),
+            ((42, 110), (65, 126), (82, 133)),
+            ((96, 140), (108, 124), (119, 122)),
+            ((133, 119), (150, 129), (163, 135)),
         ],
         DIVIDER_WIDTH,
     )
     lower = _stroke(
-        (50, 96),
+        (105, 70),
         [
-            ((69, 119), (91, 116), (108, 101)),
-            ((123, 88), (140, 93), (166, 126)),
+            ((118, 58), (130, 51), (142, 58)),
+            ((156, 66), (170, 44), (184, 35)),
         ],
         DIVIDER_WIDTH,
     )
     dividers = manifold.CrossSection.compose([upper, middle, lower]) ^ outer
     structure = (frame + dividers).simplify(0.05)
-    ledge = (structure.offset(LEDGE_WIDTH) ^ outer).simplify(0.05)
+    ledge = (structure.offset(LEDGE_WIDTH, circular_segments=32) ^ outer).simplify(0.05)
     panels = (
         interior.offset(-PANEL_CLEARANCE)
         - dividers.offset(PANEL_CLEARANCE)
@@ -150,9 +224,13 @@ def _layout():
         panels.decompose(),
         key=lambda section: (-section.bounds()[3], section.bounds()[0]),
     )
-    if len(panel_sections) != 4:
-        raise RuntimeError(f"Expected 4 light panels, got {len(panel_sections)}")
-    return outer, structure, ledge, panel_sections
+    if len(panel_sections) != EXPECTED_PANEL_COUNT:
+        raise RuntimeError(
+            f"Expected {EXPECTED_PANEL_COUNT} light panels, got {len(panel_sections)}"
+        )
+    panel_insert = interior.offset(-PANEL_CLEARANCE).simplify(0.05)
+    snap_tabs = _snap_tabs(interior)
+    return outer, frame, dividers, structure, ledge, panel_sections, panel_insert, snap_tabs
 
 
 def _trimesh(solid: manifold.Manifold) -> trimesh.Trimesh:
@@ -175,27 +253,51 @@ def _mesh(section: manifold.CrossSection, height: float, z: float = 0.0) -> trim
     return _trimesh(section.extrude(height).translate((0.0, 0.0, z)))
 
 
+def _flip_for_print(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
+    """Turn the assembled frame over so the black front prints on the bed."""
+    result = mesh.copy()
+    result.apply_transform(
+        trimesh.transformations.rotation_matrix(np.pi, [1.0, 0.0, 0.0])
+    )
+    result.apply_translation([0.0, 0.0, DEPTH])
+    result.fix_normals()
+    return result
+
+
 def build_parts():
-    outer, structure, ledge, panel_sections = _layout()
+    (
+        outer,
+        frame,
+        dividers,
+        structure,
+        ledge,
+        panel_sections,
+        panel_insert,
+        snap_tabs,
+    ) = _layout()
     center_x = (outer.bounds()[0] + outer.bounds()[2]) / 2.0
     shift = (-center_x, -HEIGHT / 2.0)
+    frame = frame.translate(shift)
+    dividers = dividers.translate(shift)
     structure = structure.translate(shift)
     ledge = ledge.translate(shift)
     panel_sections = [section.translate(shift) for section in panel_sections]
+    panel_insert = panel_insert.translate(shift)
+    snap_tabs = snap_tabs.translate(shift)
 
-    transparent = _mesh(structure, LAYER_DEPTH)
+    transparent = _mesh(frame, LAYER_DEPTH)
     black_solid = (
-        structure.extrude(LAYER_DEPTH).translate((0.0, 0.0, LAYER_DEPTH))
+        frame.extrude(LAYER_DEPTH).translate((0.0, 0.0, LAYER_DEPTH))
         + ledge.extrude(LEDGE_TOP_Z - LEDGE_BOTTOM_Z).translate(
             (0.0, 0.0, LEDGE_BOTTOM_Z)
         )
+        + snap_tabs.extrude(SNAP_TAB_TOP_Z - SNAP_TAB_BOTTOM_Z).translate(
+            (0.0, 0.0, SNAP_TAB_BOTTOM_Z)
+        )
     )
     black = _trimesh(black_solid)
-    panels = [
-        _mesh(section, PANEL_THICKNESS, DEPTH - PANEL_THICKNESS)
-        for section in panel_sections
-    ]
-    return transparent, black, panels
+    panels = [_mesh(panel_insert, PANEL_THICKNESS, PANEL_BOTTOM_Z)]
+    return _flip_for_print(transparent), _flip_for_print(black), panels
 
 
 def _local_print_copy(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
@@ -206,35 +308,10 @@ def _local_print_copy(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
 
 
 def arrange_panels(panels: list[trimesh.Trimesh]) -> trimesh.Trimesh:
-    """Pack all four panels flat on the 250 mm bed with at least 5 mm gaps."""
-    placements = (
-        (3, 0.0, (-120.0, -120.0)),
-        (0, 90.0, (45.0, -120.0)),
-        (1, 0.0, (-120.0, 27.0)),
-        (2, 0.0, (-12.0, 27.0)),
-    )
-    arranged = []
-    for index, angle, lower_left in placements:
-        panel = _local_print_copy(panels[index])
-        if angle:
-            panel.apply_transform(
-                trimesh.transformations.rotation_matrix(
-                    np.radians(angle),
-                    [0.0, 0.0, 1.0],
-                )
-            )
-        panel.apply_translation(
-            [
-                lower_left[0] - panel.bounds[0, 0],
-                lower_left[1] - panel.bounds[0, 1],
-                0.0,
-            ]
-        )
-        arranged.append(panel)
-    layout = trimesh.util.concatenate(arranged)
-    center_xy = layout.bounds[:, :2].mean(axis=0)
-    layout.apply_translation([-center_xy[0], -center_xy[1], 0.0])
-    return layout
+    """Center the one-piece light panel flat on the 250 mm bed."""
+    if len(panels) != 1:
+        raise ValueError(f"Expected one light panel, got {len(panels)}")
+    return _local_print_copy(panels[0])
 
 
 def _write_ascii(mesh: trimesh.Trimesh, path: Path) -> None:
