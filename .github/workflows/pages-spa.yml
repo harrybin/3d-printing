@@ -40,14 +40,8 @@ jobs:
         working-directory: web
         run: npm install
 
-      - name: Sync STL models into SPA public assets
-        run: |
-          mkdir -p web/public/models
-          find web/public/models -type f ! -name 'models.json' -delete || true
-          if [ -d models ]; then
-            cp -f models/*.stl web/public/models/ 2>/dev/null || true
-          fi
-          ls -1 web/public/models/*.stl 2>/dev/null | xargs -n1 basename | jq -R -s -c 'split("\n")[:-1] | {files:.}' > web/public/models/models.json
+      - name: Sync model assets into SPA public assets
+        run: node web/scripts/sync-models.mjs
 
       - name: Build
         working-directory: web

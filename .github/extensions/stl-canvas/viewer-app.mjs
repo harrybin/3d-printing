@@ -299,10 +299,33 @@ function normalizeZipPath(basePath, target) {
   return normalized.join('/')
 }
 
-function parseTransformString(transform) {
-  if (!transform) return null
-  const values = transform.trim().split(/\s+/).map(Number)
-  if (values.length !== 12 || values.some((value) => !Number.isFinite(value))) return null
+const MODEL_UNIT_TO_MM = Object.freeze({
+  micron: 0.001,
+  millimeter: 1,
+  centimeter: 10,
+  inch: 25.4,
+  foot: 304.8,
+  meter: 1000,
+})
+
+function documentUnitScale(modelDoc, documentPath) {
+  const unit = String(modelDoc?.documentElement?.getAttribute('unit') || 'millimeter').trim().toLowerCase()
+  const scale = MODEL_UNIT_TO_MM[unit]
+  if (!scale) throw new Error(`Unsupported 3MF unit "${unit}" in ${documentPath}`)
+  return scale
+}
+
+function parseTransformString(transform, context, unitScale = 1) {
+  if (transform == null) return null
+  const raw = String(transform).trim()
+  if (!raw) return null
+  const values = raw.split(/\s+/).map(Number)
+  if (values.length !== 12 || values.some((value) => !Number.isFinite(value))) {
+    throw new Error(`Invalid 3MF transform${context ? ` in ${context}` : ''}`)
+  }
+  values[3] *= unitScale
+  values[7] *= unitScale
+  values[11] *= unitScale
   return values
 }
 
@@ -310,24 +333,28 @@ function transform3mfPoint(point, transform) {
   if (!transform) return point
   const [x, y, z] = point
   return [
-    transform[0] * x + transform[3] * y + transform[6] * z + transform[9],
-    transform[1] * x + transform[4] * y + transform[7] * z + transform[10],
-    transform[2] * x + transform[5] * y + transform[8] * z + transform[11],
+    transform[0] * x + transform[1] * y + transform[2] * z + transform[3],
+    transform[4] * x + transform[5] * y + transform[6] * z + transform[7],
+    transform[8] * x + transform[9] * y + transform[10] * z + transform[11],
   ]
 }
 
 function composeTransforms(parent, child) {
   if (!parent) return child
   if (!child) return parent
-  const origin = transform3mfPoint(transform3mfPoint([0, 0, 0], child), parent)
-  const axisX = transform3mfPoint(transform3mfPoint([1, 0, 0], child), parent)
-  const axisY = transform3mfPoint(transform3mfPoint([0, 1, 0], child), parent)
-  const axisZ = transform3mfPoint(transform3mfPoint([0, 0, 1], child), parent)
   return [
-    axisX[0] - origin[0], axisX[1] - origin[1], axisX[2] - origin[2],
-    axisY[0] - origin[0], axisY[1] - origin[1], axisY[2] - origin[2],
-    axisZ[0] - origin[0], axisZ[1] - origin[1], axisZ[2] - origin[2],
-    origin[0], origin[1], origin[2],
+    parent[0] * child[0] + parent[1] * child[4] + parent[2] * child[8],
+    parent[0] * child[1] + parent[1] * child[5] + parent[2] * child[9],
+    parent[0] * child[2] + parent[1] * child[6] + parent[2] * child[10],
+    parent[0] * child[3] + parent[1] * child[7] + parent[2] * child[11] + parent[3],
+    parent[4] * child[0] + parent[5] * child[4] + parent[6] * child[8],
+    parent[4] * child[1] + parent[5] * child[5] + parent[6] * child[9],
+    parent[4] * child[2] + parent[5] * child[6] + parent[6] * child[10],
+    parent[4] * child[3] + parent[5] * child[7] + parent[6] * child[11] + parent[7],
+    parent[8] * child[0] + parent[9] * child[4] + parent[10] * child[8],
+    parent[8] * child[1] + parent[9] * child[5] + parent[10] * child[9],
+    parent[8] * child[2] + parent[9] * child[6] + parent[10] * child[10],
+    parent[8] * child[3] + parent[9] * child[7] + parent[10] * child[11] + parent[11],
   ]
 }
 
@@ -413,12 +440,39 @@ function resolveColor(resourceLookup, pid, ...indices) {
   return averageHexColors(colors)
 }
 
-function parse3mfVertex(vertex, documentPath, objectId) {
-  const coords = ['x', 'y', 'z'].map((axis) => Number(vertex.getAttribute(axis)))
+function parseRequiredFiniteAttributes(node, attributes, message, integer = false) {
+  return attributes.map((attribute) => {
+    const raw = node.getAttribute(attribute)
+    if (raw == null || !String(raw).trim()) throw new Error(message)
+    const value = Number(raw)
+    if (!Number.isFinite(value) || (integer && !Number.isInteger(value))) throw new Error(message)
+    return value
+  })
+}
+
+function parse3mfVertex(vertex, documentPath, objectId, unitScale) {
+  const coords = parseRequiredFiniteAttributes(
+    vertex,
+    ['x', 'y', 'z'],
+    `Invalid 3MF vertex in ${documentPath} object ${objectId}`,
+  )
   if (coords.some((value) => !Number.isFinite(value))) {
     throw new Error(`Invalid 3MF vertex in ${documentPath} object ${objectId}`)
   }
-  return coords
+  return coords.map((value) => value * unitScale)
+}
+
+function parse3mfTriangleIndices(triangle, documentPath, objectId, vertexCount) {
+  const indices = parseRequiredFiniteAttributes(
+    triangle,
+    ['v1', 'v2', 'v3'],
+    `Invalid 3MF triangle in ${documentPath} object ${objectId}`,
+    true,
+  )
+  if (!indices.every((index) => index >= 0 && index < vertexCount)) {
+    throw new Error(`Invalid 3MF triangle in ${documentPath} object ${objectId}`)
+  }
+  return indices
 }
 
 function create3mfStats() {
@@ -468,70 +522,85 @@ function parse3mfComponentTarget(documentPath, objectId, explicitPath) {
   }
 }
 
-async function collect3mfObject(buffer, documents, documentPath, objectId, parentTransform, inheritedColor, triangles, triangleColors, resourceCache, stats) {
-  const modelDoc = await load3mfDocument(buffer, documentPath, documents)
-  const resourceLookup = resourceCache.get(documentPath) || resourceColorLookup(modelDoc)
-  resourceCache.set(documentPath, resourceLookup)
-  const object = descendantsByLocalName(modelDoc.documentElement, 'object').find((entry) => entry.getAttribute('id') === String(objectId))
-  if (!object) throw new Error(`3MF object not found: ${documentPath}#${objectId}`)
+async function collect3mfObject(buffer, documents, documentPath, objectId, parentTransform, inheritedColor, triangles, triangleColors, resourceCache, unitCache, stats, activeObjects) {
+  const activeKey = `${documentPath}#${objectId}`
+  if (activeObjects.has(activeKey)) throw new Error(`3MF component cycle detected at ${activeKey}`)
+  activeObjects.add(activeKey)
+  try {
+    const modelDoc = await load3mfDocument(buffer, documentPath, documents)
+    const resourceLookup = resourceCache.get(documentPath) || resourceColorLookup(modelDoc)
+    const unitScale = unitCache.get(documentPath) || documentUnitScale(modelDoc, documentPath)
+    resourceCache.set(documentPath, resourceLookup)
+    unitCache.set(documentPath, unitScale)
+    const object = descendantsByLocalName(modelDoc.documentElement, 'object').find((entry) => entry.getAttribute('id') === String(objectId))
+    if (!object) throw new Error(`3MF object not found: ${documentPath}#${objectId}`)
 
-  const objectColor = resolveColor(resourceLookup, object.getAttribute('pid'), object.getAttribute('pindex')) || inheritedColor
-  const components = firstChildByLocalName(object, 'components')
-  if (components) {
-    for (const component of childrenByLocalName(components, 'component')) {
-      const target = parse3mfComponentTarget(
-        documentPath,
-        component.getAttribute('objectid'),
-        component.getAttribute('p:path') || component.getAttribute('path') || '',
-      )
-      const transform = composeTransforms(parentTransform, parseTransformString(component.getAttribute('transform')))
-      await collect3mfObject(
-        buffer,
-        documents,
-        target.documentPath,
-        target.objectId,
-        transform,
-        objectColor,
-        triangles,
-        triangleColors,
-        resourceCache,
-        stats,
+    const objectColor = resolveColor(resourceLookup, object.getAttribute('pid'), object.getAttribute('pindex')) || inheritedColor
+    const components = firstChildByLocalName(object, 'components')
+    if (components) {
+      for (const component of childrenByLocalName(components, 'component')) {
+        const target = parse3mfComponentTarget(
+          documentPath,
+          component.getAttribute('objectid'),
+          component.getAttribute('p:path') || component.getAttribute('path') || '',
+        )
+        const transform = composeTransforms(
+          parentTransform,
+          parseTransformString(component.getAttribute('transform'), `${documentPath}#${objectId}`, unitScale),
+        )
+        await collect3mfObject(
+          buffer,
+          documents,
+          target.documentPath,
+          target.objectId,
+          transform,
+          objectColor,
+          triangles,
+          triangleColors,
+          resourceCache,
+          unitCache,
+          stats,
+          activeObjects,
+        )
+      }
+      return
+    }
+
+    const mesh = firstChildByLocalName(object, 'mesh')
+    if (!mesh) return
+    const vertices = childrenByLocalName(firstChildByLocalName(mesh, 'vertices'), 'vertex').map((vertex) => (
+      transform3mfPoint(parse3mfVertex(vertex, documentPath, objectId, unitScale), parentTransform)
+    ))
+
+    for (const triangle of childrenByLocalName(firstChildByLocalName(mesh, 'triangles'), 'triangle')) {
+      const indices = parse3mfTriangleIndices(triangle, documentPath, objectId, vertices.length)
+      const triangleVertices = indices.map((index) => vertices[index])
+      triangles.push(triangleVertices)
+      add3mfTriangle(stats, triangleVertices)
+      triangleColors.push(
+        resolveColor(
+          resourceLookup,
+          triangle.getAttribute('pid') || object.getAttribute('pid'),
+          triangle.getAttribute('p1'),
+          triangle.getAttribute('p2'),
+          triangle.getAttribute('p3'),
+          triangle.getAttribute('pindex'),
+          object.getAttribute('pindex'),
+        ) || objectColor || '#d6d9de',
       )
     }
-    return
-  }
-
-  const mesh = firstChildByLocalName(object, 'mesh')
-  if (!mesh) return
-  const vertices = childrenByLocalName(firstChildByLocalName(mesh, 'vertices'), 'vertex').map((vertex) => (
-    transform3mfPoint(parse3mfVertex(vertex, documentPath, objectId), parentTransform)
-  ))
-
-  for (const triangle of childrenByLocalName(firstChildByLocalName(mesh, 'triangles'), 'triangle')) {
-    const indices = ['v1', 'v2', 'v3'].map((key) => Number(triangle.getAttribute(key)))
-    if (!indices.every((index) => Number.isInteger(index) && vertices[index])) continue
-    const triangleVertices = indices.map((index) => vertices[index])
-    triangles.push(triangleVertices)
-    add3mfTriangle(stats, triangleVertices)
-    triangleColors.push(
-      resolveColor(
-        resourceLookup,
-        triangle.getAttribute('pid') || object.getAttribute('pid'),
-        triangle.getAttribute('p1'),
-        triangle.getAttribute('p2'),
-        triangle.getAttribute('p3'),
-        triangle.getAttribute('pindex'),
-        object.getAttribute('pindex'),
-      ) || objectColor || '#d6d9de',
-    )
+  } finally {
+    activeObjects.delete(activeKey)
   }
 }
 
 async function parse3mfBuffer(buffer) {
   const documents = new Map()
   const resourceCache = new Map()
+  const unitCache = new Map()
   const rootPath = await read3mfStartPath(buffer)
   const rootDoc = await load3mfDocument(buffer, rootPath, documents)
+  const rootUnitScale = documentUnitScale(rootDoc, rootPath)
   const triangles = []
   const triangleColors = []
   const stats = create3mfStats()
@@ -544,12 +613,14 @@ async function parse3mfBuffer(buffer) {
       documents,
       rootPath,
       item.getAttribute('objectid'),
-      parseTransformString(item.getAttribute('transform')),
+      parseTransformString(item.getAttribute('transform'), `${rootPath} build`, rootUnitScale),
       null,
       triangles,
       triangleColors,
       resourceCache,
+      unitCache,
       stats,
+      new Set(),
     )
   }
 
@@ -1089,7 +1160,7 @@ function shadeNormal(nx, ny, nz, mode, out, material = SURFACE) {
 // sorted whole triangles by their centroid, which let long thin facets
 // punch through walls and made solid geometry look transparent.
 function rasterizeMesh(rx, ry, rz, zoom, w, h, centerX, centerY, baseZ) {
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = canvasPixelRatio();
   const W = Math.max(1, canvas.width), H = Math.max(1, canvas.height);
   if (!rasterCanvas) { rasterCanvas = document.createElement('canvas'); rasterCtx = rasterCanvas.getContext('2d'); }
   if (rasterCanvas.width !== W || rasterCanvas.height !== H || !rasterImage) {
