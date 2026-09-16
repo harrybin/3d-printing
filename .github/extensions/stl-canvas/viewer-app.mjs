@@ -315,7 +315,7 @@ function documentUnitScale(modelDoc, documentPath) {
   return scale
 }
 
-function parseTransformString(transform, context, unitScale = 1) {
+function parseTransformString(transform, context) {
   if (transform == null) return null
   const raw = String(transform).trim()
   if (!raw) return null
@@ -323,9 +323,6 @@ function parseTransformString(transform, context, unitScale = 1) {
   if (values.length !== 12 || values.some((value) => !Number.isFinite(value))) {
     throw new Error(`Invalid 3MF transform${context ? ` in ${context}` : ''}`)
   }
-  values[3] *= unitScale
-  values[7] *= unitScale
-  values[11] *= unitScale
   return values
 }
 
@@ -339,22 +336,32 @@ function transform3mfPoint(point, transform) {
   ]
 }
 
-function composeTransforms(parent, child) {
-  if (!parent) return child
-  if (!child) return parent
+function scaleTransformTranslation(transform, unitScale = 1) {
+  if (!transform || unitScale === 1) return transform
+  const scaled = transform.slice()
+  scaled[3] *= unitScale
+  scaled[7] *= unitScale
+  scaled[11] *= unitScale
+  return scaled
+}
+
+function composeTransforms(parent, child, childUnitScale = 1) {
+  const normalizedChild = scaleTransformTranslation(child, childUnitScale)
+  if (!parent) return normalizedChild
+  if (!normalizedChild) return parent
   return [
-    parent[0] * child[0] + parent[1] * child[4] + parent[2] * child[8],
-    parent[0] * child[1] + parent[1] * child[5] + parent[2] * child[9],
-    parent[0] * child[2] + parent[1] * child[6] + parent[2] * child[10],
-    parent[0] * child[3] + parent[1] * child[7] + parent[2] * child[11] + parent[3],
-    parent[4] * child[0] + parent[5] * child[4] + parent[6] * child[8],
-    parent[4] * child[1] + parent[5] * child[5] + parent[6] * child[9],
-    parent[4] * child[2] + parent[5] * child[6] + parent[6] * child[10],
-    parent[4] * child[3] + parent[5] * child[7] + parent[6] * child[11] + parent[7],
-    parent[8] * child[0] + parent[9] * child[4] + parent[10] * child[8],
-    parent[8] * child[1] + parent[9] * child[5] + parent[10] * child[9],
-    parent[8] * child[2] + parent[9] * child[6] + parent[10] * child[10],
-    parent[8] * child[3] + parent[9] * child[7] + parent[10] * child[11] + parent[11],
+    parent[0] * normalizedChild[0] + parent[1] * normalizedChild[4] + parent[2] * normalizedChild[8],
+    parent[0] * normalizedChild[1] + parent[1] * normalizedChild[5] + parent[2] * normalizedChild[9],
+    parent[0] * normalizedChild[2] + parent[1] * normalizedChild[6] + parent[2] * normalizedChild[10],
+    parent[0] * normalizedChild[3] + parent[1] * normalizedChild[7] + parent[2] * normalizedChild[11] + parent[3],
+    parent[4] * normalizedChild[0] + parent[5] * normalizedChild[4] + parent[6] * normalizedChild[8],
+    parent[4] * normalizedChild[1] + parent[5] * normalizedChild[5] + parent[6] * normalizedChild[9],
+    parent[4] * normalizedChild[2] + parent[5] * normalizedChild[6] + parent[6] * normalizedChild[10],
+    parent[4] * normalizedChild[3] + parent[5] * normalizedChild[7] + parent[6] * normalizedChild[11] + parent[7],
+    parent[8] * normalizedChild[0] + parent[9] * normalizedChild[4] + parent[10] * normalizedChild[8],
+    parent[8] * normalizedChild[1] + parent[9] * normalizedChild[5] + parent[10] * normalizedChild[9],
+    parent[8] * normalizedChild[2] + parent[9] * normalizedChild[6] + parent[10] * normalizedChild[10],
+    parent[8] * normalizedChild[3] + parent[9] * normalizedChild[7] + parent[10] * normalizedChild[11] + parent[11],
   ]
 }
 
@@ -456,9 +463,6 @@ function parse3mfVertex(vertex, documentPath, objectId, unitScale) {
     ['x', 'y', 'z'],
     `Invalid 3MF vertex in ${documentPath} object ${objectId}`,
   )
-  if (coords.some((value) => !Number.isFinite(value))) {
-    throw new Error(`Invalid 3MF vertex in ${documentPath} object ${objectId}`)
-  }
   return coords.map((value) => value * unitScale)
 }
 
@@ -546,7 +550,8 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
         )
         const transform = composeTransforms(
           parentTransform,
-          parseTransformString(component.getAttribute('transform'), `${documentPath}#${objectId}`, unitScale),
+          parseTransformString(component.getAttribute('transform'), `${documentPath}#${objectId}`),
+          unitScale,
         )
         await collect3mfObject(
           buffer,
@@ -613,7 +618,7 @@ async function parse3mfBuffer(buffer) {
       documents,
       rootPath,
       item.getAttribute('objectid'),
-      parseTransformString(item.getAttribute('transform'), `${rootPath} build`, rootUnitScale),
+      composeTransforms(null, parseTransformString(item.getAttribute('transform'), `${rootPath} build`), rootUnitScale),
       null,
       triangles,
       triangleColors,
