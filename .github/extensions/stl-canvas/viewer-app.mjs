@@ -445,6 +445,21 @@ function add3mfTriangle(stats, triangle) {
   }
 }
 
+function parse3mfComponentTarget(documentPath, objectId, explicitPath) {
+  const rawObjectId = String(objectId || '')
+  if (rawObjectId.includes('#')) {
+    const [pathPart, objectPart] = rawObjectId.split('#', 2)
+    return {
+      documentPath: normalizeZipPath(documentPath, pathPart),
+      objectId: objectPart,
+    }
+  }
+  return {
+    documentPath: explicitPath ? normalizeZipPath(documentPath, explicitPath) : documentPath,
+    objectId: rawObjectId,
+  }
+}
+
 async function collect3mfObject(buffer, documents, documentPath, objectId, parentTransform, inheritedColor, triangles, triangleColors, resourceCache, stats) {
   const modelDoc = await load3mfDocument(buffer, documentPath, documents)
   const resourceLookup = resourceCache.get(documentPath) || resourceColorLookup(modelDoc)
@@ -456,14 +471,17 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
   const components = firstChildByLocalName(object, 'components')
   if (components) {
     for (const component of childrenByLocalName(components, 'component')) {
-      const rawComponentPath = component.getAttribute('p:path') || component.getAttribute('path') || ''
-      const componentPath = rawComponentPath ? normalizeZipPath(documentPath, rawComponentPath) : documentPath
+      const target = parse3mfComponentTarget(
+        documentPath,
+        component.getAttribute('objectid'),
+        component.getAttribute('p:path') || component.getAttribute('path') || '',
+      )
       const transform = composeTransforms(parentTransform, parseTransformString(component.getAttribute('transform')))
       await collect3mfObject(
         buffer,
         documents,
-        componentPath,
-        component.getAttribute('objectid'),
+        target.documentPath,
+        target.objectId,
         transform,
         objectColor,
         triangles,

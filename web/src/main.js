@@ -123,6 +123,7 @@ async function bootstrap() {
     pollIntervalMs: 0,
     maxPixelRatio: window.matchMedia(MOBILE_BREAKPOINT).matches ? 1.1 : 1.75,
   })
+  updateDownloadButton()
 }
 
 bootstrap()
