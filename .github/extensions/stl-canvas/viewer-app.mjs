@@ -1001,6 +1001,7 @@ function requestedRemoteEntry() {
       file,
       fetchUrl: directUrl,
       downloadUrl: directUrl,
+      cacheBust: false,
       sourceLabel: 'remote URL',
     }
   }
@@ -1013,6 +1014,7 @@ function requestedRemoteEntry() {
     file,
     fetchUrl: buildRawGithubModelUrl(repoSlug, ref, file),
     downloadUrl: buildRawGithubModelUrl(repoSlug, ref, file),
+    cacheBust: false,
     sourceLabel: `${repoSlug}@${ref}`,
   }
 }
@@ -1026,7 +1028,7 @@ function modelUrl(file) {
 function modelSource(file) {
   if (remoteEntry && file === remoteRequestedFile) return remoteEntry
   const localUrl = modelUrl(file)
-  return { file, fetchUrl: localUrl, downloadUrl: localUrl, sourceLabel: '' }
+  return { file, fetchUrl: localUrl, downloadUrl: localUrl, cacheBust: true, sourceLabel: '' }
 }
 
 function manifestFilesWithRemote(files) {
@@ -1057,7 +1059,8 @@ async function readModelManifest() {
 async function readModelVersion(file) {
   if (runtimeMode === 'extension') return currentMtime || '';
   try {
-    const res = await fetch(appendCacheBust(modelSource(file).downloadUrl), { method: 'HEAD', cache: 'no-store' });
+    const source = modelSource(file)
+    const res = await fetch(source.cacheBust ? appendCacheBust(source.downloadUrl) : source.downloadUrl, { method: 'HEAD', cache: 'no-store' });
     if (!res.ok) return '';
     return res.headers.get('etag') || res.headers.get('last-modified') || res.headers.get('content-length') || '';
   } catch {
@@ -1072,7 +1075,7 @@ async function fetchModelData(file) {
     return res.json()
   }
   const source = modelSource(file)
-  const response = await fetch(appendCacheBust(source.fetchUrl), { cache: 'no-store' })
+  const response = await fetch(source.cacheBust ? appendCacheBust(source.fetchUrl) : source.fetchUrl, { cache: 'no-store' })
   if (!response.ok) throw new Error(`Model file not found: ${source.sourceLabel ? `${source.sourceLabel} ${file}` : `models/${file}`}`)
   const buffer = await response.arrayBuffer()
   const parsed = await parseModelBuffer(file, buffer)
