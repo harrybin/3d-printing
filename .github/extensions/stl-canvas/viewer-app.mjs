@@ -252,6 +252,66 @@ async function inflateDeflateRaw(bytes) {
   return new Uint8Array(buffer)
 }
 
+function childrenByLocalName(node, name) {
+  return [...(node?.children || [])].filter((child) => child.localName === name)
+}
+
+function firstChildByLocalName(node, name) {
+  return childrenByLocalName(node, name)[0] || null
+}
+
+function normalizeColor(value) {
+  if (typeof value !== 'string') return null
+  const match = value.trim().match(/^#([0-9a-f]{6}|[0-9a-f]{8})$/i)
+  if (!match) return null
+  return `#${match[1].slice(0, 6)}`.toLowerCase()
+}
+
+function averageHexColors(colors) {
+  const entries = colors.map(normalizeColor).filter(Boolean)
+  if (!entries.length) return null
+  const total = entries.reduce((acc, color) => {
+    acc[0] += Number.parseInt(color.slice(1, 3), 16)
+    acc[1] += Number.parseInt(color.slice(3, 5), 16)
+    acc[2] += Number.parseInt(color.slice(5, 7), 16)
+    return acc
+  }, [0, 0, 0])
+  const scale = entries.length
+  return `#${total.map((value) => Math.round(value / scale).toString(16).padStart(2, '0')).join('')}`
+}
+
+function parseTransformString(transform) {
+  if (!transform) return null
+  const values = transform.trim().split(/\s+/).map(Number)
+  if (values.length !== 12 || values.some((value) => !Number.isFinite(value))) return null
+  return values
+}
+
+function transform3mfPoint(point, transform) {
+  if (!transform) return point
+  const [x, y, z] = point
+  return [
+    transform[0] * x + transform[3] * y + transform[6] * z + transform[9],
+    transform[1] * x + transform[4] * y + transform[7] * z + transform[10],
+    transform[2] * x + transform[5] * y + transform[8] * z + transform[11],
+  ]
+}
+
+function composeTransforms(parent, child) {
+  if (!parent) return child
+  if (!child) return parent
+  const origin = transform3mfPoint(transform3mfPoint([0, 0, 0], child), parent)
+  const axisX = transform3mfPoint(transform3mfPoint([1, 0, 0], child), parent)
+  const axisY = transform3mfPoint(transform3mfPoint([0, 1, 0], child), parent)
+  const axisZ = transform3mfPoint(transform3mfPoint([0, 0, 1], child), parent)
+  return [
+    axisX[0] - origin[0], axisX[1] - origin[1], axisX[2] - origin[2],
+    axisY[0] - origin[0], axisY[1] - origin[1], axisY[2] - origin[2],
+    axisZ[0] - origin[0], axisZ[1] - origin[1], axisZ[2] - origin[2],
+    origin[0], origin[1], origin[2],
+  ]
+}
+
 async function readZipEntry(buffer, entryName) {
   const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
@@ -287,51 +347,119 @@ async function readZipEntry(buffer, entryName) {
   throw new Error(`3MF entry not found: ${entryName}`)
 }
 
-function transform3mfPoint(point, transform) {
-  if (!transform) return point
-  const values = transform.trim().split(/\s+/).map(Number)
-  if (values.length !== 12 || values.some((value) => !Number.isFinite(value))) return point
-  const [x, y, z] = point
-  return [
-    values[0] * x + values[3] * y + values[6] * z + values[9],
-    values[1] * x + values[4] * y + values[7] * z + values[10],
-    values[2] * x + values[5] * y + values[8] * z + values[11],
-  ]
+async function load3mfDocument(buffer, entryName, cache) {
+  const normalized = String(entryName || '').replace(/^\/+/, '')
+  if (!cache.has(normalized)) {
+    const xml = new TextDecoder().decode(await readZipEntry(buffer, normalized))
+    cache.set(normalized, new DOMParser().parseFromString(xml, 'application/xml'))
+  }
+  return cache.get(normalized)
 }
 
-function parse3mfDocument(xml, transform, triangles, triangleColors) {
-  const materials = [...xml.matchAll(/<base\b[^>]*\bdisplaycolor="(#[0-9A-Fa-f]{6})(?:[0-9A-Fa-f]{2})?"[^>]*\/>/g)]
-    .map((match) => match[1])
-  for (const object of xml.matchAll(/<object\b[\s\S]*?<\/object>/g)) {
-    const verticesBlock = object[0].match(/<vertices>([\s\S]*?)<\/vertices>/)
-    if (!verticesBlock) continue
-    const materialIndex = Number(object[0].match(/<object\b[^>]*\bpindex="(\d+)"/)?.[1])
-    const color = materials[materialIndex] || '#d6d9de'
-    const vertices = [...verticesBlock[1].matchAll(/<vertex\b[^>]*\bx="([^"]+)"[^>]*\by="([^"]+)"[^>]*\bz="([^"]+)"[^>]*\/>/g)]
-      .map((match) => transform3mfPoint([Number(match[1]), Number(match[2]), Number(match[3])], transform))
-    for (const triangle of object[0].matchAll(/<triangle\b[^>]*\bv1="(\d+)"[^>]*\bv2="(\d+)"[^>]*\bv3="(\d+)"[^>]*\/>/g)) {
-      const indices = [Number(triangle[1]), Number(triangle[2]), Number(triangle[3])]
-      if (indices.every((index) => vertices[index])) {
-        triangles.push(indices.map((index) => vertices[index]))
-        triangleColors.push(color)
-      }
+function resourceColorLookup(modelDoc) {
+  const resources = firstChildByLocalName(modelDoc.documentElement, 'resources')
+  const lookup = new Map()
+  if (!resources) return lookup
+
+  for (const group of childrenByLocalName(resources, 'basematerials')) {
+    lookup.set(group.getAttribute('id'), childrenByLocalName(group, 'base').map((entry) => normalizeColor(entry.getAttribute('displaycolor'))))
+  }
+  for (const group of childrenByLocalName(resources, 'colorgroup')) {
+    lookup.set(group.getAttribute('id'), childrenByLocalName(group, 'color').map((entry) => normalizeColor(entry.getAttribute('color')) || normalizeColor(entry.getAttribute('displaycolor'))))
+  }
+  return lookup
+}
+
+function resolveColor(resourceLookup, pid, ...indices) {
+  if (!pid) return null
+  const palette = resourceLookup.get(pid)
+  if (!palette?.length) return null
+  const colors = indices
+    .map((index) => Number(index))
+    .filter((index) => Number.isInteger(index) && index >= 0 && index < palette.length)
+    .map((index) => palette[index])
+    .filter(Boolean)
+  return averageHexColors(colors)
+}
+
+async function collect3mfObject(buffer, documents, documentPath, objectId, parentTransform, inheritedColor, triangles, triangleColors, resourceCache) {
+  const modelDoc = await load3mfDocument(buffer, documentPath, documents)
+  const resourceLookup = resourceCache.get(documentPath) || resourceColorLookup(modelDoc)
+  resourceCache.set(documentPath, resourceLookup)
+  const resources = firstChildByLocalName(modelDoc.documentElement, 'resources')
+  const object = childrenByLocalName(resources, 'object').find((entry) => entry.getAttribute('id') === String(objectId))
+  if (!object) return
+
+  const objectColor = resolveColor(resourceLookup, object.getAttribute('pid'), object.getAttribute('pindex')) || inheritedColor
+  const components = firstChildByLocalName(object, 'components')
+  if (components) {
+    for (const component of childrenByLocalName(components, 'component')) {
+      const componentPath = component.getAttribute('p:path') || component.getAttributeNS('*', 'path') || documentPath
+      const transform = composeTransforms(parentTransform, parseTransformString(component.getAttribute('transform')))
+      await collect3mfObject(
+        buffer,
+        documents,
+        componentPath,
+        component.getAttribute('objectid'),
+        transform,
+        objectColor,
+        triangles,
+        triangleColors,
+        resourceCache,
+      )
     }
+    return
+  }
+
+  const mesh = firstChildByLocalName(object, 'mesh')
+  if (!mesh) return
+  const vertices = childrenByLocalName(firstChildByLocalName(mesh, 'vertices'), 'vertex').map((vertex) => (
+    transform3mfPoint([
+      Number(vertex.getAttribute('x') || 0),
+      Number(vertex.getAttribute('y') || 0),
+      Number(vertex.getAttribute('z') || 0),
+    ], parentTransform)
+  ))
+
+  for (const triangle of childrenByLocalName(firstChildByLocalName(mesh, 'triangles'), 'triangle')) {
+    const indices = ['v1', 'v2', 'v3'].map((key) => Number(triangle.getAttribute(key)))
+    if (!indices.every((index) => Number.isInteger(index) && vertices[index])) continue
+    triangles.push(indices.map((index) => vertices[index]))
+    triangleColors.push(
+      resolveColor(
+        resourceLookup,
+        triangle.getAttribute('pid') || object.getAttribute('pid'),
+        triangle.getAttribute('p1'),
+        triangle.getAttribute('p2'),
+        triangle.getAttribute('p3'),
+        triangle.getAttribute('pindex'),
+        object.getAttribute('pindex'),
+      ) || objectColor || '#d6d9de',
+    )
   }
 }
 
 async function parse3mfBuffer(buffer) {
-  const rootXml = new TextDecoder().decode(await readZipEntry(buffer, '3D/3dmodel.model'))
+  const documents = new Map()
+  const resourceCache = new Map()
+  const rootPath = '3D/3dmodel.model'
+  const rootDoc = await load3mfDocument(buffer, rootPath, documents)
   const triangles = []
   const triangleColors = []
-  parse3mfDocument(rootXml, null, triangles, triangleColors)
+  const build = firstChildByLocalName(rootDoc.documentElement, 'build')
 
-  const buildTransform = rootXml.match(/<item\b[^>]*\btransform="([^"]+)"/)?.[1]
-  const externalDocuments = new Set(
-    [...rootXml.matchAll(/<component\b[^>]*\bp:path="\/([^"]+)"/g)].map((match) => match[1]),
-  )
-  for (const entryName of externalDocuments) {
-    const xml = new TextDecoder().decode(await readZipEntry(buffer, entryName))
-    parse3mfDocument(xml, buildTransform, triangles, triangleColors)
+  for (const item of childrenByLocalName(build, 'item')) {
+    await collect3mfObject(
+      buffer,
+      documents,
+      rootPath,
+      item.getAttribute('objectid'),
+      parseTransformString(item.getAttribute('transform')),
+      null,
+      triangles,
+      triangleColors,
+      resourceCache,
+    )
   }
 
   const min = [Infinity, Infinity, Infinity]
@@ -395,6 +523,7 @@ const canvas = document.getElementById('view');
 const ctx = canvas.getContext('2d');
 const fileChooser = document.getElementById('fileChooser');
 const reloadBtn = document.getElementById('reloadBtn');
+function emitModelChange(file = fileChooser.value || currentFile || '') { root.dispatchEvent(new CustomEvent('stl-canvas:model-change', { detail: { file } })); }
 const autoReloadInput = document.getElementById('autoReload');
 const autoReloadField = autoReloadInput.closest('.field');
 const zoomInput = document.getElementById('zoom');
@@ -703,6 +832,7 @@ function loadModel(file, preserveView) {
         modelBounds = null
         currentFile = file
         currentMtime = runtimeMode === 'extension' ? '' : ''
+        emitModelChange(file)
         return false
       }
       const safeFile = escapeHtml(data.path || file)
@@ -726,10 +856,12 @@ function loadModel(file, preserveView) {
       currentMtime = data.mtime || ''
       if (!preserveView) applySavedOrFit()
       draw()
+      emitModelChange(file)
       return true
     })
     .catch((err) => {
       meta.textContent = 'Failed to load model: ' + err
+      emitModelChange(file)
       return false
     })
 }
@@ -1311,6 +1443,7 @@ readViewDefaults().then((view) => {
     if (!files.length) {
       fileChooser.innerHTML = '<option value="">No STL or 3MF files in models/</option>'
       document.getElementById('meta').textContent = 'No STL or 3MF files found in models/.'
+      emitModelChange('')
       return false
     }
     fileChooser.innerHTML = files.map((name) => '<option value="' + name + '">' + name + '</option>').join('')

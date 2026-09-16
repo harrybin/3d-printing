@@ -8,15 +8,6 @@ const state = {
   currentModel: '',
 }
 
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
-}
-
 async function loadJson(url) {
   const res = await fetch(url, { cache: 'no-store' })
   if (!res.ok) throw new Error(`Failed to load ${url}: ${res.status}`)
@@ -45,23 +36,13 @@ function updateDownloadButton() {
     : 'Download model'
 }
 
-function syncViewerSelection() {
-  const chooser = document.querySelector('#viewerRoot #fileChooser')
-  if (!chooser) return
-  state.currentModel = chooser.value || ''
-  updateDownloadButton()
-}
-
-function bindViewerSelection() {
-  const chooser = document.querySelector('#viewerRoot #fileChooser')
-  if (!chooser) return
-  chooser.addEventListener('change', syncViewerSelection)
-  new MutationObserver(syncViewerSelection).observe(chooser, {
-    childList: true,
-    subtree: true,
-    attributes: true,
+function bindViewerEvents() {
+  const viewerRoot = document.querySelector('#viewerRoot')
+  if (!viewerRoot) return
+  viewerRoot.addEventListener('stl-canvas:model-change', (event) => {
+    state.currentModel = event.detail?.file || ''
+    updateDownloadButton()
   })
-  syncViewerSelection()
 }
 
 function renderShell() {
@@ -104,6 +85,7 @@ function renderShell() {
 
 async function bootstrap() {
   renderShell()
+  bindViewerEvents()
 
   try {
     state.config = await loadJson('./app-config.json')
@@ -141,8 +123,6 @@ async function bootstrap() {
     pollIntervalMs: 0,
     maxPixelRatio: window.matchMedia(MOBILE_BREAKPOINT).matches ? 1.1 : 1.75,
   })
-
-  bindViewerSelection()
 }
 
 bootstrap()
