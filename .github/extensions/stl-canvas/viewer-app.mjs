@@ -319,7 +319,7 @@ function parseTransformString(transform, context) {
   if (transform == null) return null
   const raw = String(transform).trim()
   if (!raw) return null
-  const values = raw.split(/\s+/).map(Number)
+  const values = raw.split(/[,\s]+/).map(Number)
   if (values.length !== 12 || values.some((value) => !Number.isFinite(value))) {
     throw new Error(`Invalid 3MF transform${context ? ` in ${context}` : ''}`)
   }
@@ -548,10 +548,13 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
           component.getAttribute('objectid'),
           component.getAttribute('p:path') || component.getAttribute('path') || '',
         )
+        const targetDoc = await load3mfDocument(buffer, target.documentPath, documents)
+        const targetUnitScale = unitCache.get(target.documentPath) || documentUnitScale(targetDoc, target.documentPath)
+        unitCache.set(target.documentPath, targetUnitScale)
         const transform = composeTransforms(
           parentTransform,
           parseTransformString(component.getAttribute('transform'), `${documentPath}#${objectId}`),
-          unitScale,
+          targetUnitScale,
         )
         await collect3mfObject(
           buffer,
