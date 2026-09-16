@@ -402,18 +402,26 @@ async function readZipEntry(buffer, entryName) {
   throw new Error(`3MF entry not found: ${entryName}`)
 }
 
+function parseXmlDocument(xml, documentPath) {
+  const doc = new DOMParser().parseFromString(xml, 'application/xml')
+  if (doc.documentElement?.localName === 'parsererror' || descendantsByLocalName(doc, 'parsererror').length) {
+    throw new Error(`Invalid 3MF XML document: ${documentPath}`)
+  }
+  return doc
+}
+
 async function load3mfDocument(buffer, entryName, cache) {
   const normalized = String(entryName || '').replace(/^\/+/, '')
   if (!cache.has(normalized)) {
     const xml = new TextDecoder().decode(await readZipEntry(buffer, normalized))
-    cache.set(normalized, new DOMParser().parseFromString(xml, 'application/xml'))
+    cache.set(normalized, parseXmlDocument(xml, normalized))
   }
   return cache.get(normalized)
 }
 
 async function read3mfStartPath(buffer) {
   const xml = new TextDecoder().decode(await readZipEntry(buffer, '_rels/.rels'))
-  const doc = new DOMParser().parseFromString(xml, 'application/xml')
+  const doc = parseXmlDocument(xml, '_rels/.rels')
   const relationship = childrenByLocalName(doc.documentElement, 'Relationship')
     .find((entry) => (entry.getAttribute('Type') || '').includes('/3dmodel'))
   const target = relationship?.getAttribute('Target')

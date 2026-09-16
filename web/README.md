@@ -13,12 +13,15 @@ npm install
 npm run dev
 ```
 
-`predev` und `prebuild` erzeugen die benötigten statischen Dateien automatisch:
+`predev` und `prebuild` spiegeln die Viewer-Assets automatisch und aktualisieren die
+begleitenden Build-Dateien:
 
 - `web/public/models/` und `models.json` aus dem Repo-Ordner `models/`
   (`sync-models.mjs`)
-- `web/public/skills-manifest.json` aus `.github/skills/**` (`sync-skills.mjs`)
 - `web/public/build-info.json` (`write-build-info.mjs`)
+
+Die Viewer-Laufzeit selbst liest `app-config.json` sowie die Dateien unter
+`web/public/models/`; weitere erzeugte Dateien sind Build-Metadaten.
 
 ## Build
 
