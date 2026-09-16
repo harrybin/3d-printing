@@ -280,6 +280,21 @@ function averageHexColors(colors) {
   return `#${total.map((value) => Math.round(value / scale).toString(16).padStart(2, '0')).join('')}`
 }
 
+function normalizeZipPath(basePath, target) {
+  const rawTarget = String(target || '').replaceAll('\\', '/').trim()
+  if (!rawTarget) return String(basePath || '').replace(/^\/+/, '')
+  const combined = rawTarget.startsWith('/')
+    ? rawTarget.replace(/^\/+/, '')
+    : `${String(basePath || '').replace(/^\/+/, '').split('/').slice(0, -1).join('/')}/${rawTarget}`
+  const normalized = []
+  for (const segment of combined.split('/').filter(Boolean)) {
+    if (segment === '.') continue
+    if (segment === '..') normalized.pop()
+    else normalized.push(segment)
+  }
+  return normalized.join('/')
+}
+
 function parseTransformString(transform) {
   if (!transform) return null
   const values = transform.trim().split(/\s+/).map(Number)
@@ -363,7 +378,7 @@ async function read3mfStartPath(buffer) {
     .find((entry) => (entry.getAttribute('Type') || '').includes('/3dmodel'))
   const target = relationship?.getAttribute('Target')
   if (!target) throw new Error('3MF start part not found in _rels/.rels')
-  return target.replace(/^\/+/, '')
+  return normalizeZipPath('', target)
 }
 
 function resourceColorLookup(modelDoc) {
@@ -405,7 +420,8 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
   const components = firstChildByLocalName(object, 'components')
   if (components) {
     for (const component of childrenByLocalName(components, 'component')) {
-      const componentPath = component.getAttribute('p:path') || component.getAttributeNS('*', 'path') || documentPath
+      const rawComponentPath = component.getAttribute('p:path') || component.getAttribute('path') || ''
+      const componentPath = rawComponentPath ? normalizeZipPath(documentPath, rawComponentPath) : documentPath
       const transform = composeTransforms(parentTransform, parseTransformString(component.getAttribute('transform')))
       await collect3mfObject(
         buffer,
