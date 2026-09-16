@@ -260,6 +260,10 @@ function firstChildByLocalName(node, name) {
   return childrenByLocalName(node, name)[0] || null
 }
 
+function descendantsByLocalName(node, name) {
+  return [...(node?.getElementsByTagName('*') || [])].filter((child) => child.localName === name)
+}
+
 function normalizeColor(value) {
   if (typeof value !== 'string') return null
   const match = value.trim().match(/^#([0-9a-f]{6}|[0-9a-f]{8})$/i)
@@ -336,6 +340,7 @@ async function readZipEntry(buffer, entryName) {
     if (view.getUint32(offset, true) !== 0x06054b50) continue
     let cursor = view.getUint32(offset + 16, true)
     const entries = view.getUint16(offset + 10, true)
+    if (cursor === 0xffffffff || entries === 0xffff) throw new Error('ZIP64 3MF archives are not supported in this browser viewer.')
     for (let index = 0; index < entries; index += 1) {
       if (view.getUint32(cursor, true) !== 0x02014b50) throw new Error('Invalid 3MF central directory')
       const compression = view.getUint16(cursor + 10, true)
@@ -344,6 +349,7 @@ async function readZipEntry(buffer, entryName) {
       const extraLength = view.getUint16(cursor + 30, true)
       const commentLength = view.getUint16(cursor + 32, true)
       const localOffset = view.getUint32(cursor + 42, true)
+      if (compressedSize === 0xffffffff || localOffset === 0xffffffff) throw new Error('ZIP64 3MF archives are not supported in this browser viewer.')
       const name = decoder.decode(bytes.slice(cursor + 46, cursor + 46 + nameLength))
       if (name === entryName) {
         if (view.getUint32(localOffset, true) !== 0x04034b50) throw new Error('Invalid 3MF local header')
@@ -415,14 +421,36 @@ function parse3mfVertex(vertex, documentPath, objectId) {
   return coords
 }
 
-async function collect3mfObject(buffer, documents, documentPath, objectId, parentTransform, inheritedColor, triangles, triangleColors, resourceCache) {
+function create3mfStats() {
+  return {
+    facets: 0,
+    vertices: 0,
+    uniqueVertices: new Set(),
+    min: [Infinity, Infinity, Infinity],
+    max: [-Infinity, -Infinity, -Infinity],
+  }
+}
+
+function add3mfTriangle(stats, triangle) {
+  stats.facets += 1
+  stats.vertices += 3
+  for (const vertex of triangle) {
+    stats.uniqueVertices.add(`${vertex[0]},${vertex[1]},${vertex[2]}`)
+    stats.min[0] = Math.min(stats.min[0], vertex[0])
+    stats.min[1] = Math.min(stats.min[1], vertex[1])
+    stats.min[2] = Math.min(stats.min[2], vertex[2])
+    stats.max[0] = Math.max(stats.max[0], vertex[0])
+    stats.max[1] = Math.max(stats.max[1], vertex[1])
+    stats.max[2] = Math.max(stats.max[2], vertex[2])
+  }
+}
+
+async function collect3mfObject(buffer, documents, documentPath, objectId, parentTransform, inheritedColor, triangles, triangleColors, resourceCache, stats) {
   const modelDoc = await load3mfDocument(buffer, documentPath, documents)
   const resourceLookup = resourceCache.get(documentPath) || resourceColorLookup(modelDoc)
   resourceCache.set(documentPath, resourceLookup)
-  const resources = firstChildByLocalName(modelDoc.documentElement, 'resources')
-  if (!resources) throw new Error(`3MF model document is missing <resources>: ${documentPath}`)
-  const object = childrenByLocalName(resources, 'object').find((entry) => entry.getAttribute('id') === String(objectId))
-  if (!object) return
+  const object = descendantsByLocalName(modelDoc.documentElement, 'object').find((entry) => entry.getAttribute('id') === String(objectId))
+  if (!object) throw new Error(`3MF object not found: ${documentPath}#${objectId}`)
 
   const objectColor = resolveColor(resourceLookup, object.getAttribute('pid'), object.getAttribute('pindex')) || inheritedColor
   const components = firstChildByLocalName(object, 'components')
@@ -441,6 +469,7 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
         triangles,
         triangleColors,
         resourceCache,
+        stats,
       )
     }
     return
@@ -455,7 +484,9 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
   for (const triangle of childrenByLocalName(firstChildByLocalName(mesh, 'triangles'), 'triangle')) {
     const indices = ['v1', 'v2', 'v3'].map((key) => Number(triangle.getAttribute(key)))
     if (!indices.every((index) => Number.isInteger(index) && vertices[index])) continue
-    triangles.push(indices.map((index) => vertices[index]))
+    const triangleVertices = indices.map((index) => vertices[index])
+    triangles.push(triangleVertices)
+    add3mfTriangle(stats, triangleVertices)
     triangleColors.push(
       resolveColor(
         resourceLookup,
@@ -477,6 +508,7 @@ async function parse3mfBuffer(buffer) {
   const rootDoc = await load3mfDocument(buffer, rootPath, documents)
   const triangles = []
   const triangleColors = []
+  const stats = create3mfStats()
   const build = firstChildByLocalName(rootDoc.documentElement, 'build')
   if (!build) throw new Error(`3MF start model document is missing <build>: ${rootPath}`)
 
@@ -491,31 +523,19 @@ async function parse3mfBuffer(buffer) {
       triangles,
       triangleColors,
       resourceCache,
+      stats,
     )
   }
 
-  const min = [Infinity, Infinity, Infinity]
-  const max = [-Infinity, -Infinity, -Infinity]
-  for (const tri of triangles) {
-    for (const vertex of tri) {
-      min[0] = Math.min(min[0], vertex[0])
-      min[1] = Math.min(min[1], vertex[1])
-      min[2] = Math.min(min[2], vertex[2])
-      max[0] = Math.max(max[0], vertex[0])
-      max[1] = Math.max(max[1], vertex[1])
-      max[2] = Math.max(max[2], vertex[2])
-    }
-  }
-
   return {
-    facets: triangles.length,
-    vertices: triangles.length * 3,
-    uniqueVertices: new Set(triangles.flat().map((vertex) => `${vertex[0]},${vertex[1]},${vertex[2]}`)).size,
-    bounds: triangles.length
+    facets: stats.facets,
+    vertices: stats.vertices,
+    uniqueVertices: stats.uniqueVertices.size,
+    bounds: stats.facets
       ? {
-        min: { x: min[0], y: min[1], z: min[2] },
-        max: { x: max[0], y: max[1], z: max[2] },
-        size: { x: max[0] - min[0], y: max[1] - min[1], z: max[2] - min[2] },
+        min: { x: stats.min[0], y: stats.min[1], z: stats.min[2] },
+        max: { x: stats.max[0], y: stats.max[1], z: stats.max[2] },
+        size: { x: stats.max[0] - stats.min[0], y: stats.max[1] - stats.min[1], z: stats.max[2] - stats.min[2] },
       }
       : null,
     format: '3mf',
