@@ -24,6 +24,12 @@ This repository contains parametric STL generation workflows for FDM printing on
 
 There is no separate test suite in this repo at the moment.
 
+## Pull Request Output
+
+- For work that starts from `.github/ISSUE_TEMPLATE/model-request.yml`, fill out `.github/pull_request_template.md`.
+- PRs for 3D-model work must list the exact script/model/doc paths changed, the validation commands/results, and any remaining fit-risk.
+- When geometry or delivered outputs change, attach rendered preview images for the final STL/3MF (or slicer previews for multi-material 3MF output) and reference them in the PR description.
+
 ## Architecture Boundaries
 
 - `scripts/`: parametric geometry definitions, boolean operations, reference-image tooling (`make_contact_sheet.py`) and the shared mesh CLI (`mesh_tool.py`).

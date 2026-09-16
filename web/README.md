@@ -1,10 +1,9 @@
-# 3d-printing - create and adjust models with GH-Copilot (GitHub Pages)
+# 3d-printing model viewer (GitHub Pages)
 
-Diese SPA hostet den STL-Viewer auf GitHub Pages und startet GitHub Copilot als
-GitHub-Action im vollständigen Repository.
-
-Die Viewer-Implementierung wird mit `.github/extensions/stl-canvas/viewer-app.mjs`
-geteilt, damit Pages-App und Copilot-Extension synchron bleiben.
+Diese App ist eine reine GitHub-Pages-Oberfläche zum Anzeigen und Herunterladen der
+Modelle aus `models/`. Sie teilt den Browser-Viewer mit
+`.github/extensions/stl-canvas/viewer-app.mjs`, damit Vorschauen in Pages und in der
+Copilot-Canvas-Erweiterung gleich gerendert werden.
 
 ## Lokal starten
 
@@ -14,11 +13,15 @@ npm install
 npm run dev
 ```
 
-`predev`/`prebuild` erzeugen automatisch:
+`predev` und `prebuild` spiegeln die Viewer-Assets automatisch und aktualisieren die
+begleitenden Build-Dateien:
 
-- `web/public/models/` + `models.json` aus dem Repo-Ordner `models/` (`sync-models.mjs`)
-- `web/public/skills-manifest.json` aus `.github/skills/**` (`sync-skills.mjs`)
+- `web/public/models/` und `models.json` aus dem Repo-Ordner `models/`
+  (`sync-models.mjs`)
 - `web/public/build-info.json` (`write-build-info.mjs`)
+
+Die Viewer-Laufzeit selbst liest `app-config.json` sowie die Dateien unter
+`web/public/models/`; weitere erzeugte Dateien sind Build-Metadaten.
 
 ## Build
 
@@ -29,54 +32,44 @@ npm run build
 
 ## Deployment
 
-Automatisch via GitHub Actions, wenn sich diese Pfade ändern:
+Das Pages-Build-Workflow läuft automatisch, wenn sich diese Pfade ändern:
 
 - `.github/extensions/stl-canvas/**`
 - `.github/skills/**`
 - `.github/workflows/copilot-agent.yml`
+- `.github/workflows/pages-spa.yml`
 - `web/**`
 - `scripts/**`
 - `models/**`
 
+Im Workflow werden die Modell-Dateien vor dem Vite-Build mit
+`node web/scripts/sync-models.mjs` nach `web/public/models/` gespiegelt, damit sowohl
+`.stl` als auch `.3mf` im Deployment enthalten sind.
+
 ## Konfiguration
 
-`web/public/app-config.json` steuert Titel, Repository, Workflow-Datei,
-Prompt-Limits und den Bildspeicher. Die Skill-Liste im UI ist rein informativ –
-Copilot bekommt in der Action immer alle Skills.
+`web/public/app-config.json` steuert nur die Metadaten der Viewer-Seite:
 
-## Browser-Speicher
+- App-Titel und Tagline
+- Repository-Link
+- Standard-Branch für GitHub-Links
 
-| Daten | Ort | Grund |
-| --- | --- | --- |
-| PAT | `sessionStorage` | Verschwindet mit dem Tab. |
-| Zuletzt verbundener Benutzer, Prompt-Journal | `localStorage` | Kleine Metadaten. |
-| Referenzbilder, Modelle, Berichte | **IndexedDB** (`stl-copilot-store`) | Blobs statt Base64; `localStorage` ist auf ~5 MB begrenzt und würde schon beim ersten Foto überlaufen. |
+## Funktionsumfang
 
-Modelle aus dem alten `localStorage`-Format werden beim ersten Start automatisch
-in die IndexedDB übernommen.
+Die Pages-App bietet:
 
-## Fork-Modell
+- 3D-Vorschau für STL- und 3MF-Dateien aus `models/`
+- Download der aktuell gewählten Datei
+- Link zurück zum Repository
+- Link zum Issue-Template `.github/ISSUE_TEMPLATE/model-request.yml`
 
-Runs laufen im **Fork des jeweiligen Benutzers**, nicht im Upstream-Repo. Die App
-liest den Login des verbundenen PAT (`GET /user`) und dispatcht gegen
-`<login>/3d-printing`. Fehlt der Fork, der Workflow oder das Secret, blendet die
-App eine Einrichtungsanleitung mit Direktlinks ein und blockiert den Dispatch.
+Auf Mobilgeräten wird das Canvas-Pixelverhältnis begrenzt, damit große Modelle
+spürbar schneller laden und rendern.
 
-Einmalige Einrichtung: Upstream forken → Actions im Fork aktivieren → Secret
-`COPILOT_GITHUB_TOKEN` (fine-grained PAT mit `Copilot Requests`) im Fork anlegen.
-Actions-Minuten und Copilot-Verbrauch gehen damit auf das Konto des Benutzers.
+## Nicht Teil der Pages-App
 
-Gesteuert über `execution.mode` in `public/app-config.json`; auf einen anderen
-Wert gesetzt, dispatcht die App wieder direkt gegen `repository.owner`.
+Die frühere Copilot-/Workflow-Steuerung gehört nicht mehr zu `web/`:
 
-## Token
-
-Fine-grained PAT für den **eigenen Fork** mit **`Metadata: Read`** und
-**`Actions: Read and write`**. Kein `Contents`-Recht: die App schreibt nie in ein
-Repository. `Actions: Read and write` ist die kleinste Stufe, mit der GitHub
-`workflow_dispatch` erlaubt.
-
-Das zweite Token (`COPILOT_GITHUB_TOKEN`) wird **nie** in die App eingegeben – es
-liegt ausschließlich als Actions-Secret im Fork. `workflow_dispatch`-Inputs sind
-für jeden mit Actions-Leserecht im Klartext sichtbar und deshalb kein Ort für
-Secrets.
+- keine Authentifizierung oder Token-Eingabe
+- kein Workflow-Dispatch
+- keine Prompt-, Skill- oder Job-Steuerung im UI
