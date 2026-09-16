@@ -1,8 +1,8 @@
 name: 3D model request
 description: Request a new printable model or a fit-critical change to an existing one.
-title: "model request: "
+title: "new model: "
 labels:
-  - enhancement
+  - "3d printing model"
 body:
   - type: markdown
     attributes:
