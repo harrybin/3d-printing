@@ -9,7 +9,7 @@ A collection of ASCII STL models for the Anycubic Kobra S1 Combo + ACE Pro (250 
 | `models/wedge_100x20x40.stl` | 100 × 20 × 40 mm wedge |
 | `models/lineal-clip-kappe.stl` | Snap-fit clip cap for the two holes at the end of a steel ruler ([see example](#example-from-photo-to-printable-stl)) |
 | `models/duschscharnier_ersatz.stl` | Shower-door hinge replacement body generated from `scripts/duschscharnier_ersatz.py` |
-| `models/waeschespinne-reduzierring-60-43.stl` | ASA reducer ring for a 60 mm sleeve and 43 mm laundry-line pole |
+| `models/waeschespinne-reduzierring-60.48-43.04.stl` | ASA reducer ring for a measured 60.48 mm sleeve bore and 43.04 mm laundry-line pole |
 | `models/zylinder_scheibe_2026_2027.stl` | Cylindrical/washer-style reference part |
 | `models/lampe-5-rahmen.3mf` | Multi-material frame for the 240 mm number-5 wall lamp |
 | `models/lampe-5-leuchtflaechen.stl` | All four translucent lamp panels arranged together on the 250 × 250 mm bed |
