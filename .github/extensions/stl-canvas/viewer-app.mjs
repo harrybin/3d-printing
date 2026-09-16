@@ -975,7 +975,7 @@ function normalizeRemoteUrl(value) {
 
 function buildRawGithubModelUrl(repoSlug, ref, file) {
   const [owner, repo] = repoSlug.split('/')
-  return `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(ref)}/models/${encodePathSegments(file)}`
+  return `https://raw.githubusercontent.com/${owner}/${repo}/${encodePathSegments(ref)}/models/${encodePathSegments(file)}`
 }
 
 function appendCacheBust(url) {
