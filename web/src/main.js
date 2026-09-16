@@ -6,6 +6,7 @@ const MOBILE_BREAKPOINT = '(max-width: 720px)'
 const state = {
   config: null,
   currentModel: '',
+  currentModelUrl: '',
 }
 
 async function loadJson(url) {
@@ -20,9 +21,9 @@ function repoSlug() {
 }
 
 function currentModelUrl() {
-  return state.currentModel
+  return state.currentModelUrl || (state.currentModel
     ? `./models/${state.currentModel.split('/').map((segment) => encodeURIComponent(segment)).join('/')}`
-    : '#'
+    : '#')
 }
 
 function updateDownloadButton() {
@@ -43,6 +44,7 @@ function bindViewerEvents() {
   if (!viewerRoot) return
   viewerRoot.addEventListener('stl-canvas:model-change', (event) => {
     state.currentModel = event.detail?.file || ''
+    state.currentModelUrl = event.detail?.url || ''
     updateDownloadButton()
   })
 }
@@ -121,6 +123,7 @@ async function bootstrap() {
 
   initStlCanvas({
     root: document.querySelector('#viewerRoot'),
+    repository: state.config.repository,
     viewStorageKey: 'stl-canvas-pages-view-defaults',
     pollIntervalMs: 0,
     maxPixelRatio: window.matchMedia(MOBILE_BREAKPOINT).matches ? 1.1 : 1.75,
