@@ -407,6 +407,14 @@ function resolveColor(resourceLookup, pid, ...indices) {
   return averageHexColors(colors)
 }
 
+function parse3mfVertex(vertex, documentPath, objectId) {
+  const coords = ['x', 'y', 'z'].map((axis) => Number(vertex.getAttribute(axis)))
+  if (coords.some((value) => !Number.isFinite(value))) {
+    throw new Error(`Invalid 3MF vertex in ${documentPath} object ${objectId}`)
+  }
+  return coords
+}
+
 async function collect3mfObject(buffer, documents, documentPath, objectId, parentTransform, inheritedColor, triangles, triangleColors, resourceCache) {
   const modelDoc = await load3mfDocument(buffer, documentPath, documents)
   const resourceLookup = resourceCache.get(documentPath) || resourceColorLookup(modelDoc)
@@ -441,11 +449,7 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
   const mesh = firstChildByLocalName(object, 'mesh')
   if (!mesh) return
   const vertices = childrenByLocalName(firstChildByLocalName(mesh, 'vertices'), 'vertex').map((vertex) => (
-    transform3mfPoint([
-      Number(vertex.getAttribute('x') || 0),
-      Number(vertex.getAttribute('y') || 0),
-      Number(vertex.getAttribute('z') || 0),
-    ], parentTransform)
+    transform3mfPoint(parse3mfVertex(vertex, documentPath, objectId), parentTransform)
   ))
 
   for (const triangle of childrenByLocalName(firstChildByLocalName(mesh, 'triangles'), 'triangle')) {
@@ -474,6 +478,7 @@ async function parse3mfBuffer(buffer) {
   const triangles = []
   const triangleColors = []
   const build = firstChildByLocalName(rootDoc.documentElement, 'build')
+  if (!build) throw new Error(`3MF start model document is missing <build>: ${rootPath}`)
 
   for (const item of childrenByLocalName(build, 'item')) {
     await collect3mfObject(
