@@ -356,6 +356,16 @@ async function load3mfDocument(buffer, entryName, cache) {
   return cache.get(normalized)
 }
 
+async function read3mfStartPath(buffer) {
+  const xml = new TextDecoder().decode(await readZipEntry(buffer, '_rels/.rels'))
+  const doc = new DOMParser().parseFromString(xml, 'application/xml')
+  const relationship = childrenByLocalName(doc.documentElement, 'Relationship')
+    .find((entry) => (entry.getAttribute('Type') || '').includes('/3dmodel'))
+  const target = relationship?.getAttribute('Target')
+  if (!target) throw new Error('3MF start part not found in _rels/.rels')
+  return target.replace(/^\/+/, '')
+}
+
 function resourceColorLookup(modelDoc) {
   const resources = firstChildByLocalName(modelDoc.documentElement, 'resources')
   const lookup = new Map()
@@ -387,6 +397,7 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
   const resourceLookup = resourceCache.get(documentPath) || resourceColorLookup(modelDoc)
   resourceCache.set(documentPath, resourceLookup)
   const resources = firstChildByLocalName(modelDoc.documentElement, 'resources')
+  if (!resources) throw new Error(`3MF model document is missing <resources>: ${documentPath}`)
   const object = childrenByLocalName(resources, 'object').find((entry) => entry.getAttribute('id') === String(objectId))
   if (!object) return
 
@@ -442,7 +453,7 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
 async function parse3mfBuffer(buffer) {
   const documents = new Map()
   const resourceCache = new Map()
-  const rootPath = '3D/3dmodel.model'
+  const rootPath = await read3mfStartPath(buffer)
   const rootDoc = await load3mfDocument(buffer, rootPath, documents)
   const triangles = []
   const triangleColors = []
