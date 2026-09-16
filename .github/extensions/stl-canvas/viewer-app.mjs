@@ -71,7 +71,8 @@ export function initStlCanvas(options = {}) {
 const root = options.root || document.querySelector('#app') || document.body
 root.innerHTML = APP_HTML
 const VIEW_STORAGE_KEY = options.viewStorageKey || 'stl-canvas-view-defaults'
-const defaultModelFile = new URLSearchParams(window.location.search).get('model') || options.defaultModelFile || ''
+const searchParams = new URLSearchParams(window.location.search)
+const defaultModelFile = searchParams.get('model') || options.defaultModelFile || ''
 const runtimeMode = options.dataSource === 'extension' ? 'extension' : 'static'
 const modelsBasePath = options.modelsBasePath || './models'
 const modelsIndexUrl = options.modelsIndexUrl || `${modelsBasePath}/models.json`
@@ -80,6 +81,7 @@ const modelsApiUrl = options.modelsApiUrl || '/api/models'
 const modelApiUrl = options.modelApiUrl || '/api/model'
 const pollIntervalMs = Number.isFinite(options.pollIntervalMs) ? options.pollIntervalMs : 1500
 const maxPixelRatio = Number.isFinite(options.maxPixelRatio) ? Math.max(0.5, options.maxPixelRatio) : Number.POSITIVE_INFINITY
+const repository = options.repository && typeof options.repository === 'object' ? options.repository : {}
 const storageShadingModes = ['basic', 'lambert', 'normal', 'phong', 'material']
 const fallbackView = {
   rotX: -64.5,
@@ -99,6 +101,11 @@ const VIEW_BACKGROUND = '#0d1117'
 const CIRCLE_MIN_RADIUS_MM = 0.2
 const CIRCLE_RADIUS_VARIANCE_RATIO = 0.02
 const CIRCLE_PLANAR_TOLERANCE_MM = 0.02
+const remoteModelUrlParam = searchParams.get('url') || ''
+const remoteRepoParam = searchParams.get('repo') || ''
+const remoteRefParam = searchParams.get('ref') || ''
+const remoteLabelParam = searchParams.get('label') || ''
+let remoteRequestedFile = ''
 
 function sanitizeView(input) {
   const out = {}
@@ -700,7 +707,10 @@ const canvas = document.getElementById('view');
 const ctx = canvas.getContext('2d');
 const fileChooser = document.getElementById('fileChooser');
 const reloadBtn = document.getElementById('reloadBtn');
-function emitModelChange(file = fileChooser.value || currentFile || '') { root.dispatchEvent(new CustomEvent('stl-canvas:model-change', { detail: { file } })); }
+function emitModelChange(file = fileChooser.value || currentFile || '') {
+  const source = file ? modelSource(file) : null
+  root.dispatchEvent(new CustomEvent('stl-canvas:model-change', { detail: { file, url: source?.downloadUrl || '' } }))
+}
 const autoReloadInput = document.getElementById('autoReload');
 const autoReloadField = autoReloadInput.closest('.field');
 const zoomInput = document.getElementById('zoom');
@@ -939,8 +949,92 @@ function applyViewPreset(name) {
   saveView();
 }
 
+function normalizeText(input) {
+  return typeof input === 'string' ? input.trim() : ''
+}
+
+function normalizeRepoSlug(value) {
+  const slug = normalizeText(value).replace(/^\/+|\/+$/g, '')
+  return /^[^/]+\/[^/]+$/.test(slug) ? slug : ''
+}
+
+function encodePathSegments(path) {
+  return String(path || '').split('/').filter(Boolean).map((segment) => encodeURIComponent(segment)).join('/')
+}
+
+function normalizeRemoteUrl(value) {
+  const raw = normalizeText(value)
+  if (!raw) return ''
+  try {
+    const url = new URL(raw, window.location.href)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : ''
+  } catch {
+    return ''
+  }
+}
+
+function buildRawGithubModelUrl(repoSlug, ref, file) {
+  const [owner, repo] = repoSlug.split('/')
+  return `https://raw.githubusercontent.com/${owner}/${repo}/${encodePathSegments(ref)}/models/${encodePathSegments(file)}`
+}
+
+function appendCacheBust(url) {
+  return `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`
+}
+
+function fileNameFromUrl(url) {
+  try {
+    const pathname = new URL(url).pathname
+    const base = pathname.split('/').filter(Boolean).pop() || ''
+    return decodeURIComponent(base)
+  } catch {
+    return ''
+  }
+}
+
+function requestedRemoteEntry() {
+  const directUrl = normalizeRemoteUrl(remoteModelUrlParam)
+  if (directUrl) {
+    const file = normalizeText(defaultModelFile) || normalizeText(remoteLabelParam) || fileNameFromUrl(directUrl) || 'remote-model'
+    remoteRequestedFile = file
+    return {
+      file,
+      fetchUrl: directUrl,
+      downloadUrl: directUrl,
+      cacheBust: false,
+      sourceLabel: 'remote URL',
+    }
+  }
+  const ref = normalizeText(remoteRefParam)
+  const file = normalizeText(defaultModelFile)
+  const repoSlug = normalizeRepoSlug(remoteRepoParam) || normalizeRepoSlug(`${repository.owner || ''}/${repository.repo || ''}`)
+  if (!ref || !file || !repoSlug) return null
+  remoteRequestedFile = file
+  return {
+    file,
+    fetchUrl: buildRawGithubModelUrl(repoSlug, ref, file),
+    downloadUrl: buildRawGithubModelUrl(repoSlug, ref, file),
+    cacheBust: false,
+    sourceLabel: `${repoSlug}@${ref}`,
+  }
+}
+
+const remoteEntry = requestedRemoteEntry()
+
 function modelUrl(file) {
-  return `${modelsBasePath}/${encodeURIComponent(file)}`;
+  return `${modelsBasePath}/${encodePathSegments(file)}`;
+}
+
+function modelSource(file) {
+  if (remoteEntry && file === remoteRequestedFile) return remoteEntry
+  const localUrl = modelUrl(file)
+  return { file, fetchUrl: localUrl, downloadUrl: localUrl, cacheBust: true, sourceLabel: '' }
+}
+
+function manifestFilesWithRemote(files) {
+  if (!remoteEntry?.file) return files
+  if (files.includes(remoteEntry.file)) return files
+  return [remoteEntry.file, ...files]
 }
 
 async function readModelManifest() {
@@ -953,16 +1047,20 @@ async function readModelManifest() {
       mtimes: data.mtimes && typeof data.mtimes === 'object' ? data.mtimes : {},
     };
   }
-  const res = await fetch(`${modelsIndexUrl}?t=${Date.now()}`, { cache: 'no-store' });
-  if (!res.ok) throw new Error('models.json not found');
+  const res = await fetch(appendCacheBust(modelsIndexUrl), { cache: 'no-store' });
+  if (!res.ok) {
+    if (remoteEntry) return { files: [remoteEntry.file], mtimes: null };
+    throw new Error('models.json not found');
+  }
   const data = await res.json();
-  return { files: Array.isArray(data.files) ? data.files : [], mtimes: null };
+  return { files: manifestFilesWithRemote(Array.isArray(data.files) ? data.files : []), mtimes: null };
 }
 
 async function readModelVersion(file) {
   if (runtimeMode === 'extension') return currentMtime || '';
   try {
-    const res = await fetch(`${modelUrl(file)}?t=${Date.now()}`, { method: 'HEAD', cache: 'no-store' });
+    const source = modelSource(file)
+    const res = await fetch(source.cacheBust ? appendCacheBust(source.downloadUrl) : source.downloadUrl, { method: 'HEAD', cache: 'no-store' });
     if (!res.ok) return '';
     return res.headers.get('etag') || res.headers.get('last-modified') || res.headers.get('content-length') || '';
   } catch {
@@ -976,12 +1074,15 @@ async function fetchModelData(file) {
     if (!res.ok) throw new Error(`Model file not found: models/${file}`)
     return res.json()
   }
-  const response = await fetch(`${modelUrl(file)}?t=${Date.now()}`, { cache: 'no-store' })
-  if (!response.ok) throw new Error(`Model file not found: models/${file}`)
+  const source = modelSource(file)
+  const response = await fetch(source.cacheBust ? appendCacheBust(source.fetchUrl) : source.fetchUrl, { cache: 'no-store' })
+  if (!response.ok) throw new Error(`Model file not found: ${source.sourceLabel ? `${source.sourceLabel} ${file}` : `models/${file}`}`)
   const buffer = await response.arrayBuffer()
   const parsed = await parseModelBuffer(file, buffer)
   return {
     path: file,
+    source: source.sourceLabel,
+    downloadUrl: source.downloadUrl,
     stats: { ...parsed, triangles: undefined, triangleColors: undefined },
     triangles: parsed.triangles || [],
     triangleColors: parsed.triangleColors || [],
@@ -1014,6 +1115,7 @@ function loadModel(file, preserveView) {
       }
       const safeFile = escapeHtml(data.path || file)
       meta.innerHTML = '<span><strong>File:</strong> ' + safeFile + '</span>' +
+        (data.source ? '<span><strong>Source:</strong> ' + escapeHtml(data.source) + '</span>' : '') +
         '<span><strong>Format:</strong> ' + (s.format === 'binary' ? 'Binary STL' : s.format === 'ascii' ? 'ASCII STL' : '3MF') + '</span>' +
         '<span><strong>Facets:</strong> ' + s.facets + '</span>' +
         '<span><strong>Vertices:</strong> ' + s.vertices + '</span>' +

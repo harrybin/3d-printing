@@ -59,6 +59,9 @@ Im Workflow werden die Modell-Dateien vor dem Vite-Build mit
 Die Pages-App bietet:
 
 - 3D-Vorschau für STL- und 3MF-Dateien aus `models/`
+- Vorschau einzelner ungemergter PR-/Branch-Modelle über URL-Parameter wie
+  `?repo=harrybin/3d-printing&ref=<branch>&model=<datei.stl>` oder
+  `?url=<oeffentliche-datei-url>&label=<anzeige-name>`
 - Download der aktuell gewählten Datei
 - Link zurück zum Repository
 - Link zum Issue-Template `.github/ISSUE_TEMPLATE/model-request.yml`
