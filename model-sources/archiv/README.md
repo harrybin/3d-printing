@@ -54,5 +54,19 @@ Kontaktblatt der Analyse-Artefakte (Schieblehren-Overlays aus
 | 11-15 | model-sources/analyse/stl_bottom/front/iso/side/top.png |
 | 16-27 | model-sources/analyse/video_00.png .. video_11.png |
 
+## waeschespinne-reduzierring-referenzfotos-index.png
+
+Kontaktblatt der vier Referenzfotos zu
+`models/waeschespinne-reduzierring-60.48-43.04.stl` (Generator:
+`scripts/waeschespinne_reduzierring.py`, Maße:
+`docs/waeschespinne-reduzierring-masse.md`).
+
+| Kachel | Originaldatei | Nachweis |
+| ---: | --- | --- |
+| 00 | PXL_20260916_153058161.jpg | Mast-Außendurchmesser 43,04 mm |
+| 01 | PXL_20260916_153113313.jpg | Hülsen-Innendurchmesser 60,48 mm |
+| 02 | PXL_20260916_153155947.jpg | schwarzer Fehldruck, Messung 35,85 mm |
+| 03 | PXL_20260916_153218515.jpg | schwarzer Fehldruck, Messung 52,11 mm |
+
 Neue Kontaktblaetter erzeugt man mit
 `python scripts/make_contact_sheet.py <bildordner> --out model-sources/archiv/<modell>-index.png`.
