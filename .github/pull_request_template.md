@@ -25,6 +25,7 @@
 ## Rendered previews
 - [ ] Attached at least one rendered preview image for every changed STL/3MF output
 - Preview image paths or screenshots:
+- Viewer link for unmerged PR models (if applicable): `https://harrybin.github.io/3d-printing/?repo=<owner>/<repo>&ref=<branch>&model=<file.stl>`
 
 ## Copilot 3D-model output requirements
 - [ ] Regenerated outputs from files in `scripts/` instead of hand-editing STL facets
