@@ -20,7 +20,9 @@ function repoSlug() {
 }
 
 function currentModelUrl() {
-  return state.currentModel ? `./models/${encodeURIComponent(state.currentModel)}` : '#'
+  return state.currentModel
+    ? `./models/${state.currentModel.split('/').map((segment) => encodeURIComponent(segment)).join('/')}`
+    : '#'
 }
 
 function updateDownloadButton() {

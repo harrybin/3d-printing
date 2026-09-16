@@ -447,6 +447,7 @@ function add3mfTriangle(stats, triangle) {
 
 function parse3mfComponentTarget(documentPath, objectId, explicitPath) {
   const rawObjectId = String(objectId || '')
+  const rawExplicitPath = String(explicitPath || '')
   if (rawObjectId.includes('#')) {
     const [pathPart, objectPart] = rawObjectId.split('#', 2)
     return {
@@ -454,8 +455,15 @@ function parse3mfComponentTarget(documentPath, objectId, explicitPath) {
       objectId: objectPart,
     }
   }
+  if (rawExplicitPath.includes('#')) {
+    const [pathPart, objectPart] = rawExplicitPath.split('#', 2)
+    return {
+      documentPath: normalizeZipPath(documentPath, pathPart),
+      objectId: objectPart || rawObjectId,
+    }
+  }
   return {
-    documentPath: explicitPath ? normalizeZipPath(documentPath, explicitPath) : documentPath,
+    documentPath: rawExplicitPath ? normalizeZipPath(documentPath, rawExplicitPath) : documentPath,
     objectId: rawObjectId,
   }
 }
