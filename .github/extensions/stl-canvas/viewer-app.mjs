@@ -560,13 +560,10 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
           component.getAttribute('objectid'),
           component.getAttribute('p:path') || component.getAttribute('path') || '',
         )
-        const targetDoc = await load3mfDocument(buffer, target.documentPath, documents)
-        const targetUnitScale = unitCache.get(target.documentPath) || documentUnitScale(targetDoc, target.documentPath)
-        unitCache.set(target.documentPath, targetUnitScale)
         const transform = composeTransforms(
           parentTransform,
           parseTransformString(component.getAttribute('transform'), `${documentPath}#${objectId}`),
-          targetUnitScale,
+          unitScale,
         )
         await collect3mfObject(
           buffer,
