@@ -435,6 +435,16 @@ function resourceColorLookup(modelDoc) {
   return lookup
 }
 
+function resourceObjectLookup(modelDoc) {
+  const resources = firstChildByLocalName(modelDoc.documentElement, 'resources')
+  const lookup = new Map()
+  if (!resources) return lookup
+  for (const object of childrenByLocalName(resources, 'object')) {
+    lookup.set(object.getAttribute('id'), object)
+  }
+  return lookup
+}
+
 function resolveColor(resourceLookup, pid, ...indices) {
   if (!pid) return null
   const palette = resourceLookup.get(pid)
@@ -526,17 +536,19 @@ function parse3mfComponentTarget(documentPath, objectId, explicitPath) {
   }
 }
 
-async function collect3mfObject(buffer, documents, documentPath, objectId, parentTransform, inheritedColor, triangles, triangleColors, resourceCache, unitCache, stats, activeObjects) {
+async function collect3mfObject(buffer, documents, documentPath, objectId, parentTransform, inheritedColor, triangles, triangleColors, resourceCache, objectCache, unitCache, stats, activeObjects) {
   const activeKey = `${documentPath}#${objectId}`
   if (activeObjects.has(activeKey)) throw new Error(`3MF component cycle detected at ${activeKey}`)
   activeObjects.add(activeKey)
   try {
     const modelDoc = await load3mfDocument(buffer, documentPath, documents)
     const resourceLookup = resourceCache.get(documentPath) || resourceColorLookup(modelDoc)
+    const objects = objectCache.get(documentPath) || resourceObjectLookup(modelDoc)
     const unitScale = unitCache.get(documentPath) || documentUnitScale(modelDoc, documentPath)
     resourceCache.set(documentPath, resourceLookup)
+    objectCache.set(documentPath, objects)
     unitCache.set(documentPath, unitScale)
-    const object = descendantsByLocalName(modelDoc.documentElement, 'object').find((entry) => entry.getAttribute('id') === String(objectId))
+    const object = objects.get(String(objectId))
     if (!object) throw new Error(`3MF object not found: ${documentPath}#${objectId}`)
 
     const objectColor = resolveColor(resourceLookup, object.getAttribute('pid'), object.getAttribute('pindex')) || inheritedColor
@@ -566,6 +578,7 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
           triangles,
           triangleColors,
           resourceCache,
+          objectCache,
           unitCache,
           stats,
           activeObjects,
@@ -605,6 +618,7 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
 async function parse3mfBuffer(buffer) {
   const documents = new Map()
   const resourceCache = new Map()
+  const objectCache = new Map()
   const unitCache = new Map()
   const rootPath = await read3mfStartPath(buffer)
   const rootDoc = await load3mfDocument(buffer, rootPath, documents)
@@ -626,6 +640,7 @@ async function parse3mfBuffer(buffer) {
       triangles,
       triangleColors,
       resourceCache,
+      objectCache,
       unitCache,
       stats,
       new Set(),
