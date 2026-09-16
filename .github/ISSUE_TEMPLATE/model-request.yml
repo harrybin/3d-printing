@@ -1,0 +1,58 @@
+name: 3D model request
+description: Request a new printable model or a fit-critical change to an existing one.
+title: "model request: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please add the photos directly to this issue and include all fit-critical dimensions in millimeters.
+        Copilot can work only from the text and files stored in the repository, so missing measurements slow the work down.
+  - type: textarea
+    id: goal
+    attributes:
+      label: What should be created or changed?
+      description: Describe the part, where it is used, and what success looks like.
+      placeholder: Create a replacement clip for ... / Adjust models/example.stl so that ...
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: Photos, sketches, or links
+      description: Upload pictures here and add any product/spec links that help identify the part.
+      placeholder: Drag images into this field or paste URLs. Mention which photo shows which side.
+    validations:
+      required: true
+  - type: textarea
+    id: measurements
+    attributes:
+      label: Measurements (mm)
+      description: List every fit-critical value and where it came from.
+      placeholder: |
+        - outer width: 14.5 mm (measured with caliper)
+        - hole diameter: 2.5 mm (measured)
+        - material thickness: 2.0 mm (measured)
+    validations:
+      required: true
+  - type: textarea
+    id: existing-files
+    attributes:
+      label: Existing repo files (optional)
+      description: Point to existing scripts, models, or docs if this builds on earlier work.
+      placeholder: scripts/lineal_clip_kappe.py, models/lineal-clip-kappe.stl, docs/...
+  - type: textarea
+    id: print-notes
+    attributes:
+      label: Print and fit notes
+      description: Material, orientation constraints, clearance expectations, color/material regions, or anything else that affects the output.
+      placeholder: ASA outdoors, should snap-fit, separate colors must stay separate in 3MF, ...
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      description: Tell us how you will judge the result.
+      placeholder: The STL/3MF should fit ..., validate cleanly, and include ...
+    validations:
+      required: true

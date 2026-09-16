@@ -79,6 +79,7 @@ const viewApiUrl = options.viewApiUrl || '/api/view'
 const modelsApiUrl = options.modelsApiUrl || '/api/models'
 const modelApiUrl = options.modelApiUrl || '/api/model'
 const pollIntervalMs = Number.isFinite(options.pollIntervalMs) ? options.pollIntervalMs : 1500
+const maxPixelRatio = Number.isFinite(options.maxPixelRatio) ? Math.max(0.5, options.maxPixelRatio) : Number.POSITIVE_INFINITY
 const storageShadingModes = ['basic', 'lambert', 'normal', 'phong', 'material']
 const fallbackView = {
   rotX: -64.5,
@@ -242,6 +243,131 @@ function parseStlBuffer(buffer) {
     : parseBinaryStl(buffer)
 }
 
+async function inflateDeflateRaw(bytes) {
+  if (typeof DecompressionStream !== 'function') {
+    throw new Error('3MF decompression is not supported in this browser.')
+  }
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))
+  const buffer = await new Response(stream).arrayBuffer()
+  return new Uint8Array(buffer)
+}
+
+async function readZipEntry(buffer, entryName) {
+  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const decoder = new TextDecoder()
+
+  for (let offset = bytes.length - 22; offset >= Math.max(0, bytes.length - 65557); offset -= 1) {
+    if (view.getUint32(offset, true) !== 0x06054b50) continue
+    let cursor = view.getUint32(offset + 16, true)
+    const entries = view.getUint16(offset + 10, true)
+    for (let index = 0; index < entries; index += 1) {
+      if (view.getUint32(cursor, true) !== 0x02014b50) throw new Error('Invalid 3MF central directory')
+      const compression = view.getUint16(cursor + 10, true)
+      const compressedSize = view.getUint32(cursor + 20, true)
+      const nameLength = view.getUint16(cursor + 28, true)
+      const extraLength = view.getUint16(cursor + 30, true)
+      const commentLength = view.getUint16(cursor + 32, true)
+      const localOffset = view.getUint32(cursor + 42, true)
+      const name = decoder.decode(bytes.slice(cursor + 46, cursor + 46 + nameLength))
+      if (name === entryName) {
+        if (view.getUint32(localOffset, true) !== 0x04034b50) throw new Error('Invalid 3MF local header')
+        const localNameLength = view.getUint16(localOffset + 26, true)
+        const localExtraLength = view.getUint16(localOffset + 28, true)
+        const start = localOffset + 30 + localNameLength + localExtraLength
+        const data = bytes.slice(start, start + compressedSize)
+        if (compression === 0) return data
+        if (compression === 8) return inflateDeflateRaw(data)
+        throw new Error(`Unsupported 3MF compression method: ${compression}`)
+      }
+      cursor += 46 + nameLength + extraLength + commentLength
+    }
+    break
+  }
+  throw new Error(`3MF entry not found: ${entryName}`)
+}
+
+function transform3mfPoint(point, transform) {
+  if (!transform) return point
+  const values = transform.trim().split(/\s+/).map(Number)
+  if (values.length !== 12 || values.some((value) => !Number.isFinite(value))) return point
+  const [x, y, z] = point
+  return [
+    values[0] * x + values[3] * y + values[6] * z + values[9],
+    values[1] * x + values[4] * y + values[7] * z + values[10],
+    values[2] * x + values[5] * y + values[8] * z + values[11],
+  ]
+}
+
+function parse3mfDocument(xml, transform, triangles, triangleColors) {
+  const materials = [...xml.matchAll(/<base\b[^>]*\bdisplaycolor="(#[0-9A-Fa-f]{6})(?:[0-9A-Fa-f]{2})?"[^>]*\/>/g)]
+    .map((match) => match[1])
+  for (const object of xml.matchAll(/<object\b[\s\S]*?<\/object>/g)) {
+    const verticesBlock = object[0].match(/<vertices>([\s\S]*?)<\/vertices>/)
+    if (!verticesBlock) continue
+    const materialIndex = Number(object[0].match(/<object\b[^>]*\bpindex="(\d+)"/)?.[1])
+    const color = materials[materialIndex] || '#d6d9de'
+    const vertices = [...verticesBlock[1].matchAll(/<vertex\b[^>]*\bx="([^"]+)"[^>]*\by="([^"]+)"[^>]*\bz="([^"]+)"[^>]*\/>/g)]
+      .map((match) => transform3mfPoint([Number(match[1]), Number(match[2]), Number(match[3])], transform))
+    for (const triangle of object[0].matchAll(/<triangle\b[^>]*\bv1="(\d+)"[^>]*\bv2="(\d+)"[^>]*\bv3="(\d+)"[^>]*\/>/g)) {
+      const indices = [Number(triangle[1]), Number(triangle[2]), Number(triangle[3])]
+      if (indices.every((index) => vertices[index])) {
+        triangles.push(indices.map((index) => vertices[index]))
+        triangleColors.push(color)
+      }
+    }
+  }
+}
+
+async function parse3mfBuffer(buffer) {
+  const rootXml = new TextDecoder().decode(await readZipEntry(buffer, '3D/3dmodel.model'))
+  const triangles = []
+  const triangleColors = []
+  parse3mfDocument(rootXml, null, triangles, triangleColors)
+
+  const buildTransform = rootXml.match(/<item\b[^>]*\btransform="([^"]+)"/)?.[1]
+  const externalDocuments = new Set(
+    [...rootXml.matchAll(/<component\b[^>]*\bp:path="\/([^"]+)"/g)].map((match) => match[1]),
+  )
+  for (const entryName of externalDocuments) {
+    const xml = new TextDecoder().decode(await readZipEntry(buffer, entryName))
+    parse3mfDocument(xml, buildTransform, triangles, triangleColors)
+  }
+
+  const min = [Infinity, Infinity, Infinity]
+  const max = [-Infinity, -Infinity, -Infinity]
+  for (const tri of triangles) {
+    for (const vertex of tri) {
+      min[0] = Math.min(min[0], vertex[0])
+      min[1] = Math.min(min[1], vertex[1])
+      min[2] = Math.min(min[2], vertex[2])
+      max[0] = Math.max(max[0], vertex[0])
+      max[1] = Math.max(max[1], vertex[1])
+      max[2] = Math.max(max[2], vertex[2])
+    }
+  }
+
+  return {
+    facets: triangles.length,
+    vertices: triangles.length * 3,
+    uniqueVertices: new Set(triangles.flat().map((vertex) => `${vertex[0]},${vertex[1]},${vertex[2]}`)).size,
+    bounds: triangles.length
+      ? {
+        min: { x: min[0], y: min[1], z: min[2] },
+        max: { x: max[0], y: max[1], z: max[2] },
+        size: { x: max[0] - min[0], y: max[1] - min[1], z: max[2] - min[2] },
+      }
+      : null,
+    format: '3mf',
+    triangles,
+    triangleColors,
+  }
+}
+
+async function parseModelBuffer(modelPath, buffer) {
+  return modelPath.toLowerCase().endsWith('.3mf') ? parse3mfBuffer(buffer) : parseStlBuffer(buffer)
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll('&', '&amp;')
@@ -270,6 +396,7 @@ const ctx = canvas.getContext('2d');
 const fileChooser = document.getElementById('fileChooser');
 const reloadBtn = document.getElementById('reloadBtn');
 const autoReloadInput = document.getElementById('autoReload');
+const autoReloadField = autoReloadInput.closest('.field');
 const zoomInput = document.getElementById('zoom');
 const wireframeInput = document.getElementById('wireframe');
 const shadingInput = document.getElementById('shading');
@@ -282,6 +409,7 @@ const measureModeInput = document.getElementById('measureMode');
 const measurePanel = document.getElementById('measurePanel');
 const measureClearBtn = document.getElementById('measureClear');
 showGridInput.checked = baseView.showGrid;
+if (pollIntervalMs <= 0 && autoReloadField) autoReloadField.hidden = true
 showAxesInput.checked = baseView.showAxes;
 showBoxInput.checked = baseView.showBoundingBox;
 showInfoInput.checked = baseView.showInfo;
@@ -545,11 +673,12 @@ async function fetchModelData(file) {
   const response = await fetch(`${modelUrl(file)}?t=${Date.now()}`, { cache: 'no-store' })
   if (!response.ok) throw new Error(`Model file not found: models/${file}`)
   const buffer = await response.arrayBuffer()
-  const parsed = parseStlBuffer(buffer)
+  const parsed = await parseModelBuffer(file, buffer)
   return {
     path: file,
-    stats: { ...parsed, triangles: undefined },
+    stats: { ...parsed, triangles: undefined, triangleColors: undefined },
     triangles: parsed.triangles || [],
+    triangleColors: parsed.triangleColors || [],
     mtime: await readModelVersion(file),
   }
 }
@@ -635,7 +764,8 @@ function pollForChanges() {
   }).catch(() => {}).finally(() => { reloadInFlight = false })
 }
 
-function resizeCanvas() { const rect = canvas.getBoundingClientRect(); canvas.width = rect.width * window.devicePixelRatio; canvas.height = rect.height * window.devicePixelRatio; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.scale(window.devicePixelRatio, window.devicePixelRatio); }
+function canvasPixelRatio() { return Math.min(window.devicePixelRatio || 1, maxPixelRatio); }
+function resizeCanvas() { const rect = canvas.getBoundingClientRect(); const pixelRatio = canvasPixelRatio(); canvas.width = rect.width * pixelRatio; canvas.height = rect.height * pixelRatio; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.scale(pixelRatio, pixelRatio); }
 // Turntable camera: yaw around the model's Z (up) axis, then pitch, then screen roll.
 function rot(v, rx, ry, rz) { let [x, y, z] = v; const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(rx), sx = Math.sin(rx), cz = Math.cos(rz), sz = Math.sin(rz); let t = x * cy - y * sy; y = x * sy + y * cy; x = t; t = y * cx - z * sx; z = y * sx + z * cx; y = t; t = x * cz - y * sz; y = x * sz + y * cz; x = t; return [x, y, z]; }
 function projectPoint(v, rx, ry, rz, w, h, zoom) { const r = rot(v, rx, ry, rz); const x = r[0] + panX; const y = r[1] + panY; const z = r[2]; const f = 420 / (420 - z); return [w / 2 + x * f * MM_TO_PX * zoom, h / 2 - y * f * MM_TO_PX * zoom, z]; }
@@ -1070,7 +1200,8 @@ function applySavedOrFit() {
   fitView();
 }
 function draw() {
-  const w = canvas.width / window.devicePixelRatio, h = canvas.height / window.devicePixelRatio;
+  const pixelRatio = canvasPixelRatio()
+  const w = canvas.width / pixelRatio, h = canvas.height / pixelRatio;
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = VIEW_BACKGROUND;
   ctx.fillRect(0, 0, w, h);
@@ -1195,7 +1326,7 @@ readViewDefaults().then((view) => {
   applyBaseView(configuredFallbackView)
   return false
 }).then((loaded) => {
-  if (loaded !== false && pollTimer === null) pollTimer = setInterval(pollForChanges, pollIntervalMs)
+  if (loaded !== false && pollTimer === null && pollIntervalMs > 0) pollTimer = setInterval(pollForChanges, pollIntervalMs)
 })
 fileChooser.addEventListener('change', () => { if (fileChooser.value) loadModel(fileChooser.value) })
 reloadBtn.addEventListener('click', () => {
