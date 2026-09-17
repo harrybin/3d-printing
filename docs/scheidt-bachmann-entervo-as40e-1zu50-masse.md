@@ -20,6 +20,7 @@ gezeigten Öffnungsstellung in den Schrank geklebt.
 | Gehäusetiefe | 300 mm | 6,00 mm | Datenblatt-Zeichnung | [entervo.barrier Produktdatenblatt, S. 2](https://www.scheidt-bachmann.de/fileadmin/images/parking-solutions/campaigns/Gated_Content_Website/RSPRODUCT_entervo.barrier_2023-11-13_de_DE.pdf#page=2) | mittel; Zeichnungszuordnung visuell geprüft | `CABINET_DEPTH` |
 | Auslegerprofil C | 69 mm | 1,38 mm | Datenblatt | [entervo.barrier Produktdatenblatt, S. 2](https://www.scheidt-bachmann.de/fileadmin/images/parking-solutions/campaigns/Gated_Content_Website/RSPRODUCT_entervo.barrier_2023-11-13_de_DE.pdf#page=2) | hoch | `BOOM_HEIGHT` |
 | Schrankkappe, Türfugen, Gelenk, Reflektorpositionen | – | siehe Skript | bildabgeleitet | vom Nutzer bereitgestelltes Produktbild; Herstellerbild `AS40e_9016_straight_closed` | niedrig bis mittel | jeweilige visuelle Konstanten |
+| Erhabene Beschriftung `SCHEIDT BACHMANN` | 0,4 mm Relief, 0,85 mm Versalhöhe | siehe Skript | bildabgeleitet | vom Nutzer bereitgestelltes Produktbild | mittel; in 1:50 für Druckbarkeit verstärkt | `LETTER_HEIGHT`, `LETTER_RELIEF` |
 
 Die offiziellen Farben sind RAL 9016 (Gehäuse), RAL 7043 (Kappe) und weißer
 RAL-9010-Ausleger mit roten Reflektoren. Die angelegten 3MF-Farben sind
@@ -36,7 +37,10 @@ slicerfreundliche Näherungen, keine verbindlichen RAL-Farbprofile.
   dargestellt.
 - **Printability:** Alle Mindeststärken sind mindestens 0,8 mm; Schrank und
   Ausleger werden flach/stehend ohne notwendige Stützen gedruckt. Der flach
-  liegende Ausleger erhält rote, 0,4-mm-hohe Einleger auf seiner Oberseite.
+  liegende Ausleger erhält rote, 0,4-mm-hohe Einleger auf seiner Oberseite. Die
+  dunkelgraue Herstellerbeschriftung auf der Schrankfront ist 0,4 mm erhaben;
+  ihre minimalen Linien sind für den 1:50-Maßstab visuell statt maßgetreu
+  verstärkt.
 - **Risiko:** Der Schrankkappenverlauf, der Gelenksitz und die Reflektoren sind
   visuelle Annäherungen. Sie sind nicht fit-kritisch; für eine maßhaltige
   Reproduktion oder ein bewegliches Gelenk wären Hersteller-CAD oder

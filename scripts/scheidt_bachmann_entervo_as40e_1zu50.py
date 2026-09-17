@@ -14,6 +14,7 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 import numpy as np
 import trimesh
+from build123d import Text, TextAlign, extrude
 
 
 SCALE = 50.0  # User-selected display scale.
@@ -27,6 +28,9 @@ MIN_FEATURE = 0.8
 CAP_HEIGHT = 2.2  # Visual approximation from the supplied AS40E image.
 BOOM_THICKNESS = 1.6
 RED_INLAY_HEIGHT = 0.4
+LETTER_HEIGHT = 0.85
+LETTER_RELIEF = 0.4
+LETTER_FONT = Path(r"C:\Windows\Fonts\arialbd.ttf")
 MODEL_DIR = Path(__file__).resolve().parents[1] / "models"
 OUT_3MF = MODEL_DIR / "scheidt-bachmann-entervo-as40e-1zu50.3mf"
 OUT_PREVIEW = MODEL_DIR / "scheidt-bachmann-entervo-as40e-1zu50-vorschau.stl"
@@ -60,6 +64,41 @@ def cleaned(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     return mesh
 
 
+def solid_to_mesh(solid) -> trimesh.Trimesh:
+    vertices, faces = solid.tessellate(0.08)
+    return cleaned(
+        trimesh.Trimesh(
+            vertices=np.array([[point.X, point.Y, point.Z] for point in vertices]),
+            faces=np.asarray(faces),
+            process=False,
+        )
+    )
+
+
+def cabinet_lettering() -> trimesh.Trimesh:
+    """Raised manufacturer lettering on the front, oriented like the reference."""
+    solid = extrude(
+        Text(
+            "SCHEIDT BACHMANN",
+            LETTER_HEIGHT,
+            font_path=LETTER_FONT,
+            text_align=(TextAlign.CENTER, TextAlign.CENTER),
+        ),
+        amount=LETTER_RELIEF,
+    )
+    lettering = solid_to_mesh(solid)
+    lettering.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2.0, (0.0, 0.0, 1.0)))
+    lettering.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2.0, (1.0, 0.0, 0.0)))
+    lettering.apply_translation(
+        (
+            -1.25 - lettering.bounds.mean(axis=0)[0],
+            -CABINET_DEPTH / 2.0 - lettering.bounds[1, 1],
+            10.5 - lettering.bounds.mean(axis=0)[2],
+        )
+    )
+    return cleaned(lettering)
+
+
 def cabinet_parts() -> list[tuple[str, trimesh.Trimesh, Material]]:
     """A support-free upright cabinet with colour breaks at physical seams."""
     lower_height = CABINET_HEIGHT - CAP_HEIGHT
@@ -83,6 +122,7 @@ def cabinet_parts() -> list[tuple[str, trimesh.Trimesh, Material]]:
         ("cabinet_base", cleaned(base), GREY),
         ("cabinet_cap", cleaned(cap), GREY),
         ("boom_pivot", cleaned(pivot), GREY),
+        ("cabinet_lettering", cabinet_lettering(), GREY),
     ]
 
 
