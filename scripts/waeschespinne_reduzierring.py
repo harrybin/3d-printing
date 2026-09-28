@@ -1,4 +1,4 @@
-"""Generate an ASA reducer ring for a 50.2 mm pole in a 60.0 mm sleeve.
+"""Generate an ASA reducer ring for a 50.2 mm pole in a 67.0 mm sleeve.
 
 Print orientation: place the collar flat on the bed. The vertical walls require no
 support; use at least five perimeters and 50 % rectilinear infill for the selected
@@ -11,17 +11,18 @@ import numpy as np
 import trimesh
 
 # --- user caliper measurements and fit policy (mm) --------------------------
-SLEEVE_ID = 60.0
+SLEEVE_ID = 67.0
 POLE_OD = 50.2
 SLIDING_CLEARANCE = 0.40
 INSERTION_HEIGHT = 50.0
-COLLAR_OUTER_DIA = 70.0
+COLLAR_RADIAL_OVERHANG = 5.0
 COLLAR_HEIGHT = 3.0
 
 # Clearance is diametral. It follows the 0.40 mm sliding-fit baseline for a
 # functional ASA part and leaves 0.20 mm nominal clearance on each side.
 OUTER_DIA = SLEEVE_ID - SLIDING_CLEARANCE
 INNER_DIA = POLE_OD + SLIDING_CLEARANCE
+COLLAR_OUTER_DIA = SLEEVE_ID + 2.0 * COLLAR_RADIAL_OVERHANG
 
 # The collar rests on the sleeve rim. In use the printed part is flipped, so z=0 is
 # the pole-entry face and the high-z end enters the sleeve first.
@@ -79,7 +80,7 @@ def main() -> None:
     out = (
         Path(__file__).resolve().parents[1]
         / "models"
-        / "waeschespinne-reduzierring-60-50.2.stl"
+        / "waeschespinne-reduzierring-67-50.2.stl"
     )
     out.parent.mkdir(parents=True, exist_ok=True)
     mesh.export(out, file_type="stl_ascii")

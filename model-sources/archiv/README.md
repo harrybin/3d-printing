@@ -57,12 +57,13 @@ Kontaktblatt der Analyse-Artefakte (Schieblehren-Overlays aus
 ## waeschespinne-reduzierring-referenzfotos-index.png
 
 Kontaktblatt der vier Referenzfotos zu
-`models/waeschespinne-reduzierring-60-50.2.stl` (Generator:
+`models/waeschespinne-reduzierring-67-50.2.stl` (Generator:
 `scripts/waeschespinne_reduzierring.py`, Maße:
 `docs/waeschespinne-reduzierring-masse.md`).
 
 Hinweis: Die auf diesen Fotos abgelesenen Durchmesser sind überholt. Gültig sind
-die benutzerbestätigten Maße 50,20 mm (Mast) und 60,00 mm (Hülse) vom 2026-09-27.
+die neu benutzerbestätigten Maße 50,20 mm (Mast) und 67,00 mm (Hülse) vom
+2026-09-27; die zwischenzeitliche 60,00-mm-Hülsenannahme ist ebenfalls überholt.
 
 | Kachel | Originaldatei | Nachweis |
 | ---: | --- | --- |
