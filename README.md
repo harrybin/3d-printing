@@ -161,7 +161,8 @@ If the fit is too tight or too loose, adjust `HOLE_DIA` / `PRESS_CLEAR` in
 | STL vs 3MF | `stl-create-edit-interview` | Distinct material/color regions require a 3MF deliverable; STL is only for merged single-region output. |
 | Coordinate convention | `validate-stl-mesh` | Auto-detect center-origin vs corner-origin unless the user specifies it. |
 | Feature proof | `validate-stl-mesh` | Use probes, slices, and compare checks instead of screenshots alone. |
-| Canvas preview | `create-ascii-stl` | Preview any written STL from `models/`; for 3MF-first outputs, report the 3MF path and preview an STL counterpart when available. |
+| Final model image in chat | `create-ascii-stl` | Post an inline render of the exact final STL/3MF in the final chat response; a canvas preview or path alone is not enough. |
+| Canvas preview | `create-ascii-stl` | Also preview written STL files from `models/`; for 3MF-first outputs, report the 3MF path and preview an STL counterpart when available. |
 
 ## Mesh CLI
 

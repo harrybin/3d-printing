@@ -349,6 +349,12 @@ After the output is written or updated on disk, always provide a canvas preview 
 - Optionally call the `read_stats` action and report facets and bounds alongside the preview.
 - If the canvas fails to open (extension unavailable or `stl_not_found`), report the failure and the file path explicitly instead of silently continuing.
 
+### 10. Post the final rendered image in chat — mandatory
+
+After the exact final output has passed validation, render it and show the image inline in the final chat response. This is required in addition to the STL canvas preview: a canvas panel, file path, or text description alone is not a posted image. For a multi-color/material 3MF, use a render or slicer preview that shows the regions; for an arrangement, show the final parts together. Preserve the final presentation render until it has been displayed. This is distinct from temporary analysis renders, which may be removed during cleanup.
+
+Use the platform's image attachment/inline-image mechanism. If the current interface cannot embed the image, state that limitation and provide the rendered image path as a fallback.
+
 ## Communication rules
 
 - Be explicit about what came from the image, what came from research, and what was inferred.
@@ -373,6 +379,7 @@ Before finishing, provide:
 - printability findings and any accepted risks
 - whether the mesh was centered or origin-aligned and by which convention
 - confirmation that the final file was opened in the STL canvas, including the previewed path
+- the final rendered image displayed inline in chat (or an explicit note and path if inline display is unavailable)
 
 ## Recommended companion skills
 
