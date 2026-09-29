@@ -30,6 +30,13 @@ There is no separate test suite in this repo at the moment.
 - PRs for 3D-model work must list the exact script/model/doc paths changed, the validation commands/results, and any remaining fit-risk.
 - When geometry or delivered outputs change, attach rendered preview images for the final STL/3MF (or slicer previews for multi-material 3MF output) and reference them in the PR description.
 
+## Final model image in chat (mandatory)
+
+- Whenever a model is created or its delivered geometry changes, render the exact final STL/3MF and show that image inline in the final chat response. Do not stop at opening the STL canvas, describing the model, or reporting a file path: a canvas preview is not a chat image.
+- For multi-material or multi-color 3MF, show a rendered or slicer preview that makes the final color/material regions visible. For multiple delivered parts, include a view that shows their final arrangement.
+- Keep the final presentation render separate from temporary analysis/reference renders. Do not delete it before it has been displayed in chat; temporary renders may be cleaned up afterward.
+- Use the platform's image attachment/inline-image mechanism. If the current interface cannot embed the image, state that limitation explicitly and provide the rendered image path as a fallback rather than implying that the canvas preview was posted in chat.
+
 ## Architecture Boundaries
 
 - `scripts/`: parametric geometry definitions, boolean operations, reference-image tooling (`make_contact_sheet.py`) and the shared mesh CLI (`mesh_tool.py`).
@@ -54,7 +61,7 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - For engineering shapes (countersinks, bosses, ribs, hulled contours), prefer **build123d** for the solid and re-export through trimesh (round vertices to 0.001 mm, merge, dedupe faces) to guarantee a watertight ASCII STL.
 - When recreating parts from photos/videos, run the render-and-compare loop (vedo offscreen renders vs. reference frames) before declaring the model done; see `.github/skills/stl-from-image-measurements/SKILL.md`.
 - Before reading reference photos, build a numbered contact sheet with `python scripts/make_contact_sheet.py <image folder>` and open only the tiles that show the feature in question. Commit the sheet as `<image folder>/_index.png` and cite tile numbers in the measurement doc.
-- When a model is finished, delete its raw reference photos and analysis renderings. Keep only the contact sheet(s), renamed after the model, in `model-sources/archiv/` (e.g. `duschscharnier_ersatz-referenzfotos-index.png`), and record the tile-to-file legend in `model-sources/archiv/README.md`.
+- When a model is finished, delete its raw reference photos and temporary analysis renderings after the final presentation render has been shown in chat. Keep the final presentation render as needed for the deliverable/PR, and keep only the contact sheet(s), renamed after the model, in `model-sources/archiv/` (e.g. `duschscharnier_ersatz-referenzfotos-index.png`); record the tile-to-file legend in `model-sources/archiv/README.md`.
 
 ## Common Pitfalls
 
@@ -96,7 +103,8 @@ If behavior around print constraints, validation policy, or coordinate targeting
 | STL vs 3MF decision | confirmed material/color semantics | `stl-create-edit-interview` | `create-ascii-stl`, `stl-from-image-measurements`, `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Distinct material/color regions require a 3MF deliverable; STL is only for merged single-region output. |
 | Coordinate convention | mesh coordinates and user intent | `validate-stl-mesh` | `edit-stl-transform`, `optimize-stl-for-print` | Auto-detect center-origin vs corner-origin unless the user specifies it. |
 | Mesh proof and feature existence | `scripts/mesh_tool.py` checks | `validate-stl-mesh` | `stl-from-image-measurements`, `photo-anchor-candidate-fit` | Prove ambiguous internal features with probes/slices, not screenshots alone. |
-| STL canvas preview | written output path under `models/` | `create-ascii-stl` | `edit-stl-transform`, `stl-from-image-measurements`, `validate-stl-mesh`, `optimize-stl-for-print` | Preview any written STL immediately; for 3MF-first outputs, report the 3MF path and preview an STL counterpart when available. |
+| Final model image in chat | exact final STL/3MF output | `create-ascii-stl` | `edit-stl-transform`, `stl-from-image-measurements`, `optimize-stl-for-print` | Post an inline rendered image in the final chat response; a canvas preview or path alone is not enough. |
+| STL canvas preview | written output path under `models/` | `create-ascii-stl` | `edit-stl-transform`, `stl-from-image-measurements`, `validate-stl-mesh`, `optimize-stl-for-print` | Also preview written STL outputs in the canvas; for 3MF-first outputs, report the 3MF path and preview an STL counterpart when available. |
 | Optional helper libraries | repo support status | `.github/skills/README.md` | all skills | Mark non-default helpers such as `scikit-image` or `shapely` explicitly as optional where applicable. |
 
 ## Session-Learned Friction To Avoid

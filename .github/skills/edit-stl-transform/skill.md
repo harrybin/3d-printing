@@ -94,6 +94,12 @@ Every STL that is modified, transformed, merged, split, or re-saved must be show
 - Optionally call the `read_stats` action and report the post-edit facets and bounds together with the preview.
 - If the canvas fails to open (extension unavailable or `stl_not_found`), report the failure and the file path explicitly instead of silently continuing.
 
+## Mandatory final render in chat
+
+After the edited output is validated, render the exact delivered model and show that image inline in the final chat response. This is required in addition to the STL canvas preview; a canvas panel, file path, or text description alone does not count. If several outputs are delivered, include a rendered view of each or a view that clearly shows all of them. Keep the final presentation render until it has been displayed; temporary analysis renders may be deleted afterward.
+
+Use the platform's image attachment/inline-image mechanism. If the current interface cannot embed the image, state that limitation explicitly and provide the rendered image path as a fallback.
+
 ## Source
 
 - Prusa modeling for printability guidelines  

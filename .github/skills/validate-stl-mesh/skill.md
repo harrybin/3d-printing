@@ -147,6 +147,7 @@ If this validation writes or rewrites an STL file (e.g., the centering auto-corr
 - Use a stable `instanceId` such as `stl-preview` so the panel refreshes instead of stacking.
 - If the canvas fails to open (extension unavailable or `stl_not_found`), report the failure and the file path explicitly.
 - Pure read-only validation without file changes does not require opening the canvas, but it is still recommended.
+- If this validation writes or rewrites the delivered model as part of a creation/edit task, also render the exact final output and show that image inline in the final chat response. A canvas preview or path alone is not enough; if inline image display is unavailable, state that and provide the rendered image path.
 
 ## Source
 

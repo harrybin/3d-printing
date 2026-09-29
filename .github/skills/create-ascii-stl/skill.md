@@ -117,6 +117,12 @@ Every newly created output file must be previewed immediately after it is writte
 - Optionally call the `read_stats` action on that instance and report facets and bounds together with the preview.
 - If the canvas fails to open (extension unavailable or `stl_not_found`), report the failure and the file path explicitly instead of silently continuing.
 
+## Mandatory final render in chat
+
+After the final geometry is generated and validated, render the exact delivered model and display that image inline in the final chat response. Opening the STL canvas, reporting its path, or describing the model does not satisfy this requirement. For multi-color/material 3MF, show a render or slicer preview with those regions visible. Keep the final presentation render until it has been posted; do not confuse it with temporary analysis renders that may be deleted.
+
+Use the platform's image attachment/inline-image mechanism. If the current interface cannot embed the image, say so explicitly and provide the rendered image path as a fallback.
+
 ## Sources
 
 - Anycubic store: Kobra S1 Combo nozzle support and hotend data  

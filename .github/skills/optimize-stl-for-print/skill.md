@@ -160,6 +160,12 @@ If this skill writes a new STL file for orientation, layout, or compensated geom
 - If the optimization result is a 3MF-first deliverable, report the 3MF path explicitly and preview an STL counterpart when one exists for inspection.
 - If the canvas fails to open, report the failure and the file path explicitly.
 
+## Mandatory final render in chat
+
+After writing and validating the optimized output, render the exact delivered model and show that image inline in the final chat response. This is required in addition to the STL canvas preview; a canvas panel, file path, or text description alone does not count. For a multi-color/material 3MF, show a render or slicer preview with those regions visible. Keep the final presentation render until it has been displayed; temporary analysis renders may be deleted afterward.
+
+Use the platform's image attachment/inline-image mechanism. If the current interface cannot embed the image, state that limitation explicitly and provide the rendered image path as a fallback.
+
 ## Sources
 
 - Prusa, modeling with 3D printing in mind:
