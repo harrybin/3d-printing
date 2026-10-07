@@ -25,6 +25,7 @@ If a procedure is needed more than once, it belongs in a skill file.
 | Preflight interview | `stl-create-edit-interview` | Required intent questions before creating/editing |
 | Mesh quality | `validate-stl-mesh` | Integrity checks, feature probes, stale-file checks |
 | Print optimization | `optimize-stl-for-print` | Orientation and compensation decisions after geometry is correct |
+| Slicer handoff | `orcaslicer-project-workflow` | Pinned standard-OrcaSlicer MCP setup, slicing-only safety boundary and evidence |
 
 ## Central consistency matrix
 

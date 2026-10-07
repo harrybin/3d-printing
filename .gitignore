@@ -1,4 +1,5 @@
 .venv/
+.venv-orcaslicer-mcp/
 __pycache__/
 *.pyc
 web/node_modules/

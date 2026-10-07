@@ -13,6 +13,9 @@ A collection of ASCII STL models for the Anycubic Kobra S1 Combo + ACE Pro (250 
 | `models/zylinder_scheibe_2026_2027.stl` | Cylindrical/washer-style reference part |
 | `models/lampe-5-rahmen.3mf` | Multi-material frame for the 240 mm number-5 wall lamp |
 | `models/lampe-5-leuchtflaechen.stl` | All four translucent lamp panels arranged together on the 250 × 250 mm bed |
+| `models/ghouls-grip.3mf` | Multi-material assembly view of the mechanical Halloween candy-box prototype ([dimensions and assembly](docs/ghouls-grip-masse-und-bauanleitung.md)) |
+| `models/ghouls-grip-preview.stl` | Multi-body preview of the exact Ghoul's Grip 3MF assembly |
+| `models/ghouls-grip/*.stl` | The 20 individual printable parts of the Ghoul's Grip |
 
 ## Setup
 
@@ -28,6 +31,15 @@ Generator scripts live in `scripts/` and write their output to `models/`:
 ```powershell
 .\.venv\Scripts\python.exe scripts\lineal_clip_kappe.py
 ```
+
+The optional, repository-pinned OrcaSlicer MCP integration is installed with:
+
+```powershell
+.\scripts\setup_orcaslicer_mcp.ps1
+```
+
+It uses standard OrcaSlicer for headless slicing and G-code analysis. Printer
+control remains disabled by project policy unless explicitly requested.
 
 ## Example: From Photo to Printable STL
 
@@ -231,3 +243,14 @@ Models support both placement conventions on the 250 × 250 mm bed:
 - **Corner-origin** — XY target `(125, 125)`
 
 Convention is auto-detected from coordinates: negative XY implies center-origin, otherwise corner-origin. When ambiguous, corner-origin is used to match common slicer build-plate coordinates.
+
+## Third-party geometry and attribution
+
+The skeleton hand of the Ghoul's Grip is derived from
+**"Wrist Bones Full Hand - Human Skeleton"**, NIH 3D Print Exchange model
+`3DPX-016815` by *My Segmenter* (mysegmenter.com), licensed **CC BY**.
+
+Only the derived, classified and decimated bone set
+`model-sources/ghouls-grip/reference/hand_bones.npz` is committed;
+`scripts/extract_hand_bones.py` re-downloads the 12 MB source STL on demand.
+Redistributing the Ghoul's Grip models must keep this attribution.

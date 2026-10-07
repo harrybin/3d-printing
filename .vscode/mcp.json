@@ -1,0 +1,16 @@
+{
+  "servers": {
+    "orcaslicer": {
+      "type": "stdio",
+      "command": "${workspaceFolder}\\.venv-orcaslicer-mcp\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "server"
+      ],
+      "env": {
+        "ORCA_SLICER_BIN": "C:\\Program Files\\OrcaSlicer\\orca-slicer.exe",
+        "DEFAULT_BED_TYPE": "Textured PEI Plate"
+      }
+    }
+  }
+}
