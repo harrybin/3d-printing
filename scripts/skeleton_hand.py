@@ -32,13 +32,15 @@ DORSAL = np.array([0.0, 0.0, 1.0])
 
 TENDON_D = 2.0
 PEG_D = 4.0
-PEG_LEN = 7.0
-SOCKET_CLEAR = 0.35
+PEG_LEN = 10.0
+JOINT_END_INSET = 2.0
+MCP_END_INSET = 4.0
+SOCKET_CLEAR = 1.00
 WRIST_D = 12.0
 WRIST_SOCKET = 16.0
 GUIDE_STANDOFF = 7.0
 # 0.8 mm is exactly two 0.4 mm perimeters, the thinnest web that still prints
-# solid. TPU tolerates 1.5 mm, rigid PLA only bends reliably at this thickness.
+# solid. Rigid PLA bends most reliably when this web is exactly two perimeters.
 WEB = 0.8          # dorsal hinge web left standing at every flexure joint
 WEB_STEPS = (WEB, 1.0, 1.2, 1.4, 1.6)
 RESOLVED_WEB: dict[str, float] = {}  # web actually used per finger ray
@@ -159,6 +161,16 @@ def pose_ray(skeleton: Skeleton, ray: str, angles) -> PosedRay:
         moved_a = (rotation[:3, :3] @ a) + rotation[:3, 3]
         mesh.apply_translation(joint - moved_a)
 
+        # Real scan bones have bulbous articular ends. Rotating two complete
+        # shells about the same joint centre makes those ends occupy the same
+        # volume. Pull each end back to leave a real joint line; the explicit
+        # flexure collar below reconnects them without anatomical overlap.
+        along = (mesh.vertices - joint) @ direction
+        start_inset = MCP_END_INSET if not bones else JOINT_END_INSET
+        usable = length - start_inset - JOINT_END_INSET
+        remapped = start_inset + along * (usable / length)
+        mesh.vertices += np.outer(remapped - along, direction)
+
         bones.append(mesh)
         directions.append(direction.copy())
         joint = joint + direction * length
@@ -230,14 +242,20 @@ def build_finger(skeleton: Skeleton, ray: str, pose: dict) -> trimesh.Trimesh:
                                    posed.directions[index - 1]),
                      _local_radius(posed.bones[index], point,
                                    posed.directions[index]))
-        collars.append(sphere(radius * 1.04, point, subdivisions=3))
+        collars.append(sphere(radius * 1.00, point, subdivisions=3))
 
     # Socket neck that slides onto the peg on the metacarpal head.
-    neck = cylinder(PEG_D / 2.0 + 1.6, PEG_LEN + 2.0,
-                    posed.base + posed.base_direction * (PEG_LEN / 2.0 - 1.0),
+    neck_length = PEG_LEN - 2.0
+    neck = cylinder(PEG_D / 2.0 + 1.6, neck_length,
+                    posed.base + posed.base_direction * (4.0 + neck_length / 2.0),
                     posed.base_direction)
 
-    body = fuse([*posed.bones, *collars, neck], pitch=0.35, bridge=1.1, smooth=0.9)
+    # OrcaSlicer 2.3 rejects one pathological 0.35 mm index voxelization even
+    # though it is manifold. A 0.34 mm reconstruction preserves the shape and
+    # slices cleanly; the other rays retain the proven 0.35 mm pitch.
+    fuse_pitch = 0.34 if ray == "index" else 0.35
+    body = fuse([*posed.bones, *collars, neck], pitch=fuse_pitch,
+                bridge=1.1, smooth=0.9)
     body = simplify(body, 9000)
 
     joint_geometry = []
@@ -255,7 +273,7 @@ def build_finger(skeleton: Skeleton, ray: str, pose: dict) -> trimesh.Trimesh:
     fixed = list(_tendon_channel(body, posed))
     fixed.append(cylinder(
         (PEG_D + SOCKET_CLEAR) / 2.0, PEG_LEN + 2.0,
-        posed.base + posed.base_direction * (PEG_LEN / 2.0 - 1.5),
+        posed.base + posed.base_direction * (PEG_LEN / 2.0),
         posed.base_direction))
 
     # The dorsal surface falls away sideways, so a web that is thin enough for

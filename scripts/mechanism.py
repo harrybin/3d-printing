@@ -4,11 +4,15 @@ Single stage scissor, rubber band drive, rocker latch, winding crank and the
 skeletal forearm that carries the hand.  All numbers come from the kinematic
 chain documented in docs/ghouls-grip-masse-und-bauanleitung.md:
 
-    arm length           L = 90 mm (pivot to pivot)
-    retracted            theta = 16 deg  ->  h =  24.8 mm
-    deployed             theta = 76 deg  ->  h =  87.3 mm
-    slider travel        x = +64.5 ->  -0.2 mm  (64.7 mm)
-    platform top         8 + 87.3 + 6 = 101.3 mm, i.e. 15 mm over the rim
+    arm length           L = 72 mm (pivot to pivot)
+    retracted            theta = 18 deg  ->  h =  22.2 mm
+    deployed             theta = 78 deg  ->  h =  70.4 mm
+    slider travel        x = +40.5 -> -13.0 mm  (53.5 mm)
+
+The lid has its own opening bands and is released by the same rocker as the
+slider.  A control cord with deliberate slack keeps the hand folded during the
+first part of the lift; once taut, it unwraps from a sector drum on the
+forearm hinge and rotates the hand upright.
 
 Every part is modelled in its print orientation: flat parts lie in XY with
 their thickness along Z, so nothing needs support.
@@ -23,11 +27,13 @@ from mesh_kit import (box, clean, cylinder, difference, rounded_box, sphere,
                       union, fuse)
 from sdf_bones import bone, segment_mesh, sphere as sdf_sphere
 
-ARM_L = 90.0
+ARM_L = 72.0
 ARM_W = 12.0
 ARM_T = 4.0
 PIVOT_D = 3.2
 PIN_D = 3.0
+THETA_MIN = 18.0
+THETA_MAX = 78.0
 
 RAIL_W = 4.0
 RAIL_D = 3.0
@@ -35,16 +41,80 @@ RAIL_Z = 8.0
 CHEST_W = 120.0
 WALL = 3.0
 
-SCISSOR_Y = 26.0        # half spacing of the two scissor planes
-FLOOR_PIVOT_X = -22.0
-PLATFORM_L = 104.0
-PLATFORM_W = 104.0
+SCISSOR_Y = 40.0        # twin scissor planes flank the folded hand
+FLOOR_PIVOT_X = 0.0
+PLATFORM_PIN_X = -28.0
+PLATFORM_L = 78.0
+PLATFORM_W = 90.0
 PLATFORM_T = 6.0
-ARM_HINGE_X = 42.0
-ARM_HINGE_Z = 19.0
+ARM_HINGE_X = 33.0
+ARM_HINGE_Z = 22.0
 STOW_ANGLE = -100.0
 
+FOREARM_ENGAGE_THETA = 45.0
+FOREARM_CORD_Y = 34.0
+FOREARM_ANCHOR_X = 70.0
+FOREARM_ANCHOR_Y = 52.0
+FOREARM_ANCHOR_Z = 72.0
+FOREARM_CORD_ANCHOR = np.array([
+    FOREARM_ANCHOR_X, FOREARM_ANCHOR_Y, FOREARM_ANCHOR_Z,
+])
+FOREARM_GUIDE_LOCAL = np.array([25.0, 48.0, 10.0])
+
 FIT = 0.4               # running clearance on printed sliding fits
+
+
+def slider_x(theta: float) -> float:
+    return FLOOR_PIVOT_X + ARM_L * np.cos(np.deg2rad(theta))
+
+
+def platform_origin(theta: float) -> np.ndarray:
+    lift = ARM_L * np.sin(np.deg2rad(theta))
+    return np.array([
+        FLOOR_PIVOT_X - PLATFORM_PIN_X,
+        0.0,
+        RAIL_Z + lift + 8.0,
+    ])
+
+
+def forearm_hinge(theta: float) -> np.ndarray:
+    return platform_origin(theta) + np.array(
+        [ARM_HINGE_X, 0.0, ARM_HINGE_Z]
+    )
+
+
+def forearm_cord_guide(theta: float) -> np.ndarray:
+    return platform_origin(theta) + FOREARM_GUIDE_LOCAL
+
+
+def forearm_cord_distance(theta: float) -> float:
+    return float(np.linalg.norm(
+        forearm_cord_guide(theta) - FOREARM_CORD_ANCHOR
+    ))
+
+
+FOREARM_CORD_TRAVEL = (
+    forearm_cord_distance(THETA_MAX)
+    - forearm_cord_distance(FOREARM_ENGAGE_THETA)
+)
+FOREARM_SECTOR_R = FOREARM_CORD_TRAVEL / np.deg2rad(-STOW_ANGLE)
+FOREARM_CORD_X = float(forearm_hinge(THETA_MIN)[0] + FOREARM_SECTOR_R)
+RETRACTED_SLIDER_X = slider_x(THETA_MIN)
+LATCH_SUPPORT_XS = (-8.0, RETRACTED_SLIDER_X + 8.0)
+LATCH_AXIS_Y = -64.0
+LATCH_AXIS_Z = 24.0
+
+
+def forearm_angle(theta: float) -> float:
+    """Angle produced when the taut control cord unwraps from its sector."""
+    if theta <= FOREARM_ENGAGE_THETA:
+        return STOW_ANGLE
+    used = forearm_cord_distance(theta) - forearm_cord_distance(
+        FOREARM_ENGAGE_THETA
+    )
+    return float(min(0.0, STOW_ANGLE + np.rad2deg(
+        used / FOREARM_SECTOR_R
+    )))
 
 
 def _lug(hole_d: float, height: float, thickness: float,
@@ -79,18 +149,13 @@ def build_slider() -> trimesh.Trimesh:
     """Rubber band driven carriage running in the 4 x 3 mm wall grooves."""
     inner = CHEST_W / 2.0 - WALL           # 57.0
     span = 2.0 * inner - FIT               # between the walls
-    # The carriage is asymmetric around its pivot.  A symmetric 44 mm body
-    # collides with the fixed floor pivots above 71 degrees; keeping only
-    # 10 mm behind the moving pivot preserves a 5.8 mm hard clearance at the
-    # 76 degree deployed stop while retaining 22 mm of structure ahead.
-    body = box((32.0, span, 10.0), (6.0, 0.0, RAIL_Z + 3.0))
+    # The carriage is asymmetric around its pivot. Its short rear overhang and
+    # forward band hooks preserve positive clearance to the fixed posts at the
+    # compact 78 degree deployed stop.
+    body = box((30.0, span, 10.0), (7.0, 0.0, RAIL_Z + 3.0))
 
-    tongues = [box((32.0, 2.0 * (RAIL_D - 0.4), RAIL_W - 0.4),
-                   (0.0, sy * (inner + RAIL_D - 0.4 - 0.2 - (RAIL_D - 0.4)),
-                    RAIL_Z + RAIL_W / 2.0))
-               for sy in (-1.0, 1.0)]
-    tongues = [box((32.0, 2.0 * (RAIL_D - 0.4), RAIL_W - 0.4),
-                   (6.0, sy * inner, RAIL_Z + RAIL_W / 2.0))
+    tongues = [box((30.0, 2.0 * (RAIL_D - 0.4), RAIL_W - 0.4),
+                   (7.0, sy * inner, RAIL_Z + RAIL_W / 2.0))
                for sy in (-1.0, 1.0)]
 
     lugs = [_lug(PIVOT_D, 16.0, ARM_T + 2.0 * FIT + 2.0,
@@ -99,16 +164,17 @@ def build_slider() -> trimesh.Trimesh:
 
     hooks = []
     for sy in (-1.0, 1.0):
-        hooks.append(box((8.0, 8.0, 12.0), (-8.0, sy * 40.0, RAIL_Z + 4.0)))
-        hooks.append(cylinder(4.0, 8.0, (-8.0, sy * 40.0, RAIL_Z + 12.0),
+        hooks.append(box((8.0, 8.0, 12.0), (8.0, sy * 50.0, RAIL_Z + 4.0)))
+        hooks.append(cylinder(4.0, 8.0, (8.0, sy * 50.0, RAIL_Z + 12.0),
                               (0.0, 1.0, 0.0)))
 
     body = union([body, *tongues, *lugs, *hooks])
-    # Latch notch on the front edge and the cord eye for the crank.
+    # The pawl enters this notch only at the fully retracted slider position.
+    # The axial bore is the reset-cord tie point for the right-wall crank.
     body = difference(body, [
-        box((9.0, 10.0, 8.0), (16.0, -(inner - 3.0), RAIL_Z + 3.0)),
-        cylinder(4.0 / 2.0, 12.0, (-8.0, 40.0, RAIL_Z + 12.0), (0.0, 1.0, 0.0)),
-        cylinder(4.0 / 2.0, 12.0, (-8.0, -40.0, RAIL_Z + 12.0), (0.0, 1.0, 0.0)),
+        box((10.0, 22.0, 24.0), (0.0, -50.0, 17.0)),
+        cylinder(4.0 / 2.0, 12.0, (8.0, 40.0, RAIL_Z + 12.0), (0.0, 1.0, 0.0)),
+        cylinder(4.0 / 2.0, 12.0, (8.0, -40.0, RAIL_Z + 12.0), (0.0, 1.0, 0.0)),
         cylinder(2.2 / 2.0, 60.0, (20.0, 0.0, RAIL_Z + 6.0), (1.0, 0.0, 0.0)),
     ])
     return clean(body)
@@ -124,89 +190,123 @@ def build_platform() -> trimesh.Trimesh:
     Sweets are carried by the curled hand itself, matching the concept image.
     """
     side_rails = [
-        box((94.0, 4.0, PLATFORM_T), (5.0, sy * 54.0, PLATFORM_T / 2.0))
+        box((76.0, 4.0, PLATFORM_T), (2.0, sy * 43.0, PLATFORM_T / 2.0))
         for sy in (-1.0, 1.0)
     ]
     # Short links tie the fixed top pivots to the side rails without crossing
     # the volume occupied by the folded palm and fingers.
     pivot_links = [
-        box((12.0, 32.0, PLATFORM_T),
-            (-PLATFORM_L / 2.0 + 10.0, sy * 40.0, PLATFORM_T / 2.0))
+        box((12.0, 12.0, PLATFORM_T),
+            (PLATFORM_PIN_X, sy * SCISSOR_Y, PLATFORM_T / 2.0))
         for sy in (-1.0, 1.0)
     ]
     # The forearm hinge is at the free end, outside the stowed palm envelope.
-    hinge_bridge = box((18.0, 108.0, PLATFORM_T),
+    hinge_bridge = box((18.0, 86.0, PLATFORM_T),
                        (ARM_HINGE_X, 0.0, PLATFORM_T / 2.0))
 
     pins = [_lug(PIVOT_D, 16.0, ARM_T + 2.0 * FIT + 2.0,
-                 (-PLATFORM_L / 2.0 + 10.0, sy * SCISSOR_Y, -8.0))
+                 (PLATFORM_PIN_X, sy * SCISSOR_Y, -8.0))
             for sy in (-1.0, 1.0)]
 
     slots = []
     for sy in (-1.0, 1.0):
-        rail = box((70.0, ARM_T + 2.0 * FIT + 4.0, 12.0),
-                   (10.0, sy * SCISSOR_Y, -6.0))
-        rail = difference(rail, [box((70.0, ARM_T + 2.0 * FIT, 6.0),
-                                     (10.0, sy * SCISSOR_Y, -7.0))])
+        rail = box((68.0, ARM_T + 2.0 * FIT + 4.0, 12.0),
+                   (8.0, sy * SCISSOR_Y, -6.0))
+        rail = difference(rail, [box((68.0, ARM_T + 2.0 * FIT, 6.0),
+                                     (8.0, sy * SCISSOR_Y, -7.0))])
         slots.append(rail)
 
     arm_ears = [_lug(PIN_D + 0.4, 26.0, 6.0,
                      (ARM_HINGE_X, sy * 11.0, ARM_HINGE_Z))
                 for sy in (-1.0, 1.0)]
 
-    # Two simple eyes terminate the lid cord and the five-finger tendon bundle.
+    # The finger tendon bundle terminates at the rear eye.
     eyes = []
-    for x, y in ((-PLATFORM_L / 2.0 + 30.0, -49.0),
-                 (ARM_HINGE_X - 14.0, 49.0)):
+    for x, y in ((ARM_HINGE_X - 14.0, 36.0),):
         post = cylinder(4.0, 10.0, (x, y, PLATFORM_T + 5.0))
         post = difference(post, [cylinder(1.5, 12.0,
                                           (x, y, PLATFORM_T + 6.0),
                                           (0.0, 1.0, 0.0))])
         eyes.append(post)
 
+    hinge_gussets = [
+        box((18.0, 8.0, ARM_HINGE_Z - 13.0),
+            (ARM_HINGE_X, sy * 11.0, (ARM_HINGE_Z - 13.0) / 2.0))
+        for sy in (-1.0, 1.0)
+    ]
+    eye_gusset = box((8.0, 12.0, PLATFORM_T),
+                     (ARM_HINGE_X - 14.0, 40.0, PLATFORM_T / 2.0))
+    cord_guide_support = box((10.0, 8.0, 10.0), (25.0, 47.0, 5.0))
+    cord_guide = cylinder(4.0, 14.0, FOREARM_GUIDE_LOCAL,
+                          (0.0, 0.0, 1.0))
     return clean(union([*side_rails, *pivot_links, hinge_bridge,
-                        *pins, *slots, *arm_ears, *eyes]))
+                        *pins, *slots, *arm_ears, *eyes,
+                        *hinge_gussets, eye_gusset,
+                        cord_guide_support, cord_guide]))
 
 def build_latch() -> trimesh.Trimesh:
-    """Rocker that holds the slider against the bands until the skull is pushed.
+    """Torsion rocker linking the centred skull to the slider catch.
 
-    Pivot bore runs along X at (0, -40, 24); the skull stem hits the upper arm
-    at z = 46 and the hook drops out of the slider notch at z = 12.
+    The shaft carries a trigger paddle at x=0 and a pawl at the exact
+    retracted slider x.  Pushing the skull rotates both together, so the pawl
+    leaves the front notch and the rubber bands can pull the slider left.
     """
-    plate = 5.0
-    pts = np.array([
-        [-2.0, 47.0], [6.0, 47.0], [6.0, 26.0],        # upper arm
-        [4.0, 18.0], [16.0, 14.0], [16.0, 8.0],        # hook
-        [-6.0, 8.0], [-6.0, 26.0], [-6.0, 42.0],
+    x_mid = sum(LATCH_SUPPORT_XS) / 2.0
+    shaft = cylinder(
+        3.2,
+        LATCH_SUPPORT_XS[1] - LATCH_SUPPORT_XS[0] + 4.0,
+        (x_mid, LATCH_AXIS_Y, LATCH_AXIS_Z),
+        (1.0, 0.0, 0.0),
+    )
+    trigger_paddle = rounded_box(
+        (8.0, 8.0, 24.0), 2.0, (0.0, -61.0, 36.0)
+    )
+    points = np.array([
+        [-68.0, 31.0], [-60.0, 32.0], [-57.0, 21.0],
+        [-48.0, 18.0], [-48.0, 7.0], [-56.0, 7.0],
+        [-58.0, 16.0], [-68.0, 20.0],
     ])
-    poly = np.column_stack([np.zeros(len(pts)), pts[:, 0], pts[:, 1]])
-    lever = trimesh.Trimesh(
-        vertices=np.vstack([poly - [plate / 2.0, 0, 0],
-                            poly + [plate / 2.0, 0, 0]])).convex_hull
-
-    boss = cylinder(5.0, plate, (0.0, 0.0, 24.0), (1.0, 0.0, 0.0))
-    body = union([lever, boss])
-    body = difference(body, [cylinder((PIN_D + 0.4) / 2.0, plate + 6.0,
-                                      (0.0, 0.0, 24.0), (1.0, 0.0, 0.0))])
-
-    # Printed leaf spring pushing the hook back into the notch.
-    leaf = box((plate, 1.2, 22.0), (0.0, -5.4, 13.0))
-    foot = box((plate, 11.0, 3.0), (0.0, -10.0, 3.5))
-    body = union([body, leaf, foot])
-    body.apply_translation([0.0, -40.0, 0.0])
-    return clean(body)
+    yz = np.column_stack([
+        np.full(len(points), RETRACTED_SLIDER_X),
+        points[:, 0],
+        points[:, 1],
+    ])
+    pawl = trimesh.Trimesh(
+        vertices=np.vstack([yz - [2.0, 0.0, 0.0],
+                            yz + [2.0, 0.0, 0.0]])
+    ).convex_hull
+    return_arm = rounded_box((6.0, 8.0, 18.0), 2.0,
+                             (-4.0, -66.0, 30.0))
+    return_eye = cylinder(5.0, 6.0, (-4.0, -68.0, 36.0),
+                          (1.0, 0.0, 0.0))
+    body = union([shaft, trigger_paddle, pawl, return_arm, return_eye])
+    return clean(difference(body, [
+        cylinder(2.0, 10.0, (-4.0, -68.0, 36.0), (1.0, 0.0, 0.0)),
+        cylinder(1.6, 12.0, (0.0, -61.0, 40.0), (1.0, 0.0, 0.0)),
+    ]))
 
 
 def build_latch_bracket() -> trimesh.Trimesh:
-    """Floor bracket carrying the latch pin; pegs into the chest floor."""
-    base = box((40.0, 16.0, 4.0), (0.0, -40.0, 2.0))
-    posts = [box((5.0, 10.0, 26.0), (sx * 7.5, -40.0, 15.0))
-             for sx in (-1.0, 1.0)]
-    pegs = [cylinder(4.0 / 2.0 - 0.15, 5.0, (sx * 14.0, -40.0, -2.0))
-            for sx in (-1.0, 1.0)]
-    body = union([base, *posts, *pegs])
-    body = difference(body, [cylinder((PIN_D + 0.3) / 2.0, 44.0,
-                                      (0.0, -40.0, 24.0), (1.0, 0.0, 0.0))])
+    """External front-wall bracket supporting the latch rocker shaft."""
+    x_mid = sum(LATCH_SUPPORT_XS) / 2.0
+    span = LATCH_SUPPORT_XS[1] - LATCH_SUPPORT_XS[0]
+    base = box((span + 18.0, 4.0, 18.0),
+               (x_mid, -62.0, LATCH_AXIS_Z))
+    posts = [
+        box((6.0, 10.0, 18.0), (x, -64.0, LATCH_AXIS_Z))
+        for x in LATCH_SUPPORT_XS
+    ]
+    return_support = box((6.0, 8.0, 18.0), (-4.0, -66.0, 16.0))
+    return_eye = cylinder(5.0, 6.0, (-4.0, -68.0, 8.0),
+                          (1.0, 0.0, 0.0))
+    body = union([base, *posts, return_support, return_eye])
+    body = difference(body, [
+        cylinder(3.5, span + 24.0,
+                 (x_mid, LATCH_AXIS_Y, LATCH_AXIS_Z),
+                 (1.0, 0.0, 0.0)),
+        cylinder(2.0, 10.0, (-4.0, -68.0, 8.0),
+                 (1.0, 0.0, 0.0)),
+    ])
     return clean(body)
 
 
@@ -228,16 +328,16 @@ def build_crank() -> trimesh.Trimesh:
 
 def build_band_anchor() -> trimesh.Trimesh:
     """Two band hooks that peg into the chest floor behind the slider."""
-    base = box((14.0, 96.0, 5.0), (0.0, 0.0, 2.5))
+    base = box((14.0, 108.0, 5.0), (0.0, 0.0, 2.5))
     posts, hooks = [], []
     for sy in (-1.0, 1.0):
-        posts.append(box((10.0, 10.0, 18.0), (0.0, sy * 40.0, 9.0)))
-        hooks.append(cylinder(4.0, 10.0, (0.0, sy * 40.0, 17.0),
+        posts.append(box((10.0, 10.0, 18.0), (0.0, sy * 50.0, 9.0)))
+        hooks.append(cylinder(4.0, 10.0, (0.0, sy * 50.0, 17.0),
                               (0.0, 1.0, 0.0)))
-    pegs = [cylinder(4.0 / 2.0 - 0.15, 5.0, (0.0, sy * 34.0, -2.0))
+    pegs = [cylinder(4.0 / 2.0 - 0.15, 5.0, (0.0, sy * 44.0, -2.0))
             for sy in (-1.0, 1.0)]
     body = union([base, *posts, *hooks, *pegs])
-    body = difference(body, [cylinder(2.0, 14.0, (0.0, sy * 40.0, 17.0),
+    body = difference(body, [cylinder(2.0, 14.0, (0.0, sy * 50.0, 17.0),
                                       (0.0, 1.0, 0.0)) for sy in (-1.0, 1.0)])
     return clean(body)
 
@@ -254,7 +354,17 @@ def build_forearm(length: float = 34.0) -> trimesh.Trimesh:
 
     spigot = cylinder(12.0 / 2.0 - 0.2, 18.0, (0.0, 0.0, length + 4.0))
     ear = box((22.0, 6.0, 14.0), (0.0, 0.0, 4.0))
-    body = union([body, spigot, ear])
+    control_shaft = cylinder(
+        4.0, FOREARM_CORD_Y + 4.0,
+        (0.0, (FOREARM_CORD_Y + 4.0) / 2.0, 4.0),
+        (0.0, 1.0, 0.0),
+    )
+    sector = cylinder(
+        FOREARM_SECTOR_R + 2.5, 6.0,
+        (0.0, FOREARM_CORD_Y, 4.0),
+        (0.0, 1.0, 0.0),
+    )
+    body = union([body, spigot, ear, control_shaft, sector])
     body = difference(body, [
         cylinder(1.9 / 2.0, 20.0, (0.0, 0.0, length + 9.0), (1.0, 0.0, 0.0)),
         cylinder((PIN_D + 0.4) / 2.0, 30.0, (0.0, 0.0, 4.0), (1.0, 0.0, 0.0)),

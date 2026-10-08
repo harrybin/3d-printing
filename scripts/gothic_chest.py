@@ -255,12 +255,18 @@ def build_chest() -> trimesh.Trimesh:
             (0.0, CHEST_W / 2.0 - WALL, RAIL_Z + RAIL_W / 2.0)),
         cylinder(4.4 / 2.0, 40.0, (0.0, -CHEST_W / 2.0, 46.0), (0.0, 1.0, 0.0)),
 
-        cylinder(6.4 / 2.0, 40.0, (-CHEST_L / 2.0, 0.0, 30.0), (1.0, 0.0, 0.0)),
+        cylinder(6.4 / 2.0, 40.0, (CHEST_L / 2.0, 0.0, 30.0), (1.0, 0.0, 0.0)),
+        box((16.0, 30.0, 50.0),
+            (mechanism.RETRACTED_SLIDER_X, -60.0, 24.0)),
+        box((20.0, 20.0, 50.0), (0.0, -60.0, 30.0)),
+        box((mechanism.LATCH_SUPPORT_XS[1] - mechanism.LATCH_SUPPORT_XS[0] + 20.0,
+             14.0, 36.0),
+            (sum(mechanism.LATCH_SUPPORT_XS) / 2.0, -65.0, 18.0)),
     ]
     body = difference(body, service)
 
     # Fixed scissor pivots and the peg sockets for latch bracket and band
-    # anchor. The scissor pivot sits at x = -22 so the platform stays inside
+    # anchor. The scissor pivot sits at x = 0 so the compact platform stays inside
     # the chest over the whole stroke (see docs, kinematics table).
     posts = []
     for sy in (-1.0, 1.0):
@@ -273,12 +279,40 @@ def build_chest() -> trimesh.Trimesh:
                               (0.0, 1.0, 0.0)))
     body = union([body, *posts])
     sockets = [cylinder(4.2 / 2.0, 6.0, (x, y, FLOOR), (0.0, 0.0, 1.0))
-               for x, y in ((14.0, -40.0), (-14.0, -40.0),
-                            (-76.0, 34.0), (-76.0, -34.0))]
+               for x, y in ((-76.0, 44.0), (-76.0, -44.0))]
     sockets.append(cylinder(3.2 / 2.0, 80.0,
                             (mechanism.FLOOR_PIVOT_X, 0.0, RAIL_Z),
                             (0.0, 1.0, 0.0)))
     body = difference(body, sockets)
+
+    # High side-wall eye for the forearm control cord. Routing above the
+    # carriage keeps the entire cord clear of slider, arms and lifting yoke.
+    cord_boss = rounded_box(
+        (14.0, 12.0, 14.0), 2.0,
+        (mechanism.FOREARM_ANCHOR_X, 54.0, mechanism.FOREARM_ANCHOR_Z),
+    )
+    cord_eye = cylinder(
+        5.0, 8.0, mechanism.FOREARM_CORD_ANCHOR, (0.0, 1.0, 0.0)
+    )
+    cord_eye = difference(cord_eye, [
+        cylinder(2.0, 12.0, mechanism.FOREARM_CORD_ANCHOR,
+                 (0.0, 1.0, 0.0))
+    ])
+    body = union([body, cord_boss, cord_eye])
+
+    # Two low rear eyes anchor rubber bands that bias the lid open.  The same
+    # latch rocker that holds the slider also retains the lid catch cord, so
+    # both motions start from one skull-button press.
+    lid_band_anchors = []
+    for x in (-70.0, 70.0):
+        boss = rounded_box((12.0, 12.0, 12.0), 2.0,
+                           (x, 55.0, 65.0))
+        eye = cylinder(5.0, 8.0, (x, 50.0, 65.0), (1.0, 0.0, 0.0))
+        eye = difference(eye, [
+            cylinder(2.0, 12.0, (x, 50.0, 65.0), (1.0, 0.0, 0.0))
+        ])
+        lid_band_anchors.extend([boss, eye])
+    body = union([body, *lid_band_anchors])
 
     # Hinge on the long rear edge.  Three chest knuckles alternate with four
     # lid knuckles; 1 mm axial gaps stop elephant-foot swelling from binding.
@@ -355,6 +389,26 @@ def build_lid() -> trimesh.Trimesh:
     body = difference(body, [cylinder(2.0 / 2.0, CHEST_L + 24.0,
                                       (0.0, HINGE_Y, LID_H - 5.0),
                                       (1.0, 0.0, 0.0))])
+
+    band_tabs = []
+    for x in (-70.0, 70.0):
+        band_tabs.append(box((12.0, 12.0, 10.0),
+                             (x, 65.0, LID_H - 5.0)))
+        tab = cylinder(5.0, 8.0, (x, 70.0, LID_H - 5.0),
+                       (1.0, 0.0, 0.0))
+        tab = difference(tab, [
+            cylinder(2.0, 12.0, (x, 70.0, LID_H - 5.0),
+                     (1.0, 0.0, 0.0))
+        ])
+        band_tabs.append(tab)
+
+    catch = rounded_box((12.0, 10.0, 12.0), 2.0,
+                        (0.0, -CHEST_W / 2.0 - 2.0, 7.0))
+    catch = difference(catch, [
+        cylinder(2.0, 18.0, (0.0, -CHEST_W / 2.0 - 2.0, 7.0),
+                 (1.0, 0.0, 0.0))
+    ])
+    body = union([body, *band_tabs, catch])
     return clean(body)
 
 

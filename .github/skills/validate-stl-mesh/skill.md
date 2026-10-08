@@ -77,6 +77,23 @@ Mesh statistics say nothing about whether a requested feature was actually built
 
 - **Cross-section sweep** for floors, lids and other full-area features: intersect the mesh with thin slabs at increasing z and divide by the slab thickness to get the cross-sectional area. A closed 2 mm floor shows the full outline area up to z = 2.0 and a much smaller wall-only area above it. This pinpoints the exact z where a floor starts and ends and is far more convincing than a single point probe.
 
+## Articulated assembly checks
+
+For mechanisms and anatomical chains, validating each watertight object is not
+enough. Also prove the interfaces over the complete motion sweep:
+
+- Sample every driven state from latched to fully deployed, not only endpoints.
+- Use manifold intersection volume for every forbidden pair: moving part versus
+  enclosure, lid, support frame, neighboring linkage and latch after release.
+- Trace a complete force path from user control to output and a complete reset
+  path back to the latch. A disconnected lever or a magically rotated render is
+  a failure even when collision checks pass.
+- For scanned bone chains, check the source phalanx shells before fusion.
+  Adjacent bones must have 0 mm³ overlap; connect them only with the designed
+  flexure collar/web. Check every removable socket against its mating body too.
+- Record sequencing constraints such as deliberate cable slack, lid-first
+  opening and hard stops as dimensions, then verify them in code.
+
 ## Verify which file the user is looking at (session-verified)
 
 Before acting on a reported defect that the probes contradict, confirm the file identity. Repositories used through git worktrees have the same relative path in several checkouts, and a viewer or slicer may be pinned to a stale one.

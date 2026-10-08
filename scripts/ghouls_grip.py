@@ -15,7 +15,8 @@ The mechanism is force limited on purpose: rubber bands drive the lift and the
 fingers close on a cord, so the hand cradles sweets instead of snapping shut.
 
 All dimensions are millimetres. Parts are exported in print orientation as
-individual ASCII STL files and together as a material tagged 3MF assembly.
+validated in memory and delivered through settings-bearing material 3MF projects.
+Only the assembled preview is also exported as ASCII STL for the canvas.
 """
 
 from __future__ import annotations
@@ -39,9 +40,7 @@ from skeleton_hand import FLAT_POSE, RAYS, assemble, load_skeleton
 from skull import build_trigger
 
 ROOT = Path(__file__).resolve().parents[1]
-MODEL_DIR = ROOT / "models" / "ghouls-grip"
 OUT_3MF = ROOT / "models" / "ghouls-grip.3mf"
-OUT_PRINT_3MF = ROOT / "models" / "ghouls-grip-print-layout.3mf"
 OUT_RETRACTED_3MF = ROOT / "models" / "ghouls-grip-retracted.3mf"
 OUT_PREVIEW = ROOT / "models" / "ghouls-grip-preview.stl"
 
@@ -63,10 +62,13 @@ ACCENT = Material("Totenkopf-Ausloeser - graues PLA", "#777777FF")
 
 def validate(name: str, mesh: trimesh.Trimesh) -> None:
     degenerate = int(np.count_nonzero(mesh.area_faces <= 1e-12))
-    if not mesh.is_watertight or not mesh.is_winding_consistent or degenerate:
+    body_count = len(mesh.split(only_watertight=False))
+    if (not mesh.is_watertight or not mesh.is_winding_consistent
+            or degenerate or body_count != 1):
         raise RuntimeError(
             f"{name}: watertight={mesh.is_watertight}, "
-            f"winding={mesh.is_winding_consistent}, degenerate={degenerate}"
+            f"winding={mesh.is_winding_consistent}, degenerate={degenerate}, "
+            f"bodies={body_count}"
         )
     extents = mesh.extents
     if extents[0] > 250.0 or extents[1] > 250.0:
@@ -266,16 +268,11 @@ def arrange(parts: dict) -> list:
 
 
 def main() -> None:
-    MODEL_DIR.mkdir(parents=True, exist_ok=True)
     parts = build_parts()
     for name, mesh in parts.items():
         validate(name, mesh)
-        write_ascii(mesh, MODEL_DIR / f"{name}.stl")
 
     print_parts = expand_print_parts(parts)
-    plate = arrange(print_parts)
-    write_3mf(OUT_PRINT_3MF, plate)
-
     # OrcaSlicer project 3MFs retain the Kobra S1 machine, filament and
     # process settings and contain the full repeated-part quantities.
     from export_ghouls_grip_orca_projects import export_material_projects
@@ -288,8 +285,8 @@ def main() -> None:
     write_3mf(OUT_RETRACTED_3MF, retracted)
     preview = trimesh.util.concatenate([m for _, m, _, _ in deployed])
     write_ascii(clean(preview), OUT_PREVIEW)
-    print(f"files: {MODEL_DIR} ({len(parts)} STL types), {OUT_3MF}, "
-          f"{OUT_RETRACTED_3MF}, {OUT_PRINT_3MF}, {OUT_PREVIEW}, "
+    print(f"files: {len(parts)} validated part types, {OUT_3MF}, "
+          f"{OUT_RETRACTED_3MF}, {OUT_PREVIEW}, "
           f"material projects={len(material_projects)}")
 
 

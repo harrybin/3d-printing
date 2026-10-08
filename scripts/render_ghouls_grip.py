@@ -27,15 +27,18 @@ from skull import build_trigger
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "images"
 
-ARM_L = 90.0
+ARM_L = mechanism.ARM_L
 ARM_HINGE_X = mechanism.ARM_HINGE_X
 ARM_HINGE_Z = mechanism.ARM_HINGE_Z
 STOW_ANGLE = mechanism.STOW_ANGLE
 FLOOR_PIVOT = np.array([mechanism.FLOOR_PIVOT_X, 8.0])
-PLATFORM_PIN = -42.0                     # pin lug, local x on the platform
-SCISSOR_Y = 26.0
+PLATFORM_PIN = mechanism.PLATFORM_PIN_X
+SCISSOR_Y = mechanism.SCISSOR_Y
 
-POSES = {"retracted": 16.0, "deployed": 76.0}
+POSES = {
+    "retracted": mechanism.THETA_MIN,
+    "deployed": mechanism.THETA_MAX,
+}
 
 
 def rot(angle_deg: float, axis, point=(0.0, 0.0, 0.0)):
@@ -56,14 +59,37 @@ def lay_arm(mesh: trimesh.Trimesh, theta: float, y: float,
     return arm
 
 
+def tube_between(start, end, radius: float) -> trimesh.Trimesh:
+    start = np.asarray(start, dtype=float)
+    end = np.asarray(end, dtype=float)
+    vector = end - start
+    return trimesh.creation.cylinder(
+        radius=radius,
+        height=float(np.linalg.norm(vector)),
+        sections=16,
+        segment=np.vstack([start, end]),
+    )
+
+
+def lid_angle(theta: float) -> float:
+    """Fast spring opening released by the same rocker as the slider."""
+    travel = (
+        mechanism.RETRACTED_SLIDER_X
+        - mechanism.slider_x(mechanism.THETA_MAX)
+    )
+    released = (
+        mechanism.RETRACTED_SLIDER_X - mechanism.slider_x(theta)
+    ) / travel
+    return -82.0 * min(max(released / 0.28, 0.0), 1.0)
+
+
 
 @lru_cache(maxsize=1)
 def grip_hand():
     """Build the expensive voxel-fused anatomical hand once per process."""
     return assemble(load_skeleton(), GRIP_POSE)
 
-def build_scene(pose: str):
-    theta = POSES[pose]
+def build_scene_at(theta: float):
     rad = np.deg2rad(theta)
     lift = ARM_L * np.sin(rad)
     slider_x = FLOOR_PIVOT[0] + ARM_L * np.cos(rad)
@@ -75,10 +101,23 @@ def build_scene(pose: str):
 
     lid = build_lid()
     lid.apply_translation([0.0, 0.0, LID_DROP])
-    if pose == "deployed":
-        lid.apply_transform(rot(-108.0, [1, 0, 0],
-                                [0.0, HINGE_Y, HINGE_Z]))
+    opening = lid_angle(theta)
+    lid_transform = np.eye(4)
+    if opening:
+        lid_transform = rot(opening, [1, 0, 0],
+                            [0.0, HINGE_Y, HINGE_Z])
+        lid.apply_transform(lid_transform)
     items.append(("lid", lid, "#43434e"))
+
+    for index, x in enumerate((-70.0, 70.0)):
+        moving = trimesh.transform_points(
+            [[x, 70.0, LID_DROP + 19.0]], lid_transform
+        )[0]
+        items.append((
+            f"lid-opening-band-{index}",
+            tube_between((x, 50.0, 65.0), moving, 1.1),
+            "#6f4a2d",
+        ))
 
     slider = mechanism.build_slider()
     slider.apply_translation([slider_x, 0.0, 0.0])
@@ -96,7 +135,7 @@ def build_scene(pose: str):
     items.append(("platform", platform, "#d8c6a5"))
 
     hinge = plat_origin + np.array([ARM_HINGE_X, 0.0, ARM_HINGE_Z])
-    tilt = 0.0 if pose == "deployed" else STOW_ANGLE
+    tilt = mechanism.forearm_angle(theta)
 
     forearm = mechanism.build_forearm()
     forearm.apply_translation([0.0, 0.0, -4.0])
@@ -104,15 +143,48 @@ def build_scene(pose: str):
     forearm.apply_translation(hinge)
     items.append(("forearm", forearm, "#d8c6a5"))
 
+    radians = np.deg2rad(tilt)
+    sector_point = hinge + np.array([
+        mechanism.FOREARM_SECTOR_R * np.cos(radians),
+        mechanism.FOREARM_CORD_Y,
+        -mechanism.FOREARM_SECTOR_R * np.sin(radians),
+    ])
+    cord_anchor = mechanism.FOREARM_CORD_ANCHOR.copy()
+    cord_guide = mechanism.forearm_cord_guide(theta)
+    items.append((
+        "forearm-control-cord-fixed",
+        tube_between(cord_anchor, cord_guide, 0.7),
+        "#dedede",
+    ))
+    if theta <= mechanism.FOREARM_ENGAGE_THETA:
+        slack = (cord_guide + sector_point) / 2.0 + np.array([-8.0, 0.0, 8.0])
+        items.append((
+            "forearm-control-cord-a",
+            tube_between(cord_guide, slack, 0.7),
+            "#dedede",
+        ))
+        items.append((
+            "forearm-control-cord-b",
+            tube_between(slack, sector_point, 0.7),
+            "#dedede",
+        ))
+    else:
+        items.append((
+            "forearm-control-cord",
+            tube_between(cord_guide, sector_point, 0.7),
+            "#dedede",
+        ))
+
     # Stowed the tendon holds the fingers curled, which is also the
     # most compact shape - the flat print pose would not fit the chest.
     hand = grip_hand()
     stack = trimesh.util.concatenate(list(hand.values()))
     wrist_y = stack.bounds[0][1]
+    transverse_shift = float(np.mean(stack.bounds[:, 2]))
     for name, mesh in hand.items():
         part = mesh.copy()
         part.apply_transform(rot(90.0, [1, 0, 0]))
-        part.apply_translation([0.0, 0.0, -wrist_y + 38.0])
+        part.apply_translation([0.0, transverse_shift, -wrist_y + 38.0])
         part.apply_transform(rot(tilt, [0, 1, 0]))
         part.apply_translation(hinge)
         colour = "#efe2c4" if name.startswith("hand-finger") else "#d8c6a5"
@@ -124,18 +196,82 @@ def build_scene(pose: str):
     items.append(("trigger", trigger, "#8d8d96"))
 
     latch = mechanism.build_latch()
+    release = min(max(
+        (mechanism.RETRACTED_SLIDER_X - slider_x) / 1.0, 0.0
+    ), 1.0)
+    latch_transform = np.eye(4)
+    if release:
+        latch_transform = rot(
+            -65.0 * release, [1, 0, 0],
+            [0.0, mechanism.LATCH_AXIS_Y, mechanism.LATCH_AXIS_Z]
+        )
+        latch.apply_transform(latch_transform)
     items.append(("latch", latch, "#8d8d96"))
     items.append(("latch-bracket", mechanism.build_latch_bracket(), "#8d8d96"))
+    return_eye = trimesh.transform_points(
+        [[-4.0, -68.0, 36.0]], latch_transform
+    )[0]
+    items.append((
+        "latch-return-band",
+        tube_between((-4.0, -68.0, 8.0), return_eye, 0.9),
+        "#6f4a2d",
+    ))
+
+    lid_catch = trimesh.transform_points(
+        [[0.0, -62.0, LID_DROP + 7.0]], lid_transform
+    )[0]
+    if theta <= mechanism.THETA_MIN + 0.01:
+        items.append((
+            "lid-release-loop",
+            tube_between(
+                lid_catch,
+                trimesh.transform_points(
+                    [[0.0, -61.0, 40.0]], latch_transform
+                )[0],
+                0.7,
+            ),
+            "#dedede",
+        ))
+    else:
+        items.append((
+            "lid-release-loop",
+            tube_between(lid_catch, lid_catch + [0.0, 0.0, -28.0], 0.7),
+            "#dedede",
+        ))
 
     anchor = mechanism.build_band_anchor()
     anchor.apply_translation([-76.0, 0.0, 3.0])
     items.append(("band-anchor", anchor, "#d8c6a5"))
 
+    for sy in (-1.0, 1.0):
+        items.append((
+            f"drive-band-{int(sy):+d}",
+            tube_between(
+                (-76.0, sy * 50.0, 20.0),
+                (slider_x + 8.0, sy * 50.0, mechanism.RAIL_Z + 12.0),
+                1.2,
+            ),
+            "#6f4a2d",
+        ))
+
     crank = mechanism.build_crank()
     crank.apply_transform(rot(90.0, [0, 1, 0]))
-    crank.apply_translation([-100.0, 0.0, 30.0])
+    crank.apply_translation([100.0, 0.0, 30.0])
     items.append(("crank", crank, "#8d8d96"))
+    items.append((
+        "reset-cord",
+        tube_between(
+            (slider_x + 20.0, 0.0, mechanism.RAIL_Z + 6.0),
+            (95.0, 0.0, 30.0),
+            0.7,
+        ),
+        "#dedede",
+    ))
     return items
+
+
+def build_scene(pose: str):
+    return build_scene_at(POSES[pose])
 
 
 def render(pose: str) -> Path:

@@ -39,7 +39,7 @@ widersprechen der Aufgabenbeschreibung und wurden nicht verwendet.
 | Deckel | 206 × 129 × 27,5 mm | am Mesh gemessen | hoch |
 | Wand/Boden | 3,0 mm | Benutzerangabe | hoch |
 | Innenraum | 194 × 114 × 80 mm | Benutzerangabe | hoch |
-| Scherenarm | 90 mm Pivotabstand, 12 × 4 mm | Benutzerangabe | hoch |
+| Scherenarm | 72 mm Pivotabstand, 12 × 4 mm | kompakter Funktionsumbau | hoch |
 | Scherenbohrung | 3,2 mm | Benutzerangabe | hoch |
 | Sehnenkanal | 2,0 mm | Benutzerangabe | hoch |
 | Flexursteg | 0,8 mm | Benutzerangabe | mittel; PLA-Filmscharnier |
@@ -56,34 +56,47 @@ Das passt weiterhin in den 194 × 114 mm großen Innenraum.
 
 ### Abweichung: Hubweg
 
-Vorgegeben waren "ca. 160 mm über den Schatullenrand". Die Schere selbst hebt
-die Schale um **62,5 mm** (eingefahren 24,8 mm, ausgefahren 87,3 mm
-Scherenhöhe). Das offene Hubjoch trägt Unterarm und Hand ohne deren Schwenkraum
-zu kreuzen. Zusammen mit Unterarm und Hand erreichen die Fingerspitzen im
-verifizierten Modell **278 mm über der Aufstellfläche** und damit rund **176 mm
-über der geschlossenen Deckeloberkante** - der geforderte Effekt wird also
-erfüllt.
+Die kompakte Schere hebt das Hubjoch um **48,2 mm** (22,2 → 70,4 mm
+Scherenhöhe). Weil Unterarm und Hand erst nach vollständiger Deckelöffnung
+aufrichten, erreichen die Fingerspitzen **263,6 mm über der Aufstellfläche**,
+also rund **162 mm über dem geschlossenen Deckel**. Der Effekt bleibt erhalten,
+obwohl Schere und Hubjoch deutlich kleiner sind.
 
-## Kinematik (maßgeblich für jede Änderung)
+## Kinematik und vollständiger Kraftpfad
 
-- Armlänge L = 90 mm, Mittelpivot bei 45 mm.
-- Fester Bodendrehpunkt: **x = -22 mm, z = 8 mm**, zwei Scherenpaare bei
-  y = ±26 mm.
-- Eingefahren θ = 16° → Hub 24,8 mm; ausgefahren θ = 76° → Hub 87,3 mm.
-- Schlittenweg x = +64,5 → -0,2 mm (64,7 mm Weg) in Nut-Schienen
-  4 (Z) × 3 (Y) mm auf z = 8 mm.
-- Offenes Hubjoch 105 × 112 × 48 mm, Ursprung x = +20 mm; Pin-Auge lokal
-  x = -42 mm, Kulisse lokal -25 … +45 mm. Seitenschienen bei y ≈ ±54 halten
-  den zentralen Schwenkraum der Hand frei.
-- Unterarm-Scharnier auf dem Hubjoch: lokal **x = 42 mm, z = 19 mm**.
-  Eingefahren klappt der Unterarm um 100° nach -X; Hand und Unterarm liegen
-  vollständig im Innenraum (kleinster rechnerischer Rand ca. 0,27 mm).
-- Deckelscharnier: Achse entlang **X** an der langen Rückkante bei
-  **y = 61 mm, z = 93 mm**, 1,75-mm-Filamentstift; Öffnungswinkel 108°.
-- Totenkopf-Auslöser mittig auf der Front: (0, -60, 46) mm, Ø4,4-Stiftbohrung.
-  Sein Zapfen trifft den Klinkenrocker bei z = 46 mm, der Haken gibt den
-  Schlitten bei z = 8…14 mm frei.
-- Kurbelbohrung Ø6,4 mm in der Rückwand bei (-100, 0, 30) mm.
+1. Zwei Gummibänder ziehen den Schlitten nach links und treiben damit die
+   beiden Scherenpaare an.
+2. Der mittige Totenkopf drückt auf den äußeren Rocker. Dessen durchgehende
+   Welle verbindet den Knopf sichtbar mit der Rastklinke bei x = 68,5 mm.
+3. Derselbe Rocker gibt die Deckelschlaufe frei. Zwei kurze Gummibänder an der
+   Rückkante öffnen den Deckel schnell auf 82°, bevor die Hand aufrichtet.
+4. Während der ersten 28,7 mm Hub bleibt der Unterarm um 100° gefaltet. Danach
+   wird das vorbereitete Spiel im Steuerseil aufgebraucht; die restlichen
+   19,5 mm Hub wickeln das Seil von der Ø22,4-mm-Sektorscheibe ab und richten
+   den Unterarm zwangsgeführt auf.
+5. Die rechte Kurbel ist über ein sichtbares 0,8-mm-Rückholseil mit dem
+   Schlitten verbunden. Aufwickeln zieht den Schlitten zurück nach rechts,
+   faltet die Hand und lässt die Klinke wieder einrasten.
+
+Maßgebliche Daten:
+
+- Armlänge L = 72 mm, Mittelpivot bei 36 mm.
+- Fester Bodendrehpunkt: **x = 0 mm, z = 8 mm**; Scherenpaare bei y = ±40 mm.
+- Eingefahren θ = 18°; ausgefahren θ = 78°.
+- Schlittenweg x = +68,5 → +15,0 mm (**53,5 mm**).
+- Kompaktes offenes Hubjoch: **82 × 92 mm**; der zentrale Handraum bleibt frei.
+- Unterarmscharnier: Weltposition x = 61 mm; z = 60,2 → 108,4 mm.
+- Deckelscharnier: X-Achse an der langen Rückkante, y = 61 mm, z = 93 mm;
+  federgeöffnet und durch Fangband auf 82° begrenzt.
+- Kurbelbohrung in der rechten Seitenwand bei **(+100, 0, 30) mm**.
+- Eingefahrene Hand: 1,18 mm kleinster Innenraumrand und 2,27 mm Abstand zur
+  geschlossenen Deckelunterseite.
+- Nachgewiesene Schnittvolumen über den vollständigen Sweep: Hand/Gehäuse,
+  Hand/Deckel, Hand/Hubjoch, Hand/Scherenarme und Klinke/Schlitten jeweils
+  **0,000 mm³**.
+- Benachbarte Phalangen und alle fünf Fingersockel zur Handfläche:
+  **0,000 mm³** Schnittvolumen. Die sichtbaren Gelenkspalten sind real; nur der
+  definierte PLA-Flexursteg verbindet die Segmente.
 
 ## Sicherheitskonzept
 
@@ -92,34 +105,39 @@ erfüllt.
   ohne um Finger zuzuschnappen.
 - Zwei Haushaltsgummibänder treiben nur den Hub an. Mit **einem** Band je Seite
   beginnen und die Vorspannung erst nach einem Leerlauftest erhöhen.
-- Der Deckel braucht ein Fangband auf höchstens 108° Öffnungswinkel.
+- Der Deckel braucht ein Fangband auf höchstens 82° Öffnungswinkel.
 - Alle Quetschstellen der Schere bleiben im Gehäuse.
 - Nicht unbeaufsichtigt an Kinder geben, nicht auf Gesicht oder Augen richten.
 
-## Stückliste (20 Dateitypen / 33 physische Druckobjekte, wasserdicht validiert)
+## Stückliste (20 Teiltypen / 33 physische Druckobjekte)
 
-| Datei | Anzahl | Maße (mm) | Material |
+Die Einzelteile liegen ausschließlich in den fünf Material-3MFs; redundante
+Einzel-STLs werden nicht mehr ausgeliefert. Alle Teiltypen werden beim Erzeugen
+in-memory auf Wasserdichtheit, konsistente Wicklung und degenerierte Flächen
+geprüft.
+
+| Teil im Materialprojekt | Anzahl | Maße (mm) | Material |
 | --- | ---: | --- | --- |
-| `chest.stl` | 1 | 209,2 × 131,4 × 98,0 | PLA schwarz |
-| `lid.stl` | 1 | 206,0 × 129,0 × 27,5 | PLA schwarz |
-| `scissor-arm.stl` | 4 | 102 × 12 × 4 | PLA naturweiß |
-| `slider.stl` | 1 | 34 × 119,2 × 26 | PLA naturweiß |
-| `platform.stl` | 1 | 105 × 112 × 48 | PLA naturweiß |
-| `latch-rocker.stl` | 1 | 5 × 31,5 × 45 | PLA naturweiß |
-| `latch-bracket.stl` | 1 | 40 × 16 × 32,5 | PLA naturweiß |
-| `crank.stl` | 1 | 52 × 28 × 47,7 | PLA naturweiß |
-| `band-anchor.stl` | 1 | 14 × 96 × 25,5 | PLA naturweiß |
-| `forearm.stl` | 1 | 25,8 × 18 × 50 | PLA knochenfarben |
-| `pivot-pin-3.stl` | 8 | Ø6,2 × 26 | PLA naturweiß |
-| `pivot-pin-4.stl` | 4 | Ø7,2 × 34 | PLA naturweiß |
-| `skull-trigger.stl` | 1 | 42,2 × 47,9 × 40 | PLA grau |
-| `hand-palm.stl` | 1 | 67,3 × 94,2 × 25,2 | PLA knochenfarben |
-| `hand-tendon-guide.stl` | 1 | 62,0 × 77,4 × 25,0 | PLA knochenfarben |
-| `hand-finger-thumb.stl` | 1 | 21,3 × 43,0 × 11,5 | PLA knochenfarben |
-| `hand-finger-index.stl` | 1 | 18,0 × 64,6 × 11,2 | PLA knochenfarben |
-| `hand-finger-middle.stl` | 1 | 12,2 × 73,8 × 11,0 | PLA knochenfarben |
-| `hand-finger-ring.stl` | 1 | 16,2 × 69,9 × 10,4 | PLA knochenfarben |
-| `hand-finger-little.stl` | 1 | 20,4 × 53,5 × 9,2 | PLA knochenfarben |
+| Schatulle | 1 | 209,2 × 131,4 × 98,0 | PLA schwarz |
+| Deckel | 1 | 206,0 × 142,0 × 27,5 | PLA schwarz |
+| Scherenarm | 4 | 84 × 12 × 4 | PLA naturweiß |
+| Schlitten | 1 | 30 × 119,2 × 26 | PLA naturweiß |
+| Hubjoch | 1 | 82 × 92 × 51 | PLA naturweiß |
+| Klinkenrocker | 1 | 88,5 × 20 × 41 | PLA naturweiß |
+| Klinkenhalter | 1 | 102,5 × 10 × 18 | PLA naturweiß |
+| Kurbel | 1 | 52 × 28 × 47,7 | PLA naturweiß |
+| Bandanker | 1 | 14 × 96 × 25,5 | PLA naturweiß |
+| Unterarm mit Sektorscheibe | 1 | 27,4 × 47 × 56,7 | PLA knochenfarben |
+| Pivot-Pin klein | 8 | Ø6,2 × 26 | PLA naturweiß |
+| Pivot-Pin groß | 4 | Ø7,2 × 34 | PLA naturweiß |
+| Totenkopf-Auslöser | 1 | 42,2 × 47,9 × 40 | PLA grau |
+| Handfläche | 1 | 67,9 × 96,5 × 25,2 | PLA knochenfarben |
+| Sehnenführung | 1 | 62,0 × 77,4 × 25,0 | PLA knochenfarben |
+| Daumen | 1 | 19,3 × 35,6 × 11,5 | PLA knochenfarben |
+| Zeigefinger | 1 | 17,4 × 56,7 × 10,5 | PLA knochenfarben |
+| Mittelfinger | 1 | 12,2 × 65,9 × 10,8 | PLA knochenfarben |
+| Ringfinger | 1 | 15,4 × 61,9 × 10,3 | PLA knochenfarben |
+| Kleinfinger | 1 | 19,0 × 46,0 × 9,0 | PLA knochenfarben |
 
 Zusätzliche Lieferdateien:
 
@@ -169,12 +187,12 @@ Headless in OrcaSlicer geprüfte Schätzwerte:
 
 | Projekt/Platte | Filament | Druckzeit |
 | --- | ---: | ---: |
-| Schwarz PLA, Platte 1 | 331,71 g | 10 h 44 min |
-| Schwarz PLA, Platte 2 | 160,55 g | 5 h 55 min |
-| Knochen PLA | 37,02 g | 2 h 18 min |
-| Mechanik PLA | 126,41 g | 5 h 55 min |
+| Schwarz PLA, Platte 1 | 162,93 g | 6 h 02 min |
+| Schwarz PLA, Platte 2 | 333,08 g | 10 h 52 min |
+| Knochen PLA | 40,56 g | 2 h 30 min |
+| Mechanik PLA | 116,06 g | 5 h 28 min |
 | Akzent PLA | 15,87 g | 46 min |
-| Finger PLA | 9,30 g | 1 h 01 min |
+| Finger PLA | 8,14 g | 55 min |
 
 Alle Projekte starten mit **55/215 °C** (PLA). Das Fingerprojekt fährt die
 Außenwände bewusst mit 30 mm/s und reduzierter Beschleunigung, damit der
@@ -182,34 +200,38 @@ Außenwände bewusst mit 30 mm/s und reduzierter Beschleunigung, damit der
 
 ## Montage
 
-1. Je zwei Scherenarme zu einem X-Paar verbinden (Mittelbohrung, `pivot-pin-3`).
-   Zwei solche Paare bauen.
-2. Untere Festpunkte auf die Pivotposten im Boden bei (-22, ±26) stecken; die
-   Gegenenden in die Nut-Schienen des Schlittens.
-3. Schlitten einsetzen und von Hand über den vollen Weg (x = +64,5 → -0,2)
-   durchfahren. Gleitflächen trocken mit PTFE-Pulver behandeln, kein Fett.
-4. Offenes Hubjoch aufsetzen: festes Auge auf den einen Scherenkopf, zweiter
-   Kopf in die Kulisse. Das Joch muss über den ganzen Hub waagerecht bleiben;
-   sein freier Mittelraum darf Hand und Unterarm nicht berühren.
-5. `latch-bracket` auf die beiden Sockellöcher bei (±14, -40) setzen,
-   `latch-rocker` einhängen. Totenkopf-Auslöser von außen durch die Front
-   stecken; sein Zapfen muss den Rocker sauber treffen.
-6. `band-anchor` auf die Sockellöcher bei (-76, ±34) setzen und je ein
-   Gummiband symmetrisch zum Schlitten spannen. Mit minimaler Vorspannung
-   beginnen.
-7. Kurbel von hinten durch die Ø6,4-Bohrung bei (-100, 0, 30) stecken; damit
-   wird der Schlitten gegen die Bänder zurückgezogen, bis die Klinke einrastet.
-8. Unterarm in die Scharnierohren der Schale hängen, Sehnenführungsplatte und
-   Handfläche auf den Spigot stecken, die fünf PLA-Finger in die Zapfen der
-   Handfläche drücken.
-9. Angelsehne von jeder Fingerspitze durch die Führungsplatte zum hinteren
-   Schnurauge der Schale führen. Länge so einstellen, dass die Finger erst im
-   letzten Drittel des Hubs schließen - und nur so fest, dass sie Süßigkeiten
-   **stützen**, nicht klemmen.
-10. Deckel mit 1,75-mm-Filament auf der Achse z = 93 mm montieren, Fangband
-    einhängen.
-11. Leerlauftest: zehn Auslösungen ohne Süßigkeiten, danach Pins, Flexuren und
-    Klinke auf Risse prüfen.
+1. Je zwei 72-mm-Scherenarme zu einem X-Paar verbinden; zwei Paare bauen.
+2. Untere Festpunkte auf die Bodenposten bei (0, ±40) stecken, die anderen
+   unteren Enden mit dem Schlitten verbinden. Schlittenweg +68,5 → +15,0 mm
+   trocken prüfen.
+3. Das 82 × 92 mm große offene Hubjoch montieren: je ein oberes Ende in das
+   feste Auge, das andere in die Kulisse. Der mittlere Handraum bleibt frei.
+4. Den äußeren Klinkenhalter an der Front montieren, Rockerwelle einsetzen und
+   prüfen, dass ihr Haken bei x = 68,5 mm in die Schlittennut fällt. Der
+   Totenkopf muss das mittlere Paddle betätigen; es darf keine lose, nur
+   dekorative Hebelverbindung mehr geben.
+5. Bandanker bei x = -76 mm montieren. Je ein Gummiband von y = ±40 zum
+   jeweiligen Schlittenhaken legen. Mit minimaler Vorspannung beginnen.
+6. Kurbel rechts durch die Ø6,4-mm-Bohrung bei (+100, 0, 30) führen. Ein
+   0,8-mm-Seil vom Schlittenauge zur Kurbelspule legen: Aufwickeln muss den
+   Schlitten nach rechts in die Raststellung ziehen.
+7. Unterarm in die Hubjoch-Ohren hängen. Steuerseil am Gehäuseauge
+   (x = 72,2, y = 34, z = 18) befestigen, mit **28,7 mm Spiel** zur
+   Sektorscheibe führen und aufwickeln. Erst nach vollständiger Deckelöffnung
+   darf das Seil straff werden und den Unterarm aufrichten.
+8. Handfläche und Sehnenführung auf den Unterarmspigot stecken. Die fünf
+   Fingersockel mit 1,0 mm Durchmesserspiel auf ihre beschrifteten Knöchelzapfen
+   setzen. Kein Fingerknochen darf einen Nachbarknochen oder die Handfläche
+   schneiden.
+9. Fingersehnen von den Spitzen durch die Führung zum Jochauge führen. So
+   einstellen, dass die Finger im letzten Drittel des Hubs schließen.
+10. Deckel mit 1,75-mm-Filamentstift montieren. Je ein Öffnungsband zwischen
+    den hinteren Gehäuseaugen und Deckellaschen einhängen. Die vordere
+    Deckelschlaufe am Rocker einhängen und ein Fangband auf 82° einstellen.
+11. Ohne Süßigkeiten prüfen: Totenkopf drücken → Deckel öffnet zuerst → Schere
+    hebt → Unterarm richtet sich auf → Finger schließen. Danach mit der rechten
+    Kurbel zurückspannen; die Hand muss vollständig verschwinden und der Deckel
+    ohne Druck schließen.
 
 ## OrcaSlicer-Ablauf
 
@@ -226,15 +248,15 @@ Außenwände bewusst mit 30 mm/s und reduzierter Beschleunigung, damit der
 
 ## Offene Testdruck-Risiken
 
-- Der rechnerisch kleinste Innenraumrand der eingeklappten Hand beträgt nur
-  ca. **0,32 mm**. Der Kollisionsnachweis ist geometrisch bestanden, aber
+- Der rechnerisch kleinste Innenraumrand der eingeklappten Hand beträgt
+  **1,18 mm**; zur Deckelunterseite bleiben **2,27 mm**. Der Kollisionsnachweis ist geometrisch bestanden, aber
   Drucktoleranzen und Sehnenspiel erfordern einen Einbau-/Stow-Test vor dem
   endgültigen Deckelanschlag.
 - Die Gummibandlänge von ca. 60 mm ist nur das ungespannte Kaufmaß;
   Vorspannung und Hebelarm müssen am Prototyp ermittelt werden.
-- Die Sehnensteuerung ist geometrisch vorbereitet, aber der Auslösepunkt der
-  Fingerbeugung ist nicht formschlüssig erzwungen, sondern über die Sehnenlänge
-  eingestellt.
+- Deckel- und Unterarmsequenz sind geometrisch gekoppelt; die Fingerbeugung
+  bleibt über die fünf Sehnenlängen einstellbar. Das 28,7-mm-Spiel des
+  Unterarm-Steuerseils muss beim Prototyp exakt übernommen werden.
 - Die 0,8-mm-Filmscharniere sind die Schwachstelle der Hand. PLA erlaubt dort
   nur wenige hundert Zyklen; die Finger sind bewusst als Verschleißteil
   ausgelegt und einzeln nachdruckbar. Wer später doch TPU 95A bekommt, kann
