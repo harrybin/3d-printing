@@ -164,6 +164,32 @@ def simplify(mesh: trimesh.Trimesh, target_faces: int) -> trimesh.Trimesh:
     return mesh
 
 
+def simplify_tolerance(mesh: trimesh.Trimesh,
+                       tolerance: float = 0.01) -> trimesh.Trimesh:
+    """Remove sub-tolerance facets through manifold3d without opening holes.
+
+    This is useful after several boolean cuts: a mesh can be watertight yet
+    contain numerically tiny facets that OrcaSlicer refuses to process.
+    """
+    import manifold3d
+
+    source = manifold3d.Mesh(
+        np.asarray(mesh.vertices, dtype=np.float32),
+        np.asarray(mesh.faces, dtype=np.uint32))
+    solid = manifold3d.Manifold(source)
+    if solid.status() != manifold3d.Error.NoError:
+        return clean(mesh)
+    result_mesh = solid.simplify(tolerance).to_mesh()
+    result = trimesh.Trimesh(
+        vertices=np.asarray(result_mesh.vert_properties)[:, :3],
+        faces=np.asarray(result_mesh.tri_verts), process=True)
+    result.fix_normals()
+    if (result.is_watertight and result.is_winding_consistent
+            and result.volume > 0.0):
+        return clean(result)
+    return clean(mesh)
+
+
 def orient_for_print(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     result = mesh.copy()
     result.apply_translation([0.0, 0.0, -result.bounds[0, 2]])

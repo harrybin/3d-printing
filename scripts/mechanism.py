@@ -7,7 +7,7 @@ chain documented in docs/ghouls-grip-masse-und-bauanleitung.md:
     arm length           L = 90 mm (pivot to pivot)
     retracted            theta = 16 deg  ->  h =  24.8 mm
     deployed             theta = 76 deg  ->  h =  87.3 mm
-    slider travel        x = +36.5 -> -28.2 mm  (64.7 mm)
+    slider travel        x = +64.5 ->  -0.2 mm  (64.7 mm)
     platform top         8 + 87.3 + 6 = 101.3 mm, i.e. 15 mm over the rim
 
 Every part is modelled in its print orientation: flat parts lie in XY with
@@ -36,10 +36,13 @@ CHEST_W = 120.0
 WALL = 3.0
 
 SCISSOR_Y = 26.0        # half spacing of the two scissor planes
-FLOOR_PIVOT_X = -50.0
+FLOOR_PIVOT_X = -22.0
 PLATFORM_L = 104.0
 PLATFORM_W = 104.0
 PLATFORM_T = 6.0
+ARM_HINGE_X = 42.0
+ARM_HINGE_Z = 19.0
+STOW_ANGLE = -100.0
 
 FIT = 0.4               # running clearance on printed sliding fits
 
@@ -76,14 +79,18 @@ def build_slider() -> trimesh.Trimesh:
     """Rubber band driven carriage running in the 4 x 3 mm wall grooves."""
     inner = CHEST_W / 2.0 - WALL           # 57.0
     span = 2.0 * inner - FIT               # between the walls
-    body = box((44.0, span, 10.0), (0.0, 0.0, RAIL_Z + 3.0))
+    # The carriage is asymmetric around its pivot.  A symmetric 44 mm body
+    # collides with the fixed floor pivots above 71 degrees; keeping only
+    # 10 mm behind the moving pivot preserves a 5.8 mm hard clearance at the
+    # 76 degree deployed stop while retaining 22 mm of structure ahead.
+    body = box((32.0, span, 10.0), (6.0, 0.0, RAIL_Z + 3.0))
 
-    tongues = [box((44.0, 2.0 * (RAIL_D - 0.4), RAIL_W - 0.4),
+    tongues = [box((32.0, 2.0 * (RAIL_D - 0.4), RAIL_W - 0.4),
                    (0.0, sy * (inner + RAIL_D - 0.4 - 0.2 - (RAIL_D - 0.4)),
                     RAIL_Z + RAIL_W / 2.0))
                for sy in (-1.0, 1.0)]
-    tongues = [box((44.0, 2.0 * (RAIL_D - 0.4), RAIL_W - 0.4),
-                   (0.0, sy * inner, RAIL_Z + RAIL_W / 2.0))
+    tongues = [box((32.0, 2.0 * (RAIL_D - 0.4), RAIL_W - 0.4),
+                   (6.0, sy * inner, RAIL_Z + RAIL_W / 2.0))
                for sy in (-1.0, 1.0)]
 
     lugs = [_lug(PIVOT_D, 16.0, ARM_T + 2.0 * FIT + 2.0,
@@ -92,36 +99,49 @@ def build_slider() -> trimesh.Trimesh:
 
     hooks = []
     for sy in (-1.0, 1.0):
-        hooks.append(box((8.0, 8.0, 12.0), (-18.0, sy * 40.0, RAIL_Z + 4.0)))
-        hooks.append(cylinder(4.0, 8.0, (-18.0, sy * 40.0, RAIL_Z + 12.0),
+        hooks.append(box((8.0, 8.0, 12.0), (-8.0, sy * 40.0, RAIL_Z + 4.0)))
+        hooks.append(cylinder(4.0, 8.0, (-8.0, sy * 40.0, RAIL_Z + 12.0),
                               (0.0, 1.0, 0.0)))
 
     body = union([body, *tongues, *lugs, *hooks])
     # Latch notch on the front edge and the cord eye for the crank.
     body = difference(body, [
         box((9.0, 10.0, 8.0), (16.0, -(inner - 3.0), RAIL_Z + 3.0)),
-        cylinder(4.0 / 2.0, 12.0, (-18.0, 40.0, RAIL_Z + 12.0), (0.0, 1.0, 0.0)),
-        cylinder(4.0 / 2.0, 12.0, (-18.0, -40.0, RAIL_Z + 12.0), (0.0, 1.0, 0.0)),
+        cylinder(4.0 / 2.0, 12.0, (-8.0, 40.0, RAIL_Z + 12.0), (0.0, 1.0, 0.0)),
+        cylinder(4.0 / 2.0, 12.0, (-8.0, -40.0, RAIL_Z + 12.0), (0.0, 1.0, 0.0)),
         cylinder(2.2 / 2.0, 60.0, (20.0, 0.0, RAIL_Z + 6.0), (1.0, 0.0, 0.0)),
     ])
     return clean(body)
 
 
 def build_platform() -> trimesh.Trimesh:
-    """Candy tray on top of the scissor; lifts the lid and the forearm."""
-    plate = rounded_box((PLATFORM_L, PLATFORM_W, PLATFORM_T), 4.0,
-                        (0.0, 0.0, PLATFORM_T / 2.0))
-    rim = difference(
-        box((PLATFORM_L, PLATFORM_W, 14.0), (0.0, 0.0, 7.0)),
-        [box((PLATFORM_L - 2 * 3.0, PLATFORM_W - 2 * 3.0, 16.0),
-             (0.0, 0.0, 8.0))])
+    """Open lifting yoke carrying the scissor heads and skeletal forearm.
 
-    # Fixed pivot ears for one arm pair, slot ears for the other.
+    The first prototype used a 104 x 104 mm solid candy tray.  In the stowed
+    pose the real hand necessarily swept through that tray.  This yoke keeps
+    the centre completely open: two rails sit against the chest side walls,
+    while local bridges support only the scissor pivots and forearm hinge.
+    Sweets are carried by the curled hand itself, matching the concept image.
+    """
+    side_rails = [
+        box((94.0, 4.0, PLATFORM_T), (5.0, sy * 54.0, PLATFORM_T / 2.0))
+        for sy in (-1.0, 1.0)
+    ]
+    # Short links tie the fixed top pivots to the side rails without crossing
+    # the volume occupied by the folded palm and fingers.
+    pivot_links = [
+        box((12.0, 32.0, PLATFORM_T),
+            (-PLATFORM_L / 2.0 + 10.0, sy * 40.0, PLATFORM_T / 2.0))
+        for sy in (-1.0, 1.0)
+    ]
+    # The forearm hinge is at the free end, outside the stowed palm envelope.
+    hinge_bridge = box((18.0, 108.0, PLATFORM_T),
+                       (ARM_HINGE_X, 0.0, PLATFORM_T / 2.0))
+
     pins = [_lug(PIVOT_D, 16.0, ARM_T + 2.0 * FIT + 2.0,
                  (-PLATFORM_L / 2.0 + 10.0, sy * SCISSOR_Y, -8.0))
             for sy in (-1.0, 1.0)]
-    # Slot rail for the sliding arm head: local -25 .. +45 covers the whole
-    # 64.7 mm stroke of the scissor top.
+
     slots = []
     for sy in (-1.0, 1.0):
         rail = box((70.0, ARM_T + 2.0 * FIT + 4.0, 12.0),
@@ -130,22 +150,22 @@ def build_platform() -> trimesh.Trimesh:
                                      (10.0, sy * SCISSOR_Y, -7.0))])
         slots.append(rail)
 
-    # Hinge ears for the forearm, at the rear of the tray.
-    # Hinge ears stand clear of the 14 mm tray rim so the forearm can fold
-    # flat inside the chest without fouling it.
-    arm_ears = [_lug(PIN_D + 0.4, 26.0, 6.0, (14.0, sy * 11.0, 16.0))
+    arm_ears = [_lug(PIN_D + 0.4, 26.0, 6.0,
+                     (ARM_HINGE_X, sy * 11.0, ARM_HINGE_Z))
                 for sy in (-1.0, 1.0)]
-    # Cord eyes: one raises the forearm, one pulls the tendons.
+
+    # Two simple eyes terminate the lid cord and the five-finger tendon bundle.
     eyes = []
-    for x, y in ((-PLATFORM_L / 2.0 + 30.0, 0.0), (10.0, 0.0)):
+    for x, y in ((-PLATFORM_L / 2.0 + 30.0, -49.0),
+                 (ARM_HINGE_X - 14.0, 49.0)):
         post = cylinder(4.0, 10.0, (x, y, PLATFORM_T + 5.0))
-        post = difference(post, [cylinder(1.5, 12.0, (x, y, PLATFORM_T + 6.0),
+        post = difference(post, [cylinder(1.5, 12.0,
+                                          (x, y, PLATFORM_T + 6.0),
                                           (0.0, 1.0, 0.0))])
         eyes.append(post)
 
-    body = union([plate, rim, *pins, *slots, *arm_ears, *eyes])
-    return clean(body)
-
+    return clean(union([*side_rails, *pivot_links, hinge_bridge,
+                        *pins, *slots, *arm_ears, *eyes]))
 
 def build_latch() -> trimesh.Trimesh:
     """Rocker that holds the slider against the bands until the skull is pushed.

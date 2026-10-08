@@ -15,6 +15,7 @@ from __future__ import annotations
 import numpy as np
 import trimesh
 
+import mechanism
 from mesh_kit import (arc_band, box, clean, cylinder, difference,
                       intersection, rounded_box, sphere, union)
 from skull import skull_relief
@@ -38,6 +39,7 @@ RAIL_D = 3.0
 LID_DROP = 74.0         # chest z of the lid local origin when closed
 RAIL_Z = 8.0
 HINGE_Z = 93.0          # lid pin axis, shared by chest and lid knuckles
+HINGE_Y = CHEST_W / 2.0 + PROUD - 2.0  # rear long edge; axis runs along X
 
 
 def _stepped_skirt(z0: float, height: float, flip: bool) -> trimesh.Trimesh:
@@ -109,6 +111,52 @@ def _frame(size, centre, normal_x: bool, proud: float,
     return difference(outer, [inner])
 
 
+def _leaf(length: float, width: float, depth: float,
+          centre, angle: float) -> trimesh.Trimesh:
+    """Convex almond leaf used in the baroque-gothic scrollwork."""
+    leaf = sphere(1.0, subdivisions=2)
+    leaf.apply_scale([length / 2.0, width / 2.0, depth / 2.0])
+    leaf.apply_transform(trimesh.transformations.rotation_matrix(
+        angle, (0.0, 0.0, 1.0)))
+    leaf.apply_translation(np.asarray(centre, dtype=float))
+    return clean(leaf)
+
+
+def _scroll_pair(depth: float) -> trimesh.Trimesh:
+    """Symmetrical acanthus curls in the local XY plane, extruded in Z."""
+    parts = []
+    for side in (-1.0, 1.0):
+        group = [
+            arc_band(19.0, 3.2, depth, np.deg2rad(-105),
+                     np.deg2rad(145), (38.0, 0.0, 0.0)),
+            arc_band(10.5, 2.6, depth, np.deg2rad(35),
+                     np.deg2rad(305), (34.0, 3.0, 0.0)),
+            _leaf(17.0, 7.0, depth, (17.0, 7.0, 0.0),
+                  np.deg2rad(22.0)),
+            _leaf(14.0, 6.0, depth, (52.0, -12.0, 0.0),
+                  np.deg2rad(-35.0)),
+            _leaf(11.0, 5.0, depth, (61.0, 10.0, 0.0),
+                  np.deg2rad(58.0)),
+        ]
+        if side < 0:
+            for part in group:
+                part.apply_scale([-1.0, 1.0, 1.0])
+        parts.extend(group)
+    parts.append(_leaf(18.0, 8.0, depth, (0.0, 15.0, 0.0), np.pi / 2.0))
+    return union(parts)
+
+def _front_scrollwork(z: float) -> trimesh.Trimesh:
+    depth = RELIEF + 1.5
+    motif = _scroll_pair(depth)
+    # Local Y becomes world Z and local Z becomes -world Y.
+    motif.apply_transform(trimesh.transformations.rotation_matrix(
+        np.pi / 2.0, (1.0, 0.0, 0.0)))
+    motif.apply_translation([0.0,
+                             -CHEST_W / 2.0 - (RELIEF - 1.5) / 2.0,
+                             z])
+    return clean(motif)
+
+
 def _wall_decoration(length: float, x_sign: float, y_sign: float,
                      normal_x: bool, arch_count: int,
                      skip_middle: bool = False):
@@ -172,6 +220,11 @@ def build_chest() -> trimesh.Trimesh:
         cuts += c
         adds += a
 
+    # The concept art is dominated by raised acanthus scrolls.  Lancet arches
+    # alone read as plain architecture, so a deep paired curl frames the skull
+    # trigger on the front while preserving the 3 mm structural wall.
+    adds.append(_front_scrollwork(48.0))
+
     rivets = []
     for sign in (-1.0, 1.0):
         for x in np.arange(-CHEST_L / 2.0 + 16.0, CHEST_L / 2.0 - 10.0, 24.0):
@@ -211,28 +264,33 @@ def build_chest() -> trimesh.Trimesh:
     # the chest over the whole stroke (see docs, kinematics table).
     posts = []
     for sy in (-1.0, 1.0):
-        posts.append(box((12.0, 6.0, 14.0), (-22.0, sy * 26.0, FLOOR + 7.0)))
-        posts.append(cylinder(6.0, 6.0, (-22.0, sy * 26.0, RAIL_Z),
+        posts.append(box((12.0, 6.0, 14.0),
+                         (mechanism.FLOOR_PIVOT_X,
+                          sy * mechanism.SCISSOR_Y, FLOOR + 7.0)))
+        posts.append(cylinder(6.0, 6.0,
+                              (mechanism.FLOOR_PIVOT_X,
+                               sy * mechanism.SCISSOR_Y, RAIL_Z),
                               (0.0, 1.0, 0.0)))
     body = union([body, *posts])
     sockets = [cylinder(4.2 / 2.0, 6.0, (x, y, FLOOR), (0.0, 0.0, 1.0))
                for x, y in ((14.0, -40.0), (-14.0, -40.0),
                             (-76.0, 34.0), (-76.0, -34.0))]
-    sockets.append(cylinder(3.2 / 2.0, 80.0, (-22.0, 0.0, RAIL_Z),
+    sockets.append(cylinder(3.2 / 2.0, 80.0,
+                            (mechanism.FLOOR_PIVOT_X, 0.0, RAIL_Z),
                             (0.0, 1.0, 0.0)))
     body = difference(body, sockets)
 
-    # Hinge knuckles for the lid, at the back wall.
-    # Hinge knuckles on short columns that rise off the cornice, so the pin
-    # axis matches the lid knuckles at z = 93 and the lid can swing clear.
-    hx = -CHEST_L / 2.0 + PROUD - 4.0
+    # Hinge on the long rear edge.  Three chest knuckles alternate with four
+    # lid knuckles; 1 mm axial gaps stop elephant-foot swelling from binding.
     knuckles = []
-    for y in (-34.0, 34.0):
-        knuckles.append(box((10.0, 14.0, 10.0), (hx, y, BODY_H + 2.0)))
-        knuckles.append(cylinder(5.0, 14.0, (hx, y, HINGE_Z), (0.0, 1.0, 0.0)))
+    for x in (-66.0, 0.0, 66.0):
+        knuckles.append(box((28.0, 10.0, 10.0), (x, HINGE_Y, BODY_H + 2.0)))
+        knuckles.append(cylinder(5.0, 28.0, (x, HINGE_Y, HINGE_Z),
+                                  (1.0, 0.0, 0.0)))
     body = union([body, *knuckles])
-    body = difference(body, [cylinder(1.9 / 2.0, CHEST_W + 20.0,
-                                      (hx, 0.0, HINGE_Z), (0.0, 1.0, 0.0))])
+    body = difference(body, [cylinder(1.9 / 2.0, CHEST_L + 20.0,
+                                      (0.0, HINGE_Y, HINGE_Z),
+                                      (1.0, 0.0, 0.0))])
     return clean(body)
 
 
@@ -281,16 +339,22 @@ def build_lid() -> trimesh.Trimesh:
                   (sx * 74.0, 0.0, floor_z + (RELIEF - 1.5) / 2.0))
               for sx in (-1.0, 1.0)]
 
-    body = union([body, cartouche, bead, *beads, *wings])
+    lid_scrolls = _scroll_pair(RELIEF + 1.5)
+    lid_scrolls.apply_scale([0.92, 0.72, 1.0])
+    lid_scrolls.apply_translation([0.0, -8.0,
+                                   floor_z + (RELIEF - 1.5) / 2.0])
 
-    # Lid sits with its local z = 0 at chest z = LID_DROP, so the knuckle at
-    # local z = 19 lands on the shared hinge axis z = 93.
-    knuckles = [cylinder(5.0, 13.0, (-CHEST_L / 2.0 + PROUD - 4.0, y, LID_H - 5.0),
-                         (0.0, 1.0, 0.0)) for y in (-50.0, -18.0, 18.0, 50.0)]
+    body = union([body, cartouche, bead, lid_scrolls, *beads, *wings])
+
+    # Four lid knuckles fill the gaps between the three chest knuckles.
+    lid_segments = ((-90.0, 18.0), (-33.0, 36.0),
+                    (33.0, 36.0), (90.0, 18.0))
+    knuckles = [cylinder(5.0, length, (x, HINGE_Y, LID_H - 5.0),
+                         (1.0, 0.0, 0.0)) for x, length in lid_segments]
     body = union([body, *knuckles])
-    body = difference(body, [cylinder(2.0 / 2.0, CHEST_W + 24.0,
-                                      (-CHEST_L / 2.0 + PROUD - 4.0, 0.0,
-                                       LID_H - 5.0), (0.0, 1.0, 0.0))])
+    body = difference(body, [cylinder(2.0 / 2.0, CHEST_L + 24.0,
+                                      (0.0, HINGE_Y, LID_H - 5.0),
+                                      (1.0, 0.0, 0.0))])
     return clean(body)
 
 

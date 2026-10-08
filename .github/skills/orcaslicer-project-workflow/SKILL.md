@@ -35,6 +35,19 @@ named machine, process and filament preset. Stop with a clear message when
   mesh.
 - For multi-material files, verify object-to-filament mapping and include a
   preview that shows the material regions.
+- For complex assemblies, preserve the assembled presentation 3MF separately and
+  create one printable OrcaSlicer project 3MF per material/spool group. A project
+  may contain multiple plates when all same-material parts cannot fit the 250 mm
+  bed together.
+- Every printable project must embed the exact Anycubic Kobra S1 0.4 mm machine
+  preset, explicit Textured PEI bed, matching filament preset, global process
+  settings tuned to that material, complete BOM quantities, and per-object
+  overrides for functional differences such as pins versus shells. Verify these
+  values from `Metadata/project_settings.config` and
+  `Metadata/model_settings.config`; a neutral 3MF with only mesh/color metadata
+  is not print-ready.
+- TPU projects must state that flexible filament is fed from the external spool
+  unless the installed feeder is explicitly rated for that TPU.
 - Report layer height, walls, infill, supports, estimated time and filament.
 
 ## Ghoul's Grip defaults

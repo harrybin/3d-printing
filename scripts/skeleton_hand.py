@@ -21,7 +21,8 @@ import numpy as np
 import trimesh
 
 from extract_hand_bones import RAYS, load_bones
-from mesh_kit import clean, cylinder, difference, fuse, simplify, sphere, union
+from mesh_kit import (clean, cylinder, difference, fuse, simplify,
+                      simplify_tolerance, sphere, union)
 
 # A life size hand is 190 mm long and simply does not fit into the 194 mm chest
 # cavity together with its forearm, so the whole skeleton is scaled down.
@@ -252,7 +253,9 @@ def build_finger(skeleton: Skeleton, ray: str, pose: dict) -> trimesh.Trimesh:
         (PEG_D + SOCKET_CLEAR) / 2.0, PEG_LEN + 2.0,
         posed.base + posed.base_direction * (PEG_LEN / 2.0 - 1.5),
         posed.base_direction))
-    return difference(body, cutters)
+    # Boolean notches can leave sub-0.01 mm facets which remain manifold but
+    # make OrcaSlicer abort. This preserves flexure/tendon topology and volume.
+    return simplify_tolerance(difference(body, cutters), 0.01)
 
 
 def wrist_frame(skeleton: Skeleton) -> tuple[np.ndarray, np.ndarray]:

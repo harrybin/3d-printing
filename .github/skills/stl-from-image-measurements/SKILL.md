@@ -148,6 +148,27 @@ When a usable baseline model already exists but iterative photo-based tweaking k
 - if the mismatch is broad and view-to-view contradictory, switch to `visual-hull-envelope-fit` instead of continuing local tweaks
 - if one local region is structurally wrong and keeps dragging the rest of the model away, switch to `partial-rebuild-instead-of-mutate`
 
+### 2d. Licensed organic-reference branch
+
+When the target contains realistic anatomy, bones, creatures or another organic form that primitives cannot reproduce convincingly:
+
+- research a license-compatible scan or mesh before freehand modeling; verify the actual download, license and attribution text;
+- preserve the source's recognizable surface geometry and proportions, but treat it as reference material that still needs re-rigging, segmentation, thickening, repair and printable joints;
+- cache a documented, reduced derivative when the original file is too large or should not be redistributed; keep a script that can reproduce the derivative from the cited source;
+- never let the imported organic mesh dictate fit-critical pivots or clearances. Build the engineering interfaces parametrically around frozen anatomical datums;
+- compare rendered anatomy against the reference before integrating it into the mechanism.
+
+### 2e. Motion-proof branch for pictured mechanisms
+
+A realistic-looking assembly is not accepted until its motion is proved:
+
+- establish the actual hinge edge and axis from the reference before placing decoration;
+- solve the pivot chain analytically and sample the full travel, not only open/closed screenshots;
+- measure boolean intersection volume between the moving envelope and the enclosure, supports, fixed pivots and neighboring links;
+- require the retracted organic assembly to fit inside the usable cavity with a reported minimum margin;
+- rebuild supports around the swept volume (for example as an open yoke) when a solid tray or bridge intersects it;
+- render and preserve both retracted and deployed states.
+
 ### 3. Shape-first classification and strategy selection (mandatory)
 
 Do not start with fine segmentation. First classify the object as a whole, then choose the cheapest reliable strategy:
@@ -214,6 +235,7 @@ If the reference indicates multiple materials, inserts, coatings, or color regio
 2. If yes, preserve them as separate solids/regions and switch the final deliverable format to **3MF**.
 3. If no, document that the output is intentionally merged and proceed with STL-compatible geometry.
 4. Never finalize as STL when distinct material/color semantics are explicitly required.
+5. For a complex multi-part assembly, keep the assembled 3MF separate and create one print-ready OrcaSlicer project 3MF per actual material/spool group. Embed the current printer, explicit bed, filament and material process settings, plus object-level overrides and complete repeated-part quantities; split into multiple internal plates when required by the bed.
 
 ### 6. Compose or edit the output geometry
 

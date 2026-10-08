@@ -71,6 +71,14 @@ Hand-written meshes (raw `Trimesh(vertices, faces)` constructions, manual `solid
 - Keep trimesh + manifold3d for simple prismatic CSG and as the validation layer.
 - Every generator script must print: facets, bounds, extents, watertight, winding consistency, volume, degenerate-face count.
 
+## Organic reference meshes and moving assemblies
+
+- For realistic anatomy or other high-complexity organic subjects, first research a downloadable model with a redistribution-compatible license. Prefer NIH, Wikimedia Commons, Smithsonian or similarly attributable repositories over anonymous marketplace uploads.
+- Keep the original organic mesh separate from engineering geometry. Canonicalize and classify its components, preserve real proportions, then create printable derivatives through controlled decimation, voxel/morphological fusion, sockets, flexures and tendon channels. Do not replace recognizable anatomy with cylinders and boxes merely because they are easier to generate.
+- Validate mechanics independently from appearance. A static hero render cannot prove a mechanism: generate at least the two end states and a sampled sweep, assert pivot closure, slot travel and enclosure margins, and use manifold boolean intersection volumes to reject collisions.
+- If the swept volume intersects a tray or support, rebuild that support as an open yoke/frame around the envelope instead of shrinking or clipping the organic part.
+- Deliver assembly and manufacturing views separately: `<name>.3mf` for the assembled/material-separated model, an STL assembly counterpart for the canvas, and one OrcaSlicer project 3MF per actual material/spool group. Material projects must include full BOM quantities, use multiple internal plates when needed, and embed the Kobra S1 machine, Textured PEI bed, filament, material-level process values, and object-level overrides; a geometry-only 3MF is not a print-ready deliverable.
+
 ## Anycubic Kobra S1 Combo defaults
 
 - Stock nozzle: **0.4 mm** (supports 0.25/0.6/0.8 mm).

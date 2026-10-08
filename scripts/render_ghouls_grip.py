@@ -10,6 +10,7 @@ a mismatched pivot shows up here instead of on the printer.
 from __future__ import annotations
 
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -19,7 +20,7 @@ import vedo
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import mechanism
-from gothic_chest import HINGE_Z, LID_DROP, build_chest, build_lid
+from gothic_chest import HINGE_Y, HINGE_Z, LID_DROP, build_chest, build_lid
 from skeleton_hand import GRIP_POSE, assemble, load_skeleton
 from skull import build_trigger
 
@@ -27,7 +28,10 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "images"
 
 ARM_L = 90.0
-FLOOR_PIVOT = np.array([-22.0, 8.0])     # x, z of the fixed scissor pivot
+ARM_HINGE_X = mechanism.ARM_HINGE_X
+ARM_HINGE_Z = mechanism.ARM_HINGE_Z
+STOW_ANGLE = mechanism.STOW_ANGLE
+FLOOR_PIVOT = np.array([mechanism.FLOOR_PIVOT_X, 8.0])
 PLATFORM_PIN = -42.0                     # pin lug, local x on the platform
 SCISSOR_Y = 26.0
 
@@ -52,6 +56,12 @@ def lay_arm(mesh: trimesh.Trimesh, theta: float, y: float,
     return arm
 
 
+
+@lru_cache(maxsize=1)
+def grip_hand():
+    """Build the expensive voxel-fused anatomical hand once per process."""
+    return assemble(load_skeleton(), GRIP_POSE)
+
 def build_scene(pose: str):
     theta = POSES[pose]
     rad = np.deg2rad(theta)
@@ -66,8 +76,8 @@ def build_scene(pose: str):
     lid = build_lid()
     lid.apply_translation([0.0, 0.0, LID_DROP])
     if pose == "deployed":
-        lid.apply_transform(rot(-108.0, [0, 1, 0],
-                                [-100.0 + 3.0 - 4.0, 0.0, HINGE_Z]))
+        lid.apply_transform(rot(-108.0, [1, 0, 0],
+                                [0.0, HINGE_Y, HINGE_Z]))
     items.append(("lid", lid, "#43434e"))
 
     slider = mechanism.build_slider()
@@ -85,8 +95,8 @@ def build_scene(pose: str):
     platform.apply_translation(plat_origin)
     items.append(("platform", platform, "#d8c6a5"))
 
-    hinge = plat_origin + np.array([14.0, 0.0, 16.0])
-    tilt = 0.0 if pose == "deployed" else -104.0
+    hinge = plat_origin + np.array([ARM_HINGE_X, 0.0, ARM_HINGE_Z])
+    tilt = 0.0 if pose == "deployed" else STOW_ANGLE
 
     forearm = mechanism.build_forearm()
     forearm.apply_translation([0.0, 0.0, -4.0])
@@ -94,10 +104,9 @@ def build_scene(pose: str):
     forearm.apply_translation(hinge)
     items.append(("forearm", forearm, "#d8c6a5"))
 
-    skeleton = load_skeleton()
     # Stowed the tendon holds the fingers curled, which is also the
     # most compact shape - the flat print pose would not fit the chest.
-    hand = assemble(skeleton, GRIP_POSE)
+    hand = grip_hand()
     stack = trimesh.util.concatenate(list(hand.values()))
     wrist_y = stack.bounds[0][1]
     for name, mesh in hand.items():

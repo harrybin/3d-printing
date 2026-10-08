@@ -38,6 +38,8 @@ When generating new printable geometry, apply these defaults unless user overrid
 - Avoid tiny isolated color islands that cause excessive tool changes and purge waste.
 - For multi-part assemblies, design keyed alignment features to simplify post-assembly.
 - If distinct material/color regions must stay preserved in the delivered model, the final output format should be **3MF**, not STL.
+- For complex multi-part jobs, also deliver one print-ready OrcaSlicer project 3MF per actual material/spool group. Embed `Anycubic Kobra S1 0.4 nozzle`, the explicit physical bed type (normally Textured PEI), matching filament preset, material process values, full BOM quantities and object-specific overrides; use multiple internal plates when required.
+- Treat TPU as an external-spool job unless the installed ACE/feeder configuration is explicitly rated for that exact flexible filament.
 
 ## Required validation before finalizing output
 

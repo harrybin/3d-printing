@@ -13,9 +13,10 @@ A collection of ASCII STL models for the Anycubic Kobra S1 Combo + ACE Pro (250 
 | `models/zylinder_scheibe_2026_2027.stl` | Cylindrical/washer-style reference part |
 | `models/lampe-5-rahmen.3mf` | Multi-material frame for the 240 mm number-5 wall lamp |
 | `models/lampe-5-leuchtflaechen.stl` | All four translucent lamp panels arranged together on the 250 × 250 mm bed |
-| `models/ghouls-grip.3mf` | Multi-material assembly view of the mechanical Halloween candy-box prototype ([dimensions and assembly](docs/ghouls-grip-masse-und-bauanleitung.md)) |
-| `models/ghouls-grip-preview.stl` | Multi-body preview of the exact Ghoul's Grip 3MF assembly |
-| `models/ghouls-grip/*.stl` | The 20 individual printable parts of the Ghoul's Grip |
+| `models/ghouls-grip.3mf` | Multi-material deployed assembly of the mechanical Halloween candy-box ([dimensions and assembly](docs/ghouls-grip-masse-und-bauanleitung.md)) |
+| `models/ghouls-grip-{black-pla,bone-pla,mechanism-petg,accent-pla,fingers-tpu}.3mf` | Print-ready OrcaSlicer material projects with Anycubic Kobra S1, Textured PEI, filament/process presets, object overrides and complete quantities |
+| `models/ghouls-grip-preview.stl` | Multi-body preview of the exact Ghoul's Grip assembly |
+| `models/ghouls-grip/*.stl` | 20 printable part types; the material projects expand them to the full 33-object BOM |
 
 ## Setup
 

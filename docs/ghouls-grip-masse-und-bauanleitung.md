@@ -15,7 +15,9 @@ reine Ausgaben und werden nie von Hand bearbeitet.
 | Hubwerk, Klinke, Kurbel, Unterarm | `scripts/mechanism.py` |
 | Totenkopf und Totenkopf-Auslöser | `scripts/skull.py` |
 | Skeletthand | `scripts/skeleton_hand.py` (+ `extract_hand_bones.py`) |
-| Zusammenbau, Validierung, 3MF | `scripts/ghouls_grip.py` |
+| Zusammenbau, STL/3MF-Ausgabe | `scripts/ghouls_grip.py` |
+| Kobra-S1-Materialprojekte | `scripts/export_ghouls_grip_orca_projects.py` |
+| Bewegungs-/Kollisionsnachweis | `scripts/verify_ghouls_grip_mechanics.py` |
 | Montage-Renderings | `scripts/render_ghouls_grip.py` |
 
 Die Skeletthand ist **kein Freihandmodell**: Die 27 Handknochen stammen aus
@@ -33,8 +35,8 @@ widersprechen der Aufgabenbeschreibung und wurden nicht verwendet.
 | --- | ---: | --- | --- |
 | Außenmaß geschlossen | 200 × 120 × 110 mm | Benutzerangabe | hoch |
 | Grundkörper (ohne Dekor) | 200 × 120 × 86 mm | abgeleitet | hoch |
-| Grundkörper mit Dekor/Scharnier | 210,5 × 130,8 × 98 mm | am Mesh gemessen | hoch |
-| Deckel | 209 × 126 × 27,5 mm | am Mesh gemessen | hoch |
+| Grundkörper mit Dekor/Scharnier | 209,2 × 131,4 × 98 mm | am Mesh gemessen | hoch |
+| Deckel | 206 × 129 × 27,5 mm | am Mesh gemessen | hoch |
 | Wand/Boden | 3,0 mm | Benutzerangabe | hoch |
 | Innenraum | 194 × 114 × 80 mm | Benutzerangabe | hoch |
 | Scherenarm | 90 mm Pivotabstand, 12 × 4 mm | Benutzerangabe | hoch |
@@ -56,10 +58,11 @@ Das passt weiterhin in den 194 × 114 mm großen Innenraum.
 
 Vorgegeben waren "ca. 160 mm über den Schatullenrand". Die Schere selbst hebt
 die Schale um **62,5 mm** (eingefahren 24,8 mm, ausgefahren 87,3 mm
-Scherenhöhe); die Schalenoberkante steht dann 23 mm über dem Rand. Zusammen mit
-Unterarm und Hand erreichen die Fingerspitzen **289 mm über der Aufstellfläche**
-und damit **188 mm über der geschlossenen Deckeloberkante** - der geforderte
-Effekt wird also übertroffen.
+Scherenhöhe). Das offene Hubjoch trägt Unterarm und Hand ohne deren Schwenkraum
+zu kreuzen. Zusammen mit Unterarm und Hand erreichen die Fingerspitzen im
+verifizierten Modell **278 mm über der Aufstellfläche** und damit rund **176 mm
+über der geschlossenen Deckeloberkante** - der geforderte Effekt wird also
+erfüllt.
 
 ## Kinematik (maßgeblich für jede Änderung)
 
@@ -69,13 +72,14 @@ Effekt wird also übertroffen.
 - Eingefahren θ = 16° → Hub 24,8 mm; ausgefahren θ = 76° → Hub 87,3 mm.
 - Schlittenweg x = +64,5 → -0,2 mm (64,7 mm Weg) in Nut-Schienen
   4 (Z) × 3 (Y) mm auf z = 8 mm.
-- Schale 104 × 104 mm, Ursprung x = +20 mm; Pin-Auge lokal x = -42 mm,
-  Kulisse lokal -25 … +45 mm.
-- Unterarm-Scharnier auf der Schale: lokal (14, ±11, 16) mm. Eingefahren klappt
-  der Unterarm um 104° nach -X; dann liegt die gesamte Hand unter der
-  Deckeloberkante (geprüfter Höchstpunkt 101,5 mm = Deckeloberkante).
-- Deckelscharnier: Achse **z = 93 mm, x = -101 mm**, 1,75-mm-Filamentstift,
-  Öffnungswinkel im Modell 108°.
+- Offenes Hubjoch 105 × 112 × 48 mm, Ursprung x = +20 mm; Pin-Auge lokal
+  x = -42 mm, Kulisse lokal -25 … +45 mm. Seitenschienen bei y ≈ ±54 halten
+  den zentralen Schwenkraum der Hand frei.
+- Unterarm-Scharnier auf dem Hubjoch: lokal **x = 42 mm, z = 19 mm**.
+  Eingefahren klappt der Unterarm um 100° nach -X; Hand und Unterarm liegen
+  vollständig im Innenraum (kleinster rechnerischer Rand ca. 0,27 mm).
+- Deckelscharnier: Achse entlang **X** an der langen Rückkante bei
+  **y = 61 mm, z = 93 mm**, 1,75-mm-Filamentstift; Öffnungswinkel 108°.
 - Totenkopf-Auslöser mittig auf der Front: (0, -60, 46) mm, Ø4,4-Stiftbohrung.
   Sein Zapfen trifft den Klinkenrocker bei z = 46 mm, der Haken gibt den
   Schlitten bei z = 8…14 mm frei.
@@ -92,15 +96,15 @@ Effekt wird also übertroffen.
 - Alle Quetschstellen der Schere bleiben im Gehäuse.
 - Nicht unbeaufsichtigt an Kinder geben, nicht auf Gesicht oder Augen richten.
 
-## Stückliste (20 Druckteile, alle wasserdicht validiert)
+## Stückliste (20 Dateitypen / 33 physische Druckobjekte, wasserdicht validiert)
 
 | Datei | Anzahl | Maße (mm) | Material |
 | --- | ---: | --- | --- |
-| `chest.stl` | 1 | 210,5 × 130,8 × 98,0 | PLA/PETG schwarz |
-| `lid.stl` | 1 | 209,0 × 126,0 × 27,5 | PLA/PETG schwarz |
+| `chest.stl` | 1 | 209,2 × 131,4 × 98,0 | PLA schwarz |
+| `lid.stl` | 1 | 206,0 × 129,0 × 27,5 | PLA schwarz |
 | `scissor-arm.stl` | 4 | 102 × 12 × 4 | PETG |
-| `slider.stl` | 1 | 44 × 119,2 × 26 | PETG |
-| `platform.stl` | 1 | 104 × 104 × 45 | PETG |
+| `slider.stl` | 1 | 34 × 119,2 × 26 | PETG |
+| `platform.stl` | 1 | 105 × 112 × 48 | PETG |
 | `latch-rocker.stl` | 1 | 5 × 31,5 × 45 | PETG |
 | `latch-bracket.stl` | 1 | 40 × 16 × 32,5 | PETG |
 | `crank.stl` | 1 | 52 × 28 × 47,7 | PETG |
@@ -117,8 +121,23 @@ Effekt wird also übertroffen.
 | `hand-finger-ring.stl` | 1 | 16,3 × 69,9 × 10,5 | TPU 95A |
 | `hand-finger-little.stl` | 1 | 20,4 × 53,5 × 9,2 | TPU 95A |
 
-Zusätzlich: `models/ghouls-grip.3mf` (Materialtrennung für OrcaSlicer) und
-`models/ghouls-grip-preview.stl` (Vorschau für das STL-Canvas).
+Zusätzliche Lieferdateien:
+
+- `models/ghouls-grip.3mf` - ausgefahrene, zusammengebaute Materialansicht.
+- `models/ghouls-grip-retracted.3mf` - geschlossene Einbaukontrolle.
+- `models/ghouls-grip-preview.stl` - Montagevorschau für das STL-Canvas.
+- `models/ghouls-grip-black-pla.3mf` - Gehäuse/Deckel, zwei Orca-Platten.
+- `models/ghouls-grip-bone-pla.3mf` - Handfläche, Führung, Unterarm.
+- `models/ghouls-grip-mechanism-petg.3mf` - vollständige Mechanik inklusive
+  4 Scherenarmen, 8 kleinen und 4 großen Pins.
+- `models/ghouls-grip-accent-pla.3mf` - grauer Totenkopf-Auslöser.
+- `models/ghouls-grip-fingers-tpu.3mf` - fünf TPU-Finger; externe Spule statt
+  ACE Pro verwenden.
+
+Die fünf Materialdateien sind echte OrcaSlicer-Projekte. Sie enthalten den
+Drucker `Anycubic Kobra S1 0.4 nozzle`, `Textured PEI Plate`, das passende
+Anycubic-Filamentprofil und globale Materialwerte. Das PETG-Projekt enthält
+zusätzlich objektbezogene Verstärkungen für Arme, Klinke und Pins.
 
 Nicht gedruckt: 2 × Haushaltsgummiband ca. 60 mm, ca. 1 m 0,8-mm-Angelsehne,
 1,75-mm-Filament als Scharnierachse. Für hoch belastete Scherengelenke sind
@@ -128,16 +147,33 @@ M3×16-Schrauben mit selbstsichernden Muttern besser als die gedruckten Stifte.
 
 | Teil | Material | Wände/Infill |
 | --- | --- | --- |
-| Gehäuse/Deckel | PLA oder PETG | 4 Wände, 20-25 % Gyroid |
-| Schere/Schlitten/Klinke/Schale | PETG | 5 Wände, 40 % Gyroid |
-| Finger | TPU 95A | 2-3 Wände, 15 % Gyroid |
+| Gehäuse/Deckel | PLA | 4 Wände, 20 % Gyroid |
+| Schere/Schlitten/Klinke/Hubjoch | PETG | 5 Wände, 40 % Gyroid |
+| Scherenarme | PETG | 5 Wände, 100 % |
+| Gedruckte Pins | PETG | 6 Wände, 100 % |
+| Finger | TPU 95A | 3 Wände, 15 % Gyroid, 25-40 mm/s |
 | Hand, Unterarm, Totenkopf | PLA | 4 Wände, 25 % Gyroid |
 
-Schichthöhe 0,20 mm, 0,4-mm-Düse. `XY Hole Compensation` +0,10 mm.
-`XY Contour Compensation` -0,05 mm nur an Gleitflächen, nicht am Dekor.
-Elefantenfuß-Kompensation 0,15-0,20 mm. Reliefs und Nieten der Schatulle sind
+Schichthöhe 0,20 mm, 0,4-mm-Düse, Textured PEI Plate.
+`XY Hole Compensation` +0,10 mm, `XY Contour Compensation` 0 mm und
+Elefantenfuß-Kompensation 0,15 mm sind in den Materialprojekten gespeichert.
+Reliefs und Nieten der Schatulle sind
 2,6-3,0 mm erhaben und brauchen keine Stützen; der Deckel druckt flach mit der
 Oberseite nach unten.
+
+Headless in OrcaSlicer geprüfte Schätzwerte:
+
+| Projekt/Platte | Filament | Druckzeit |
+| --- | ---: | ---: |
+| Schwarz PLA, Platte 1 | 331,71 g | 10 h 44 min |
+| Schwarz PLA, Platte 2 | 160,55 g | 5 h 55 min |
+| Knochen PLA | 37,02 g | 2 h 18 min |
+| Mechanik PETG | 126,83 g | 5 h 57 min |
+| Akzent PLA | 15,87 g | 46 min |
+| Finger TPU | 10,41 g | 1 h 19 min |
+
+Die erzeugten Startbefehle verwenden 55/215 °C für PLA und TPU sowie
+70/250 °C für PETG. Beim TPU-Projekt ist die externe Spule vorgeschrieben.
 
 ## Montage
 
@@ -147,8 +183,9 @@ Oberseite nach unten.
    Gegenenden in die Nut-Schienen des Schlittens.
 3. Schlitten einsetzen und von Hand über den vollen Weg (x = +64,5 → -0,2)
    durchfahren. Gleitflächen trocken mit PTFE-Pulver behandeln, kein Fett.
-4. Schale aufsetzen: festes Auge auf den einen Scherenkopf, zweiter Kopf in die
-   Kulisse. Die Schale muss über den ganzen Hub waagerecht bleiben.
+4. Offenes Hubjoch aufsetzen: festes Auge auf den einen Scherenkopf, zweiter
+   Kopf in die Kulisse. Das Joch muss über den ganzen Hub waagerecht bleiben;
+   sein freier Mittelraum darf Hand und Unterarm nicht berühren.
 5. `latch-bracket` auf die beiden Sockellöcher bei (±14, -40) setzen,
    `latch-rocker` einhängen. Totenkopf-Auslöser von außen durch die Front
    stecken; sein Zapfen muss den Rocker sauber treffen.
@@ -171,18 +208,23 @@ Oberseite nach unten.
 
 ## OrcaSlicer-Ablauf
 
-1. `models/ghouls-grip.3mf` öffnen und die Materialien den ACE-Pro-Slots
-   zuordnen (schwarz, knochenfarben, grau, TPU).
-2. Die Baugruppe dient nur der Kontrolle. Zum Drucken die Einzel-STLs
-   materialweise auf getrennte Platten laden.
-3. Gehäuse und Deckel flach auflegen, Scherenarme flach, Bohrungen ohne Stützen.
-4. TPU-Finger flach drucken, keine adaptive Schichthöhe an den Flexurstegen,
-   dort `Height Range Modifier` auf 1 Wandlinie.
+1. `models/ghouls-grip.3mf` nur zur Montage- und Materialkontrolle öffnen.
+2. Zum Drucken die passende Material-Projektdatei öffnen. Drucker, Textured
+   PEI Plate, Filament, 0,20-mm-Prozess und Objekt-Overrides sind bereits
+   eingebettet; vor dem Slicen trotzdem Düsendurchmesser und reale Spule prüfen.
+3. Das schwarze PLA-Projekt enthält wegen der Bettgröße zwei Platten. Alle
+   anderen Materialprojekte sind jeweils auf einer Platte angeordnet.
+4. TPU über die externe Spule zuführen, nicht durch ACE Pro. Die Finger sind
+   flach, ohne Stützen, mit niedriger Geschwindigkeit und Beschleunigung.
 5. Vor dem Gesamtdruck einen Arm, einen Pin und ein Fingerglied als
-   Passungsmuster slicen.
+   Passungsmuster slicen. Keines der Projekte startet oder sendet einen Druck.
 
 ## Offene Testdruck-Risiken
 
+- Der rechnerisch kleinste Innenraumrand der eingeklappten Hand beträgt nur
+  ca. **0,27 mm**. Der Kollisionsnachweis ist geometrisch bestanden, aber
+  Drucktoleranzen und Sehnenspiel erfordern einen Einbau-/Stow-Test vor dem
+  endgültigen Deckelanschlag.
 - Die Gummibandlänge von ca. 60 mm ist nur das ungespannte Kaufmaß;
   Vorspannung und Hebelarm müssen am Prototyp ermittelt werden.
 - Die Sehnensteuerung ist geometrisch vorbereitet, aber der Auslösepunkt der

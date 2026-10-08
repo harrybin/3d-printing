@@ -63,6 +63,19 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Before reading reference photos, build a numbered contact sheet with `python scripts/make_contact_sheet.py <image folder>` and open only the tiles that show the feature in question. Commit the sheet as `<image folder>/_index.png` and cite tile numbers in the measurement doc.
 - When a model is finished, delete its raw reference photos and temporary analysis renderings after the final presentation render has been shown in chat. Keep the final presentation render as needed for the deliverable/PR, and keep only the contact sheet(s), renamed after the model, in `model-sources/archiv/` (e.g. `duschscharnier_ersatz-referenzfotos-index.png`); record the tile-to-file legend in `model-sources/archiv/README.md`.
 
+## Realism And Mechanism Proof
+
+- For anatomical, skeletal, creature, historical-artifact or other complex organic forms, search for a license-compatible scan or reference mesh before approximating the shape with primitives. Preserve attribution and license metadata in `docs/`; cache only the smallest reproducible derivative needed by the generator.
+- Treat a reference mesh as shape evidence, not as a finished printable mechanism. Re-rig, segment, thicken, fuse and add sockets/flexures parametrically while preserving the recognizable source anatomy.
+- Separate visual and mechanical reconstruction: organic parts may reuse researched meshes, while pivots, rails, latches, stops and clearances must come from explicit dimensions and equations.
+- A moving assembly is not complete after static mesh validation. Sample the full motion range, solve every pivot analytically, and run manifold intersection-volume checks against fixed parts and adjacent moving parts. Record a PASS/FAIL report under `docs/`.
+- Verify both end states: the deployed state must clear the enclosure and lid; the retracted state must fit wholly inside the usable cavity with explicit minimum margins. Render both states.
+- Replace any solid tray, bridge or decorative body that crosses the swept volume with an open yoke/frame or another structurally bounded rebuild; never hide a collision in the closed render.
+- Put hinges on the physically correct edge and verify their rotation axis against the reference image before detailing the shell.
+- Keep `models/<name>.3mf` as the assembled presentation model when assembly is the user-visible deliverable; never substitute a print layout for an assembly preview.
+- For complex multi-part projects, also deliver one **printable OrcaSlicer project 3MF per actual material/spool group** (and multiple plates inside that project when the 250 mm bed requires it). Each material project must contain the complete BOM quantities, the Anycubic Kobra S1 0.4 mm machine profile, explicit Textured PEI bed selection, the matching filament profile, material-tuned global process settings, and object-specific overrides for walls, infill, supports, speeds or brim where function differs. Neutral geometry-only 3MF files do not satisfy this requirement.
+- For ornate reference designs, use real raised/recessed geometry (scrolls, tracery, leaves, ribs, cartouches), not a few generic arches or a texture. Validate minimum stroke and relief depth for the nozzle.
+
 ## Common Pitfalls
 
 - `manifold3d` must be installed, or boolean operations fail.
@@ -101,6 +114,7 @@ If behavior around print constraints, validation policy, or coordinate targeting
 | Rebuild-vs-mutate decision | stable local boundary plus frozen trusted geometry | `partial-rebuild-instead-of-mutate` | `photo-anchor-candidate-fit`, `visual-hull-envelope-fit`, `create-ascii-stl` | If a local region is structurally wrong, rebuild that region from the script instead of continuing STL mutation. |
 | Source of geometry edits | parametric scripts in `scripts/` | `create-ascii-stl` | `edit-stl-transform`, `photo-anchor-candidate-fit` | Regenerate from script instead of hand-editing STL facets. |
 | STL vs 3MF decision | confirmed material/color semantics | `stl-create-edit-interview` | `create-ascii-stl`, `stl-from-image-measurements`, `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Distinct material/color regions require a 3MF deliverable; STL is only for merged single-region output. |
+| Complex-project print handoff | complete BOM plus material/object process intent | `orcaslicer-project-workflow` | `create-ascii-stl`, `anycubic-kobra-s1-ace-pro-profile` | Keep assembly and manufacturing projects separate; deliver one Kobra-S1 settings-bearing Orca project per material/spool, using multiple plates as needed. |
 | Coordinate convention | mesh coordinates and user intent | `validate-stl-mesh` | `edit-stl-transform`, `optimize-stl-for-print` | Auto-detect center-origin vs corner-origin unless the user specifies it. |
 | Mesh proof and feature existence | `scripts/mesh_tool.py` checks | `validate-stl-mesh` | `stl-from-image-measurements`, `photo-anchor-candidate-fit` | Prove ambiguous internal features with probes/slices, not screenshots alone. |
 | Final model image in chat | exact final STL/3MF output | `create-ascii-stl` | `edit-stl-transform`, `stl-from-image-measurements`, `optimize-stl-for-print` | Post an inline rendered image in the final chat response; a canvas preview or path alone is not enough. |

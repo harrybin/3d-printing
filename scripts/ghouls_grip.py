@@ -20,6 +20,7 @@ individual ASCII STL files and together as a material tagged 3MF assembly.
 
 from __future__ import annotations
 
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -40,6 +41,8 @@ from skull import build_trigger
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_DIR = ROOT / "models" / "ghouls-grip"
 OUT_3MF = ROOT / "models" / "ghouls-grip.3mf"
+OUT_PRINT_3MF = ROOT / "models" / "ghouls-grip-print-layout.3mf"
+OUT_RETRACTED_3MF = ROOT / "models" / "ghouls-grip-retracted.3mf"
 OUT_PREVIEW = ROOT / "models" / "ghouls-grip-preview.stl"
 
 BED = 250.0
@@ -51,10 +54,11 @@ class Material:
     color: str
 
 
-BLACK = Material("Schatulle - schwarzes PLA/PETG", "#202124FF")
-BONE = Material("Knochen - beiges PLA/PETG", "#D8C6A5FF")
-FLEX = Material("Finger - TPU 95A", "#C9B48EFF")
-ACCENT = Material("Ausloeser und Schluessel - graues PLA", "#777777FF")
+BLACK = Material("Schatulle - schwarzes PLA", "#202124FF")
+BONE = Material("Knochen - beiges PLA", "#D8C6A5FF")
+MECH = Material("Mechanik - PETG", "#B89C72FF")
+FLEX = Material("Finger - TPU 95A (externe Spule)", "#C9B48EFF")
+ACCENT = Material("Totenkopf-Ausloeser - graues PLA", "#777777FF")
 
 
 def validate(name: str, mesh: trimesh.Trimesh) -> None:
@@ -174,12 +178,18 @@ def place(mesh: trimesh.Trimesh, translation, rotations=()) -> trimesh.Trimesh:
 
 PART_MATERIAL = {
     "chest": BLACK, "lid": BLACK,
-    "scissor-arm": BONE, "slider": BONE, "platform": BONE,
-    "latch-rocker": ACCENT, "latch-bracket": ACCENT,
-    "crank": ACCENT, "band-anchor": BONE, "forearm": BONE,
-    "pivot-pin-3": ACCENT, "pivot-pin-4": ACCENT,
+    "scissor-arm": MECH, "slider": MECH, "platform": MECH,
+    "latch-rocker": MECH, "latch-bracket": MECH,
+    "crank": MECH, "band-anchor": MECH,
+    "pivot-pin-3": MECH, "pivot-pin-4": MECH,
     "skull-trigger": ACCENT,
-    "hand-palm": BONE, "hand-tendon-guide": BONE,
+    "forearm": BONE, "hand-palm": BONE, "hand-tendon-guide": BONE,
+}
+
+PRINT_QUANTITIES = {
+    "scissor-arm": 4,
+    "pivot-pin-3": 8,
+    "pivot-pin-4": 4,
 }
 
 
@@ -195,11 +205,47 @@ def build_parts() -> dict:
     return {k: orient_for_print(v) for k, v in parts.items()}
 
 
+def base_part_name(name: str) -> str:
+    return re.sub(r"-\d{2}$", "", name)
+
+
 def material_for(name: str) -> Material:
+    base = base_part_name(name)
+    if base.startswith("hand-finger"):
+        return FLEX
+    return PART_MATERIAL.get(base, BONE)
+
+
+def expand_print_parts(parts: dict) -> dict:
+    """Expand repeated hardware so print projects contain the full BOM."""
+    expanded = {}
+    for name, mesh in parts.items():
+        quantity = PRINT_QUANTITIES.get(name, 1)
+        for index in range(quantity):
+            instance = name if quantity == 1 else f"{name}-{index + 1:02d}"
+            expanded[instance] = mesh.copy()
+    return expanded
+
+
+
+def assembly_material(name: str) -> Material:
     if name.startswith("hand-finger"):
         return FLEX
-    return PART_MATERIAL.get(name, BONE)
+    if name in {"chest", "lid"}:
+        return BLACK
+    if name == "trigger":
+        return ACCENT
+    if name in {"forearm", "hand-palm", "hand-tendon-guide"}:
+        return BONE
+    return MECH
 
+
+def assembly_objects(pose: str) -> list:
+    # Imported lazily to avoid coupling the part generator to vedo.  The render
+    # scene is the single source of truth for every deployed/stowed transform.
+    import render_ghouls_grip
+    return [(name, mesh, assembly_material(name), None)
+            for name, mesh, _colour in render_ghouls_grip.build_scene(pose)]
 
 def arrange(parts: dict) -> list:
     """Lay every part out on the 250 x 250 bed, in rows, nothing overlapping."""
@@ -226,11 +272,25 @@ def main() -> None:
         validate(name, mesh)
         write_ascii(mesh, MODEL_DIR / f"{name}.stl")
 
-    plate = arrange(parts)
-    write_3mf(OUT_3MF, plate)
-    preview = trimesh.util.concatenate([m for _, m, _, _ in plate])
+    print_parts = expand_print_parts(parts)
+    plate = arrange(print_parts)
+    write_3mf(OUT_PRINT_3MF, plate)
+
+    # OrcaSlicer project 3MFs retain the Kobra S1 machine, filament and
+    # process settings and contain the full repeated-part quantities.
+    from export_ghouls_grip_orca_projects import export_material_projects
+    material_projects = export_material_projects(
+        print_parts, write_3mf, arrange, material_for)
+
+    deployed = assembly_objects("deployed")
+    retracted = assembly_objects("retracted")
+    write_3mf(OUT_3MF, deployed)
+    write_3mf(OUT_RETRACTED_3MF, retracted)
+    preview = trimesh.util.concatenate([m for _, m, _, _ in deployed])
     write_ascii(clean(preview), OUT_PREVIEW)
-    print(f"files: {MODEL_DIR} ({len(parts)} STLs), {OUT_3MF}, {OUT_PREVIEW}")
+    print(f"files: {MODEL_DIR} ({len(parts)} STL types), {OUT_3MF}, "
+          f"{OUT_RETRACTED_3MF}, {OUT_PRINT_3MF}, {OUT_PREVIEW}, "
+          f"material projects={len(material_projects)}")
 
 
 if __name__ == "__main__":
