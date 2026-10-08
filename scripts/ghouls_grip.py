@@ -56,8 +56,8 @@ class Material:
 
 BLACK = Material("Schatulle - schwarzes PLA", "#202124FF")
 BONE = Material("Knochen - beiges PLA", "#D8C6A5FF")
-MECH = Material("Mechanik - PETG", "#B89C72FF")
-FLEX = Material("Finger - TPU 95A (externe Spule)", "#C9B48EFF")
+MECH = Material("Mechanik - naturweisses PLA", "#B89C72FF")
+FLEX = Material("Finger - beiges PLA (Filmscharniere)", "#C9B48EFF")
 ACCENT = Material("Totenkopf-Ausloeser - graues PLA", "#777777FF")
 
 

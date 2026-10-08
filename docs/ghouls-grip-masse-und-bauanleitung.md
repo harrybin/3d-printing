@@ -42,7 +42,7 @@ widersprechen der Aufgabenbeschreibung und wurden nicht verwendet.
 | Scherenarm | 90 mm Pivotabstand, 12 × 4 mm | Benutzerangabe | hoch |
 | Scherenbohrung | 3,2 mm | Benutzerangabe | hoch |
 | Sehnenkanal | 2,0 mm | Benutzerangabe | hoch |
-| Flexursteg | 0,8 mm | Benutzerangabe | mittel; nur TPU |
+| Flexursteg | 0,8 mm | Benutzerangabe | mittel; PLA-Filmscharnier |
 | Gleitpassung `FIT` | 0,40 mm | Druckerprofil-Basiswert | mittel |
 | Handfläche | **67,3 × 94,2 × 25,2 mm** | anatomisch, siehe unten | hoch |
 
@@ -102,24 +102,24 @@ erfüllt.
 | --- | ---: | --- | --- |
 | `chest.stl` | 1 | 209,2 × 131,4 × 98,0 | PLA schwarz |
 | `lid.stl` | 1 | 206,0 × 129,0 × 27,5 | PLA schwarz |
-| `scissor-arm.stl` | 4 | 102 × 12 × 4 | PETG |
-| `slider.stl` | 1 | 34 × 119,2 × 26 | PETG |
-| `platform.stl` | 1 | 105 × 112 × 48 | PETG |
-| `latch-rocker.stl` | 1 | 5 × 31,5 × 45 | PETG |
-| `latch-bracket.stl` | 1 | 40 × 16 × 32,5 | PETG |
-| `crank.stl` | 1 | 52 × 28 × 47,7 | PETG |
-| `band-anchor.stl` | 1 | 14 × 96 × 25,5 | PETG |
+| `scissor-arm.stl` | 4 | 102 × 12 × 4 | PLA naturweiß |
+| `slider.stl` | 1 | 34 × 119,2 × 26 | PLA naturweiß |
+| `platform.stl` | 1 | 105 × 112 × 48 | PLA naturweiß |
+| `latch-rocker.stl` | 1 | 5 × 31,5 × 45 | PLA naturweiß |
+| `latch-bracket.stl` | 1 | 40 × 16 × 32,5 | PLA naturweiß |
+| `crank.stl` | 1 | 52 × 28 × 47,7 | PLA naturweiß |
+| `band-anchor.stl` | 1 | 14 × 96 × 25,5 | PLA naturweiß |
 | `forearm.stl` | 1 | 25,8 × 18 × 50 | PLA knochenfarben |
-| `pivot-pin-3.stl` | 8 | Ø6,2 × 26 | PETG |
-| `pivot-pin-4.stl` | 4 | Ø7,2 × 34 | PETG |
+| `pivot-pin-3.stl` | 8 | Ø6,2 × 26 | PLA naturweiß |
+| `pivot-pin-4.stl` | 4 | Ø7,2 × 34 | PLA naturweiß |
 | `skull-trigger.stl` | 1 | 42,2 × 47,9 × 40 | PLA grau |
 | `hand-palm.stl` | 1 | 67,3 × 94,2 × 25,2 | PLA knochenfarben |
 | `hand-tendon-guide.stl` | 1 | 62,0 × 77,4 × 25,0 | PLA knochenfarben |
-| `hand-finger-thumb.stl` | 1 | 21,3 × 43,0 × 11,5 | TPU 95A |
-| `hand-finger-index.stl` | 1 | 18,0 × 64,6 × 11,2 | TPU 95A |
-| `hand-finger-middle.stl` | 1 | 12,2 × 73,8 × 11,0 | TPU 95A |
-| `hand-finger-ring.stl` | 1 | 16,3 × 69,9 × 10,5 | TPU 95A |
-| `hand-finger-little.stl` | 1 | 20,4 × 53,5 × 9,2 | TPU 95A |
+| `hand-finger-thumb.stl` | 1 | 21,3 × 43,0 × 11,5 | PLA knochenfarben |
+| `hand-finger-index.stl` | 1 | 18,0 × 64,6 × 11,2 | PLA knochenfarben |
+| `hand-finger-middle.stl` | 1 | 12,2 × 73,8 × 11,0 | PLA knochenfarben |
+| `hand-finger-ring.stl` | 1 | 16,2 × 69,9 × 10,4 | PLA knochenfarben |
+| `hand-finger-little.stl` | 1 | 20,4 × 53,5 × 9,2 | PLA knochenfarben |
 
 Zusätzliche Lieferdateien:
 
@@ -128,15 +128,19 @@ Zusätzliche Lieferdateien:
 - `models/ghouls-grip-preview.stl` - Montagevorschau für das STL-Canvas.
 - `models/ghouls-grip-black-pla.3mf` - Gehäuse/Deckel, zwei Orca-Platten.
 - `models/ghouls-grip-bone-pla.3mf` - Handfläche, Führung, Unterarm.
-- `models/ghouls-grip-mechanism-petg.3mf` - vollständige Mechanik inklusive
+- `models/ghouls-grip-mechanism-pla.3mf` - vollständige Mechanik inklusive
   4 Scherenarmen, 8 kleinen und 4 großen Pins.
 - `models/ghouls-grip-accent-pla.3mf` - grauer Totenkopf-Auslöser.
-- `models/ghouls-grip-fingers-tpu.3mf` - fünf TPU-Finger; externe Spule statt
-  ACE Pro verwenden.
+- `models/ghouls-grip-fingers-pla.3mf` - fünf Finger mit 0,8-mm-Filmscharnieren.
+
+Das gesamte Modell ist auf **reines PLA** ausgelegt. TPU und PETG werden nicht
+benötigt; alle fünf Projekte laufen mit demselben Filamenttyp und müssen nur
+farblich getauscht werden. Wer PLA+ oder ASA vorrätig hat, kann das
+Mechanik-Projekt damit drucken - ASA braucht dann ein Gehäuse und 100/250 °C.
 
 Die fünf Materialdateien sind echte OrcaSlicer-Projekte. Sie enthalten den
 Drucker `Anycubic Kobra S1 0.4 nozzle`, `Textured PEI Plate`, das passende
-Anycubic-Filamentprofil und globale Materialwerte. Das PETG-Projekt enthält
+Anycubic-Filamentprofil und globale Materialwerte. Das Mechanik-Projekt enthält
 zusätzlich objektbezogene Verstärkungen für Arme, Klinke und Pins.
 
 Nicht gedruckt: 2 × Haushaltsgummiband ca. 60 mm, ca. 1 m 0,8-mm-Angelsehne,
@@ -147,11 +151,11 @@ M3×16-Schrauben mit selbstsichernden Muttern besser als die gedruckten Stifte.
 
 | Teil | Material | Wände/Infill |
 | --- | --- | --- |
-| Gehäuse/Deckel | PLA | 4 Wände, 20 % Gyroid |
-| Schere/Schlitten/Klinke/Hubjoch | PETG | 5 Wände, 40 % Gyroid |
-| Scherenarme | PETG | 5 Wände, 100 % |
-| Gedruckte Pins | PETG | 6 Wände, 100 % |
-| Finger | TPU 95A | 3 Wände, 15 % Gyroid, 25-40 mm/s |
+| Gehäuse/Deckel | PLA schwarz | 4 Wände, 20 % Gyroid |
+| Schere/Schlitten/Klinke/Hubjoch | PLA naturweiß | 5 Wände, 40 % Gyroid |
+| Scherenarme | PLA naturweiß | 5 Wände, 100 % |
+| Gedruckte Pins | PLA naturweiß | 6 Wände, 100 % |
+| Finger | PLA knochenfarben | 2 Wände, 15 % Gyroid, 30-50 mm/s |
 | Hand, Unterarm, Totenkopf | PLA | 4 Wände, 25 % Gyroid |
 
 Schichthöhe 0,20 mm, 0,4-mm-Düse, Textured PEI Plate.
@@ -168,12 +172,13 @@ Headless in OrcaSlicer geprüfte Schätzwerte:
 | Schwarz PLA, Platte 1 | 331,71 g | 10 h 44 min |
 | Schwarz PLA, Platte 2 | 160,55 g | 5 h 55 min |
 | Knochen PLA | 37,02 g | 2 h 18 min |
-| Mechanik PETG | 126,83 g | 5 h 57 min |
+| Mechanik PLA | 126,41 g | 5 h 55 min |
 | Akzent PLA | 15,87 g | 46 min |
-| Finger TPU | 10,41 g | 1 h 19 min |
+| Finger PLA | 9,30 g | 1 h 01 min |
 
-Die erzeugten Startbefehle verwenden 55/215 °C für PLA und TPU sowie
-70/250 °C für PETG. Beim TPU-Projekt ist die externe Spule vorgeschrieben.
+Alle Projekte starten mit **55/215 °C** (PLA). Das Fingerprojekt fährt die
+Außenwände bewusst mit 30 mm/s und reduzierter Beschleunigung, damit der
+0,8 mm dünne Steg als zwei saubere Perimeter entsteht und nicht ausdünnt.
 
 ## Montage
 
@@ -195,7 +200,7 @@ Die erzeugten Startbefehle verwenden 55/215 °C für PLA und TPU sowie
 7. Kurbel von hinten durch die Ø6,4-Bohrung bei (-100, 0, 30) stecken; damit
    wird der Schlitten gegen die Bänder zurückgezogen, bis die Klinke einrastet.
 8. Unterarm in die Scharnierohren der Schale hängen, Sehnenführungsplatte und
-   Handfläche auf den Spigot stecken, die fünf TPU-Finger in die Zapfen der
+   Handfläche auf den Spigot stecken, die fünf PLA-Finger in die Zapfen der
    Handfläche drücken.
 9. Angelsehne von jeder Fingerspitze durch die Führungsplatte zum hinteren
    Schnurauge der Schale führen. Länge so einstellen, dass die Finger erst im
@@ -214,15 +219,15 @@ Die erzeugten Startbefehle verwenden 55/215 °C für PLA und TPU sowie
    eingebettet; vor dem Slicen trotzdem Düsendurchmesser und reale Spule prüfen.
 3. Das schwarze PLA-Projekt enthält wegen der Bettgröße zwei Platten. Alle
    anderen Materialprojekte sind jeweils auf einer Platte angeordnet.
-4. TPU über die externe Spule zuführen, nicht durch ACE Pro. Die Finger sind
-   flach, ohne Stützen, mit niedriger Geschwindigkeit und Beschleunigung.
+4. Alle fünf Projekte drucken PLA; es ist nur ein Farbwechsel nötig. Die
+   Finger liegen flach, ohne Stützen, und werden langsam gedruckt.
 5. Vor dem Gesamtdruck einen Arm, einen Pin und ein Fingerglied als
    Passungsmuster slicen. Keines der Projekte startet oder sendet einen Druck.
 
 ## Offene Testdruck-Risiken
 
 - Der rechnerisch kleinste Innenraumrand der eingeklappten Hand beträgt nur
-  ca. **0,27 mm**. Der Kollisionsnachweis ist geometrisch bestanden, aber
+  ca. **0,32 mm**. Der Kollisionsnachweis ist geometrisch bestanden, aber
   Drucktoleranzen und Sehnenspiel erfordern einen Einbau-/Stow-Test vor dem
   endgültigen Deckelanschlag.
 - Die Gummibandlänge von ca. 60 mm ist nur das ungespannte Kaufmaß;
@@ -230,10 +235,12 @@ Die erzeugten Startbefehle verwenden 55/215 °C für PLA und TPU sowie
 - Die Sehnensteuerung ist geometrisch vorbereitet, aber der Auslösepunkt der
   Fingerbeugung ist nicht formschlüssig erzwungen, sondern über die Sehnenlänge
   eingestellt.
-- Die 0,8-mm-Flexurstege sind die Schwachstelle der Hand. In PLA brechen sie;
-  TPU 95A ist Pflicht.
-- Gedruckte Pins in PETG sind für Dauerbetrieb grenzwertig. Bei Rissen auf
-  M3-Schrauben wechseln.
+- Die 0,8-mm-Filmscharniere sind die Schwachstelle der Hand. PLA erlaubt dort
+  nur wenige hundert Zyklen; die Finger sind bewusst als Verschleißteil
+  ausgelegt und einzeln nachdruckbar. Wer später doch TPU 95A bekommt, kann
+  allein `ghouls-grip-fingers-pla.3mf` auf ein TPU-Filament umstellen.
+- Gedruckte Pins in PLA sind für Dauerbetrieb grenzwertig. Für die vier
+  hochbelasteten Scherengelenke sind M3×16-Schrauben die bessere Wahl.
 
 ## Lizenz der Knochengeometrie
 

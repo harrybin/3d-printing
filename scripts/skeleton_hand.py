@@ -37,7 +37,11 @@ SOCKET_CLEAR = 0.35
 WRIST_D = 12.0
 WRIST_SOCKET = 16.0
 GUIDE_STANDOFF = 7.0
-WEB = 1.5          # dorsal hinge web left standing at every flexure joint
+# 0.8 mm is exactly two 0.4 mm perimeters, the thinnest web that still prints
+# solid. TPU tolerates 1.5 mm, rigid PLA only bends reliably at this thickness.
+WEB = 0.8          # dorsal hinge web left standing at every flexure joint
+WEB_STEPS = (WEB, 1.0, 1.2, 1.4, 1.6)
+RESOLVED_WEB: dict[str, float] = {}  # web actually used per finger ray
 NOTCH_DEG = 55.0   # travel of one flexure joint before the notch closes
 
 # Flexion per joint. The MCP knuckle is a rigid peg joint, so its bend is built
@@ -165,13 +169,13 @@ def pose_ray(skeleton: Skeleton, ray: str, angles) -> PosedRay:
 
 
 def _notch(point: np.ndarray, direction: np.ndarray, radius: float,
-           dorsal_depth: float) -> trimesh.Trimesh:
+           dorsal_depth: float, web: float) -> trimesh.Trimesh:
     """Wedge that opens on the palmar side and leaves a thin dorsal web."""
     side = _flex_axis(direction)
     up = np.cross(direction, side)
     up = up / np.linalg.norm(up)
 
-    apex = point + up * (dorsal_depth - WEB)
+    apex = point + up * (dorsal_depth - web)
     depth = dorsal_depth + radius + 4.0
     half = np.tan(np.deg2rad(NOTCH_DEG) / 2.0) * depth
     width = radius + 3.0
@@ -236,7 +240,7 @@ def build_finger(skeleton: Skeleton, ray: str, pose: dict) -> trimesh.Trimesh:
     body = fuse([*posed.bones, *collars, neck], pitch=0.35, bridge=1.1, smooth=0.9)
     body = simplify(body, 9000)
 
-    cutters = []
+    joint_geometry = []
     for index in range(1, len(posed.joints) - 1):
         point = posed.joints[index]
         direction = posed.directions[index - 1] + posed.directions[index]
@@ -246,16 +250,30 @@ def build_finger(skeleton: Skeleton, ray: str, pose: dict) -> trimesh.Trimesh:
         up = up / np.linalg.norm(up)
         radius = _local_radius(body, point, direction, window=2.0)
         dorsal = _palmar_depth(body, point, direction, up, window=2.0)
-        cutters.append(_notch(point, direction, radius, dorsal))
+        joint_geometry.append((point, direction, radius, dorsal))
 
-    cutters.extend(_tendon_channel(body, posed))
-    cutters.append(cylinder(
+    fixed = list(_tendon_channel(body, posed))
+    fixed.append(cylinder(
         (PEG_D + SOCKET_CLEAR) / 2.0, PEG_LEN + 2.0,
         posed.base + posed.base_direction * (PEG_LEN / 2.0 - 1.5),
         posed.base_direction))
-    # Boolean notches can leave sub-0.01 mm facets which remain manifold but
-    # make OrcaSlicer abort. This preserves flexure/tendon topology and volume.
-    return simplify_tolerance(difference(body, cutters), 0.01)
+
+    # The dorsal surface falls away sideways, so a web that is thin enough for
+    # rigid PLA can sever a slim ray such as the little finger. Start at the
+    # 0.8 mm target and thicken only the rays that would otherwise come apart.
+    for step in range(len(WEB_STEPS)):
+        web = WEB_STEPS[step]
+        cutters = [_notch(point, direction, radius, dorsal, web)
+                   for point, direction, radius, dorsal in joint_geometry]
+        # Boolean notches can leave sub-0.01 mm facets which remain manifold
+        # but make OrcaSlicer abort. This preserves topology and volume.
+        result = simplify_tolerance(difference(body, [*cutters, *fixed]), 0.01)
+        if result.is_volume and len(result.split(only_watertight=False)) == 1:
+            RESOLVED_WEB[ray] = web
+            return result
+    raise RuntimeError(
+        f"{ray}: no flexure web between {WEB_STEPS[0]} and {WEB_STEPS[-1]} mm "
+        "keeps the finger in one piece")
 
 
 def wrist_frame(skeleton: Skeleton) -> tuple[np.ndarray, np.ndarray]:

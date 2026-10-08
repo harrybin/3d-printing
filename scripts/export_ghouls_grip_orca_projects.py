@@ -41,11 +41,11 @@ MATERIAL_PROJECTS = {
         "wall_loops": "4", "infill": "25%", "speed": "standard",
         "filament_type": "PLA",
     },
-    "mechanism-petg": {
-        "match": "Mechanik - PETG",
-        "filament": "Anycubic PETG @Anycubic Kobra S1 0.4 nozzle.json",
+    "mechanism-pla": {
+        "match": "Mechanik - naturweisses PLA",
+        "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "5", "infill": "40%", "speed": "mechanism",
-        "filament_type": "PETG", "object_overrides": True,
+        "filament_type": "PLA", "object_overrides": True,
     },
     "accent-pla": {
         "match": "Totenkopf-Ausloeser - graues PLA",
@@ -53,11 +53,11 @@ MATERIAL_PROJECTS = {
         "wall_loops": "4", "infill": "25%", "speed": "standard",
         "filament_type": "PLA",
     },
-    "fingers-tpu": {
-        "match": "Finger - TPU 95A (externe Spule)",
-        "filament": "Anycubic TPU @Anycubic Kobra S1 0.4 nozzle.json",
-        "wall_loops": "3", "infill": "15%", "speed": "tpu",
-        "filament_type": "TPU",
+    "fingers-pla": {
+        "match": "Finger - beiges PLA (Filmscharniere)",
+        "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
+        "wall_loops": "2", "infill": "15%", "speed": "flexure",
+        "filament_type": "PLA",
     },
 }
 
@@ -78,7 +78,7 @@ OBJECT_OVERRIDES = {
     "hand-tendon-guide": {"wall_loops": "4", "sparse_infill_density": "25%"},
     "skull-trigger": {"wall_loops": "4", "sparse_infill_density": "25%"},
     "hand-finger": {
-        "wall_loops": "3", "sparse_infill_density": "15%",
+        "wall_loops": "2", "sparse_infill_density": "15%",
     },
 }
 
@@ -114,13 +114,17 @@ def _process_settings(spec: dict) -> dict:
             "sparse_infill_speed": "160", "top_surface_speed": "100",
             "default_acceleration": "4000", "outer_wall_acceleration": "2000",
         })
-    elif spec["speed"] == "tpu":
+    elif spec["speed"] == "flexure":
+        # Rigid PLA film hinges survive only if the 0.8 mm web is laid down
+        # slowly, cooled hard and never thinned by a wide extrusion.
         data.update({
-            "outer_wall_speed": "25", "inner_wall_speed": "35",
-            "sparse_infill_speed": "40", "top_surface_speed": "25",
-            "initial_layer_speed": "20", "default_acceleration": "1000",
-            "outer_wall_acceleration": "500", "inner_wall_acceleration": "800",
-            "travel_acceleration": "2000",
+            "outer_wall_speed": "30", "inner_wall_speed": "40",
+            "sparse_infill_speed": "50", "top_surface_speed": "30",
+            "initial_layer_speed": "20", "default_acceleration": "1500",
+            "outer_wall_acceleration": "800", "inner_wall_acceleration": "1000",
+            "travel_acceleration": "3000",
+            "wall_generator": "classic", "top_shell_layers": "4",
+            "bottom_shell_layers": "4",
         })
     return data
 

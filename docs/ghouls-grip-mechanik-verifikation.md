@@ -20,8 +20,8 @@ Die Prüfung rekonstruiert die reale 90-mm-Scherengeometrie in 31 Stellungen und
 
 | Zustand | Hand-/Unterarm-Bounds (min → max) |
 | --- | --- |
-| retracted | `[-95.57, -12.938, 3.266]` → `[70.804, 52.069, 84.463]` |
-| deployed | `[28.006, -12.938, 115.327]` → `[109.191, 52.069, 278.036]` |
+| retracted | `[-95.57, -12.938, 3.322]` → `[70.804, 52.069, 84.394]` |
+| deployed | `[28.11, -12.938, 115.327]` → `[109.191, 52.069, 278.036]` |
 
 ## Scherensweep
 

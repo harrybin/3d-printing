@@ -48,12 +48,18 @@ named machine, process and filament preset. Stop with a clear message when
   is not print-ready.
 - TPU projects must state that flexible filament is fed from the external spool
   unless the installed feeder is explicitly rated for that TPU.
+- Never assume a filament the user does not own. Confirm the available
+  materials first and prefer a single-material (PLA) solution; a living hinge
+  can be redesigned as a 0.8 mm PLA film hinge instead of requiring TPU.
 - Report layer height, walls, infill, supports, estimated time and filament.
 
 ## Ghoul's Grip defaults
 
 - 0.20 mm layer height, 0.4 mm nozzle.
-- PLA/PETG hard parts: 4-5 walls, 20-40 % Gyroid.
-- TPU fingers: 3 walls, 15 % Gyroid, low acceleration.
+- Every part is printed in PLA; only the filament colour changes between the
+  five material projects. Do not reintroduce PETG or TPU without asking.
+- Rigid shells and mechanism: 4-5 walls, 20-40 % Gyroid.
+- PLA film-hinge fingers: 2 walls so the 0.8 mm web is exactly two perimeters,
+  15 % Gyroid, 30 mm/s outer wall, reduced acceleration.
 - +0.10 mm hole compensation as a starting point.
 - Print one arm/pin/spacer fit coupon before committing the full job.
