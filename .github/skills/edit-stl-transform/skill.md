@@ -9,6 +9,10 @@ Use this skill when changing existing STL models.
 
 Perform all edits with the project Python libraries (venv `.venv`): **trimesh** (+ **numpy**) for transforms, merges, splits, and validation, **manifold3d** for boolean operations, **vedo** for post-edit render verification. Never edit STL text or facet data by hand; if a shape change exceeds simple transforms, regenerate from the parametric source script (build123d) instead.
 
+Use `blender-assisted-modeling` only when the requested change is genuinely organic
+or visually complex. Blender is not the route for simple scale/rotate/translate,
+bed placement, or fit-critical dimensional edits.
+
 ## Supported edits
 
 - Scale (uniform or per-axis)
@@ -77,6 +81,10 @@ the X axis, followed by dropping the transformed model back to Z=0.
 - Keep color-part boundaries aligned after transforms.
 - If parts are merged, warn user about lost color separability.
 - Preserve keyed assembly features for multi-part color prints.
+- Preserve stable object names, transforms, and material/color body identity for the
+  master and print 3MF files.
+- After a Blender roundtrip, compare bounds, component count, and mating datums
+  before accepting the transform.
 
 ## Mandatory canvas preview after every edit
 

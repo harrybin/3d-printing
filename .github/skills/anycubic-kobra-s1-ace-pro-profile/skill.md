@@ -40,6 +40,9 @@ When generating new printable geometry, apply these defaults unless user overrid
 - If distinct material/color regions must stay preserved in the delivered model, the final output format should be **3MF**, not STL.
 - For complex multi-part jobs, also deliver one print-ready OrcaSlicer project 3MF per actual material/spool group. Embed `Anycubic Kobra S1 0.4 nozzle`, the explicit physical bed type (normally Textured PEI), matching filament preset, material process values, full BOM quantities and object-specific overrides; use multiple internal plates when required.
 - Treat TPU as an external-spool job unless the installed ACE/feeder configuration is explicitly rated for that exact flexible filament.
+- Prefer separately printed keyed color bodies when that preserves appearance and
+  strength with less purge waste. Use in-place ACE Pro color changes only when
+  separation is impractical or explicitly preferred.
 
 ## Required validation before finalizing output
 
@@ -50,6 +53,10 @@ When generating new printable geometry, apply these defaults unless user overrid
 - Normals are consistently outward.
 - Bounding box matches intended physical dimensions in mm.
 - Features smaller than 0.8 mm wall baseline are flagged.
+- The exact Anycubic Kobra S1 printer, nozzle, process, and filament profile names
+  used by OrcaSlicer are recorded.
+- Final print readiness, print time, and material use come from a successful
+  OrcaSlicer slice, not an analytical estimate.
 
 ## Research notes used for defaults
 

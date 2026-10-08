@@ -1,16 +1,32 @@
 {
   "servers": {
-    "orcaslicer": {
+    "blender": {
       "type": "stdio",
-      "command": "${workspaceFolder}\\.venv-orcaslicer-mcp\\Scripts\\python.exe",
+      "command": "uv",
       "args": [
-        "-m",
-        "server"
+        "--directory",
+        "${env:BLENDER_MCP_DIR}",
+        "run",
+        "blender-mcp"
       ],
       "env": {
-        "ORCA_SLICER_BIN": "C:\\Program Files\\OrcaSlicer\\orca-slicer.exe",
-        "DEFAULT_BED_TYPE": "Textured PEI Plate"
+        "BLENDER_HOST": "127.0.0.1",
+        "BLENDER_PORT": "9876"
       }
+    },
+    "orcaslicer": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "${env:ORCASLICER_MCP_DIR}",
+        "run",
+        "orcaslicer-mcp"
+      ],
+      "env": {
+        "ORCASLICER_PATH": "${env:ORCASLICER_PATH}"
+      },
+      "disabled": true
     }
   }
 }
