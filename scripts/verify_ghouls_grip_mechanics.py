@@ -23,6 +23,8 @@ THETA_MIN = mechanism.THETA_MIN
 THETA_MAX = mechanism.THETA_MAX
 INNER_LO = np.array([-97.0, -57.0, 3.0])
 INNER_HI = np.array([97.0, 57.0, 86.0])
+OUTER_LO = np.array([-100.0, -60.0, 0.0])
+OUTER_HI = np.array([100.0, 60.0, 86.0])
 
 
 def progress(message: str, started: float) -> None:
@@ -112,6 +114,8 @@ def check() -> dict:
         "forearm": mechanism.build_forearm,
         "latch": mechanism.build_latch,
         "latch_bracket": mechanism.build_latch_bracket,
+        "crank_spool": mechanism.build_crank_spool,
+        "crank_key": mechanism.build_crank_key,
         "band_anchor": mechanism.build_band_anchor,
         "chest": assembly.build_chest,
         "lid": assembly.build_lid,
@@ -139,8 +143,12 @@ def check() -> dict:
     max_slider_chest = 0.0
     max_latch_chest = 0.0
     max_bracket_chest = 0.0
+    max_latch_bracket = 0.0
+    max_trigger_latch = 0.0
     max_band_arm = 0.0
     max_cord_platform = 0.0
+    minimum_hidden_mechanism_margin = 999.0
+    crank_external_depth = 0.0
     sweep_angles = np.linspace(THETA_MIN, THETA_MAX, 13)
     progress("Starte booleschen Baugruppen-Sweep (13 Stellungen)", started)
     for index, theta in enumerate(sweep_angles, start=1):
@@ -177,6 +185,12 @@ def check() -> dict:
         bracket_chest = volume_intersection(
             named["latch-bracket"], named["chest"]
         )
+        latch_bracket = volume_intersection(
+            named["latch"], named["latch-bracket"]
+        )
+        trigger_latch = volume_intersection(
+            named["trigger"], named["latch"]
+        )
         drive_bands = [mesh for name, mesh in named.items()
                        if name.startswith("drive-band-")]
         control_cords = [mesh for name, mesh in named.items()
@@ -208,8 +222,37 @@ def check() -> dict:
         max_slider_chest = max(max_slider_chest, slider_chest)
         max_latch_chest = max(max_latch_chest, latch_chest)
         max_bracket_chest = max(max_bracket_chest, bracket_chest)
+        max_latch_bracket = max(max_latch_bracket, latch_bracket)
+        max_trigger_latch = max(max_trigger_latch, trigger_latch)
         max_band_arm = max(max_band_arm, band_arm)
         max_cord_platform = max(max_cord_platform, cord_platform)
+        hidden_names = [
+            name for name in named
+            if (
+                name in {
+                    "slider", "latch", "latch-bracket", "band-anchor",
+                    "latch-return-band", "reset-cord",
+                }
+                or name.startswith("arm-")
+                or name.startswith("drive-band-")
+            )
+        ]
+        for name in hidden_names:
+            bounds = named[name].bounds
+            margin = float(np.min(np.r_[
+                bounds[0] - OUTER_LO,
+                OUTER_HI - bounds[1],
+            ]))
+            minimum_hidden_mechanism_margin = min(
+                minimum_hidden_mechanism_margin, margin
+            )
+        crank_external_depth = max(
+            crank_external_depth,
+            float(max(
+                0.0,
+                named["crank-key"].bounds[1][0] - OUTER_HI[0],
+            )),
+        )
         sweep_metrics.append({
             "theta": float(theta),
             "lid_angle": angle,
@@ -222,6 +265,8 @@ def check() -> dict:
             "slider_chest_mm3": slider_chest,
             "latch_chest_mm3": latch_chest,
             "bracket_chest_mm3": bracket_chest,
+            "latch_bracket_mm3": latch_bracket,
+            "trigger_latch_mm3": trigger_latch,
             "drive_band_arm_mm3": band_arm,
             "control_cord_platform_mm3": cord_platform,
         })
@@ -235,11 +280,23 @@ def check() -> dict:
         ("Schlitten/Gehäuse", max_slider_chest),
         ("Klinke/Gehäuse", max_latch_chest),
         ("Klinkenhalter/Gehäuse", max_bracket_chest),
+        ("Klinke/Klinkenführung", max_latch_bracket),
+        ("Totenkopf-Stößel/Klinke in Ruhe", max_trigger_latch),
         ("Antriebsgummi/Scherenarme", max_band_arm),
         ("Steuerseil/Hubjoch", max_cord_platform),
     ):
         if value > 0.05:
             failures.append(f"{label}-Schnitt im Sweep: {value:.3f} mm3")
+
+    if minimum_hidden_mechanism_margin < -0.01:
+        failures.append(
+            "Verdeckte Mechanik verlässt das Gehäuse um "
+            f"{-minimum_hidden_mechanism_margin:.3f} mm"
+        )
+    if crank_external_depth > 10.0:
+        failures.append(
+            f"Aufziehschlüssel steht {crank_external_depth:.3f} mm hervor"
+        )
 
     latch_capture_margin = 5.0 - 2.0 - latch_alignment
     if latch_capture_margin < 1.0:
@@ -360,6 +417,8 @@ def check() -> dict:
         "platform_xy_mm": np.round(platform_xy, 3).tolist(),
         "body_counts": body_counts,
         "latch_capture_margin_mm": latch_capture_margin,
+        "minimum_hidden_mechanism_margin_mm": minimum_hidden_mechanism_margin,
+        "crank_external_depth_mm": crank_external_depth,
         "max_adjacent_bone_overlap_mm3": max_adjacent_bone_overlap,
         "max_any_bone_overlap_mm3": max_any_bone_overlap,
         "max_finger_palm_overlap_mm3": max_finger_palm_overlap,
@@ -372,6 +431,8 @@ def check() -> dict:
             "slider_chest": max_slider_chest,
             "latch_chest": max_latch_chest,
             "bracket_chest": max_bracket_chest,
+            "latch_bracket": max_latch_bracket,
+            "trigger_latch": max_trigger_latch,
             "drive_band_scissor": max_band_arm,
             "control_cord_platform": max_cord_platform,
         },
@@ -406,6 +467,8 @@ def write_report(result: dict) -> None:
         f"| Schlitten/Festpivot-Schnitt | {result['max_slider_fixed_post_overlap_mm3']:.3f} mm³ |",
         f"| Rastklinken-Versatz | {result['latch_alignment_mm']:.3f} mm |",
         f"| Positive Rastüberdeckung | {result['latch_capture_margin_mm']:.3f} mm |",
+        f"| Kleinster Gehäuserand verdeckter Mechanik | {result['minimum_hidden_mechanism_margin_mm']:.3f} mm |",
+        f"| Überstand des flachen Aufziehschlüssels | {result['crank_external_depth_mm']:.3f} mm |",
         f"| Getrennte Körper je Bauteil | {result['body_counts']} |",
         f"| Hubjoch XY | {result['platform_xy_mm'][0]:.1f} × {result['platform_xy_mm'][1]:.1f} mm |",
         f"| Antriebsgummi gespannt/ausgefahren | {result['drive_band_lengths_mm'][0]:.1f} / {result['drive_band_lengths_mm'][1]:.1f} mm |",

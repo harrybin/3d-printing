@@ -29,17 +29,17 @@ Toolpath-conflict-, Out-of-bed-, Empty-layer- oder Invalid-toolpath-Warnung.
 | Druckprojekt / Platte | Enthaltene Objekte | Schichten | PLA | Zeit | Stützen | Vorschau |
 | --- | --- | ---: | ---: | ---: | --- | --- |
 | `ghouls-grip-print-black-pla.3mf`, Platte 1 | Deckel | 137 | 229,27 g | 12 h 24 min 01 s | Baum | [PNG](images/ghouls-grip-slices/ghouls-grip-print-black-pla-plate_1.png) |
-| `ghouls-grip-print-black-pla.3mf`, Platte 2 | Schatulle | 490 | 386,16 g | 15 h 07 min 07 s | Baum | [PNG](images/ghouls-grip-slices/ghouls-grip-print-black-pla-plate_2.png) |
+| `ghouls-grip-print-black-pla.3mf`, Platte 2 | Schatulle ohne offene Klinkenfenster | 490 | 400,39 g | 15 h 34 min 35 s | Baum | [PNG](images/ghouls-grip-slices/ghouls-grip-print-black-pla-plate_2.png) |
 | `ghouls-grip-print-bone-pla.3mf` | Unterarm, Handfläche, Sehnenführung | 262 | 51,24 g | 3 h 26 min 50 s | Baum | [PNG](images/ghouls-grip-slices/ghouls-grip-print-bone-pla.png) |
 | `ghouls-grip-print-mechanism-pla.3mf` | 4 Scherenarme, Schlitten, 8 kleine und 4 große Pins | 170 | 50,10 g | 2 h 30 min 41 s | nein | [PNG](images/ghouls-grip-slices/ghouls-grip-print-mechanism-pla.png) |
 | `ghouls-grip-print-mechanism-supported-platform-pla.3mf` | Hubjoch | 344 | 46,21 g | 1 h 58 min 44 s | normal/snug | [PNG](images/ghouls-grip-slices/ghouls-grip-print-mechanism-supported-platform-pla.png) |
-| `ghouls-grip-print-mechanism-supported-latch-rocker-pla.3mf` | Klinkenrocker | 293 | 8,63 g | 34 min 30 s | normal/snug | [PNG](images/ghouls-grip-slices/ghouls-grip-print-mechanism-supported-latch-rocker-pla.png) |
-| `ghouls-grip-print-mechanism-supported-latch-bracket-pla.3mf` | Klinkenhalter | 193 | 10,96 g | 29 min 01 s | normal/snug | [PNG](images/ghouls-grip-slices/ghouls-grip-print-mechanism-supported-latch-bracket-pla.png) |
-| `ghouls-grip-print-mechanism-supported-crank-pla.3mf` | Kurbel | 375 | 11,54 g | 42 min 39 s | normal/snug | [PNG](images/ghouls-grip-slices/ghouls-grip-print-mechanism-supported-crank-pla.png) |
-| `ghouls-grip-print-mechanism-supported-band-anchor-pla.3mf` | Bandanker | 143 | 12,25 g | 39 min 55 s | normal/snug | [PNG](images/ghouls-grip-slices/ghouls-grip-print-mechanism-supported-band-anchor-pla.png) |
-| `ghouls-grip-print-accent-pla.3mf` | Totenkopf-Auslöser | 200 | 19,56 g | 1 h 07 min 09 s | Baum | [PNG](images/ghouls-grip-slices/ghouls-grip-print-accent-pla.png) |
+| `ghouls-grip-print-mechanism-supported-latch-slider-pla.3mf` | Interner Rastschieber | 344 | 8,94 g | 32 min 29 s | normal/snug | [PNG](images/ghouls-grip-slices/ghouls-grip-print-mechanism-supported-latch-slider-pla.png) |
+| `ghouls-grip-print-mechanism-supported-latch-bracket-pla.3mf` | Interne Rastschieberführung mit Montagepads | 170 | 18,93 g | 35 min 22 s | normal/snug | [PNG](images/ghouls-grip-slices/ghouls-grip-print-mechanism-supported-latch-bracket-pla.png) |
+| `ghouls-grip-print-mechanism-supported-crank-pla.3mf` | Interne Spule und abnehmbarer Schlüssel | 165 | 5,73 g | 22 min 31 s | normal/snug | [PNG](images/ghouls-grip-slices/ghouls-grip-print-mechanism-supported-crank-pla.png) |
+| `ghouls-grip-print-mechanism-supported-band-anchor-pla.3mf` | Bandanker | 143 | 12,25 g | 39 min 56 s | normal/snug | [PNG](images/ghouls-grip-slices/ghouls-grip-print-mechanism-supported-band-anchor-pla.png) |
+| `ghouls-grip-print-accent-pla.3mf` | Flacher Totenkopf-Auslöser mit kurzem Stößel | 107 | 14,32 g | 51 min 09 s | Baum | [PNG](images/ghouls-grip-slices/ghouls-grip-print-accent-pla.png) |
 | `ghouls-grip-print-fingers-pla.3mf` | Daumen und vier Finger | 57 | 12,01 g | 1 h 22 min 55 s | Baum | [PNG](images/ghouls-grip-slices/ghouls-grip-print-fingers-pla.png) |
-| **Gesamt** | 33 physische Druckobjekte | - | **837,93 g** | **40 h 23 min 32 s** | - | - |
+| **Gesamt** | 34 physische Druckobjekte | - | **849,39 g** | **40 h 19 min 13 s** | - | - |
 
 Nach der Fingerketten-Korrektur wurde
 `ghouls-grip-print-fingers-pla.3mf` erneut mit demselben Profil gesliced:
@@ -56,9 +56,11 @@ interaktive Layeransicht, belegen aber Platte, Bettlage und erzeugte Toolpaths.
 1. Ohne Stützen meldete OrcaSlicer schwebende Bereiche an Fingern, Handteilen,
    Totenkopf, Deckel und Gehäuse. Bettgebundene Stützen beseitigen diese
    Warnungen.
-2. Die fünf gestützten Mechanikteile erzeugten auf einer gemeinsamen Platte
+2. Die gestützten Mechanikteile erzeugten auf einer gemeinsamen Platte
    überlappende Stütz-/G-Code-Pfade. Sie wurden auf fünf Einzelprojekte
-   aufgeteilt. Danach bestanden alle fünf Kollisionsprüfungen.
+   aufgeteilt. Spule und abnehmbarer Schlüssel teilen sich eine Platte mit
+   30 mm Objektabstand und 20 mm Bettrand; danach bestanden alle
+   Kollisions- und Druckbettprüfungen.
 3. Die supportfreie Mechanik bleibt zusammen auf einer Platte, damit Arme,
    Schlitten und vollständige Pin-Stückzahlen gemeinsam geprüft werden.
 
@@ -69,18 +71,18 @@ regeneriert. SHA-256:
 
 | Datei | SHA-256 |
 | --- | --- |
-| `ghouls-grip-master.3mf` | `4FFAA81AA911C77F0191909AD5D2C279193F075819F618710C5A564425FCEAC7` |
-| `ghouls-grip-master-retracted.3mf` | `D9B719864C32AD58569B4EF83BB7B7DEB26C9FD5A4D76220EF143F994D53ECCC` |
-| `ghouls-grip-print-black-pla.3mf` | `F3943B53EED0658AE24C03229B5945876D764C2ED02F02141B674672CB14BB36` |
-| `ghouls-grip-print-bone-pla.3mf` | `F009BDEC41E270C5E1116B4100A88DC40BDFA6A68E754845814B6F06AD5C0E8C` |
-| `ghouls-grip-print-mechanism-pla.3mf` | `E3F8F0865559975912AF2389933DCE2395540C1111459EBFFCA0C4D3E0878A44` |
-| `ghouls-grip-print-mechanism-supported-platform-pla.3mf` | `46F89CA5A1627FBC2EBAE0C6F8F5A7996C46D40E1D9EBA41552EC405C7DB555A` |
-| `ghouls-grip-print-mechanism-supported-latch-rocker-pla.3mf` | `9C814FEA027A6FF71AC4F560E8CA570A699389CDED2EE15AA90C5383579E166A` |
-| `ghouls-grip-print-mechanism-supported-latch-bracket-pla.3mf` | `3819005240948C6630A8DCF8E4EE7AD24CAC7A37D35645617C7A4253A821FED9` |
-| `ghouls-grip-print-mechanism-supported-crank-pla.3mf` | `887860496E1EA3091A19F6A0C4993113932ACA866A3AFF9BF7449683636E2EB3` |
-| `ghouls-grip-print-mechanism-supported-band-anchor-pla.3mf` | `8249AA87FF3613C8E16FFE9C43903E12CA906B702FE8CBDED0C126B319AA2A79` |
-| `ghouls-grip-print-accent-pla.3mf` | `AAD5584D5BBE5538B6E86B5A93B3F2699570793AA3E4AC8073CCFF45EE466FB9` |
-| `ghouls-grip-print-fingers-pla.3mf` | `9A5FD9E4FBE441D931D6F554EBBA44EA41F59174273305CE92CDB0B95346E51B` |
+| `ghouls-grip-master.3mf` | `5DD2BCCE66AEAE9E5FD8E173FE2AA39F52ED80DE083D2BC6213231DAEAE7F01A` |
+| `ghouls-grip-master-retracted.3mf` | `A6804EC2EAFF13375DC02BBD147FE497F29468FD89ACC60348F6284D7A63E2EA` |
+| `ghouls-grip-print-black-pla.3mf` | `2A365BC931D8E981497A56E4055E831A74231D5E0E058E32B343B13035D6CA58` |
+| `ghouls-grip-print-bone-pla.3mf` | `9A4DAFF54DB048E5FF0A785F35E3DBD2DDB00EF4446D111A6C32B8E54307E495` |
+| `ghouls-grip-print-mechanism-pla.3mf` | `C321406596B38EEAF188998B81A0A22731C32D59681EAFF6D25A4A61D0E3D8A4` |
+| `ghouls-grip-print-mechanism-supported-platform-pla.3mf` | `7792C24D2C199BBA147B9AC8E877DCC2B2C76F702ACBCCDC19107B9713E16564` |
+| `ghouls-grip-print-mechanism-supported-latch-slider-pla.3mf` | `1FAD52C408458E02CAEEF98F16F18BB30D780C3B6CCE9CBF5A913E794735CEC9` |
+| `ghouls-grip-print-mechanism-supported-latch-bracket-pla.3mf` | `6C5447EA87630D448D82CCBA30A16B16AA316F7B74E7573377417FB566709AD3` |
+| `ghouls-grip-print-mechanism-supported-crank-pla.3mf` | `8611B79C20E0FBDD4D1184DDEBE6A4F165C2961673E277AD8426DD7D46BE6E6E` |
+| `ghouls-grip-print-mechanism-supported-band-anchor-pla.3mf` | `15FFBAF26C6F0D69EAE05EA664A851B6B1DE8B9BAE3E9EF00941FD3810654187` |
+| `ghouls-grip-print-accent-pla.3mf` | `6AA0462B7B61D67986AEB8D00E44C5257D1847926DCFA8D2002AB7DF3BFE1AC3` |
+| `ghouls-grip-print-fingers-pla.3mf` | `DFB7A525F9055D3BB3F75753ACECB6791C7FE4264BAB076F15E3257F75469F67` |
 
 ## Verbleibende physische Risiken
 

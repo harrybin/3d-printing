@@ -44,7 +44,8 @@ MATERIAL_PROJECTS = {
     "mechanism-pla": {
         "match": "Mechanik - naturweisses PLA",
         "exclude": {
-            "platform", "latch-rocker", "latch-bracket", "crank",
+            "platform", "latch-slider", "latch-bracket",
+            "crank-spool", "crank-key",
             "band-anchor",
         },
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
@@ -57,8 +58,8 @@ MATERIAL_PROJECTS = {
         "wall_loops": "5", "infill": "40%", "speed": "mechanism",
         "filament_type": "PLA", "object_overrides": True, "support": "normal",
     },
-    "mechanism-supported-latch-rocker-pla": {
-        "match": "Mechanik - naturweisses PLA", "include": {"latch-rocker"},
+    "mechanism-supported-latch-slider-pla": {
+        "match": "Mechanik - naturweisses PLA", "include": {"latch-slider"},
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "5", "infill": "40%", "speed": "mechanism",
         "filament_type": "PLA", "object_overrides": True, "support": "normal",
@@ -70,10 +71,13 @@ MATERIAL_PROJECTS = {
         "filament_type": "PLA", "object_overrides": True, "support": "normal",
     },
     "mechanism-supported-crank-pla": {
-        "match": "Mechanik - naturweisses PLA", "include": {"crank"},
+        "match": "Mechanik - naturweisses PLA",
+        "include": {"crank-spool", "crank-key"},
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "5", "infill": "40%", "speed": "mechanism",
         "filament_type": "PLA", "object_overrides": True, "support": "normal",
+        "manual_gap": 30.0,
+        "bed_margin": 20.0,
     },
     "mechanism-supported-band-anchor-pla": {
         "match": "Mechanik - naturweisses PLA", "include": {"band-anchor"},
@@ -101,9 +105,10 @@ OBJECT_OVERRIDES = {
     "scissor-arm": {"wall_loops": "5", "sparse_infill_density": "100%"},
     "slider": {"wall_loops": "5", "sparse_infill_density": "40%"},
     "platform": {"wall_loops": "5", "sparse_infill_density": "40%"},
-    "latch-rocker": {"wall_loops": "5", "sparse_infill_density": "50%"},
+    "latch-slider": {"wall_loops": "5", "sparse_infill_density": "50%"},
     "latch-bracket": {"wall_loops": "5", "sparse_infill_density": "50%"},
-    "crank": {"wall_loops": "5", "sparse_infill_density": "50%"},
+    "crank-spool": {"wall_loops": "5", "sparse_infill_density": "50%"},
+    "crank-key": {"wall_loops": "5", "sparse_infill_density": "50%"},
     "band-anchor": {"wall_loops": "5", "sparse_infill_density": "50%"},
     "pivot-pin-3": {"wall_loops": "6", "sparse_infill_density": "100%"},
     "pivot-pin-4": {"wall_loops": "6", "sparse_infill_density": "100%"},
@@ -280,7 +285,10 @@ def export_material_projects(parts, write_3mf, arrange, material_for) -> list[Pa
             source = temp / f"{slug}-source.3mf"
             manual_gap = spec.get("manual_gap")
             write_3mf(source, arrange(
-                selected, gap=manual_gap if manual_gap is not None else 6.0))
+                selected,
+                gap=manual_gap if manual_gap is not None else 6.0,
+                margin=spec.get("bed_margin", 0.0),
+            ))
             filament = PROFILE_ROOT / "filament" / spec["filament"]
             output = MODELS / f"ghouls-grip-print-{slug}.3mf"
             output.unlink(missing_ok=True)

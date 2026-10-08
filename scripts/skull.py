@@ -93,15 +93,18 @@ def skull_relief(scale: float = 1.0, depth: float = 5.0) -> trimesh.Trimesh:
 
 
 def build_trigger(scale: float = 1.0, stem_d: float = 4.0,
-                  stem_len: float = 24.0,
+                  stem_len: float = 5.5,
                   flange_d: float = 30.0) -> trimesh.Trimesh:
-    """Skull push button: a half skull on a flange with the latch stem.
+    """Skull push button with a short plunger for the internal latch cam.
 
-    The button is modelled face-up from z = 0 so it prints without support, and
-    the stem that trips the latch rocker runs down the -Z axis.
+    The button is modelled face-up from z = 0 so it prints without support.
+    Its stem and shallow rear rib run down the -Z axis and stop before the cam,
+    leaving the button's operating travel instead of intersecting the latch.
     """
     head = skull_relief(scale, depth=13.0 * scale)
+    head.apply_scale([1.0, 1.0, 0.5])
+    head.apply_translation([0.0, 0.0, -head.bounds[0][2]])
     flange = cylinder(flange_d * scale / 2.0, 3.0, (0.0, 0.0, -1.5))
     stem = cylinder(stem_d / 2.0, stem_len, (0.0, 0.0, -3.0 - stem_len / 2.0))
-    rib = box((3.0, flange_d * scale - 6.0, 6.0), (0.0, 0.0, -6.0))
+    rib = box((3.0, flange_d * scale - 6.0, 3.0), (0.0, 0.0, -4.5))
     return clean(union([head, flange, stem, rib]))

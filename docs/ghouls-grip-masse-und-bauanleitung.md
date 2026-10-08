@@ -66,17 +66,21 @@ obwohl Schere und Hubjoch deutlich kleiner sind.
 
 1. Zwei Gummibänder ziehen den Schlitten nach links und treiben damit die
    beiden Scherenpaare an.
-2. Der mittige Totenkopf drückt auf den äußeren Rocker. Dessen durchgehende
-   Welle verbindet den Knopf sichtbar mit der Rastklinke bei x = 68,5 mm.
-3. Derselbe Rocker gibt die Deckelschlaufe frei. Zwei kurze Gummibänder an der
+2. Der mittige Totenkopf drückt durch die 4,4-mm-Führungsbohrung auf die
+   Rampe des vollständig innenliegenden Rastschiebers. Der Schieber hebt sich
+   12 mm und zieht seine Rastzunge bei x = 68,5 mm aus der Schlittennut.
+3. Derselbe Rastschieber gibt die innen geführte Deckelschlaufe frei. Zwei
+   kurze Gummibänder an der
    Rückkante öffnen den Deckel schnell auf 82°, bevor die Hand aufrichtet.
 4. Während der ersten 28,7 mm Hub bleibt der Unterarm um 100° gefaltet. Danach
    wird das vorbereitete Spiel im Steuerseil aufgebraucht; die restlichen
    19,5 mm Hub wickeln das Seil von der Ø22,4-mm-Sektorscheibe ab und richten
    den Unterarm zwangsgeführt auf.
-5. Die rechte Kurbel ist über ein sichtbares 0,8-mm-Rückholseil mit dem
-   Schlitten verbunden. Aufwickeln zieht den Schlitten zurück nach rechts,
-   faltet die Hand und lässt die Klinke wieder einrasten.
+5. Eine Spule hinter der rechten Innenwand ist über ein vollständig
+   innenliegendes 0,8-mm-Rückholseil mit dem Schlitten verbunden. Zum Spannen
+   wird der flache Knochen-Schlüssel auf den 4-mm-Vierkant gesteckt und danach
+   wieder abgezogen. Aufwickeln zieht den Schlitten zurück nach rechts, faltet
+   die Hand und lässt die Klinke wieder einrasten.
 
 Maßgebliche Daten:
 
@@ -88,12 +92,17 @@ Maßgebliche Daten:
 - Unterarmscharnier: Weltposition x = 61 mm; z = 60,2 → 108,4 mm.
 - Deckelscharnier: X-Achse an der langen Rückkante, y = 61 mm, z = 93 mm;
   federgeöffnet und durch Fangband auf 82° begrenzt.
-- Kurbelbohrung in der rechten Seitenwand bei **(+100, 0, 30) mm**.
+- Spulenwelle in der rechten Seitenwand bei **(+100, 0, 30) mm**; Spule und
+  Seil liegen innen, der abnehmbare Schlüssel steht aufgesteckt nur 9,6 mm vor.
+- Der 5,5-mm-Totenkopf-Stößel endet in Ruhe 1,3 mm vor der Rastschieberrampe;
+  der 13-mm-Schädelkopf liegt vollständig außerhalb der Frontwand.
 - Eingefahrene Hand: 1,18 mm kleinster Innenraumrand und 2,27 mm Abstand zur
   geschlossenen Deckelunterseite.
 - Nachgewiesene Schnittvolumen über den vollständigen Sweep: Hand/Gehäuse,
   Hand/Deckel, Hand/Hubjoch, Hand/Scherenarme und Klinke/Schlitten jeweils
   **0,000 mm³**.
+- Schlitten, Scherenarme, Rastschieber, Führung, Antriebsbänder und Rückholseil
+  verlassen den Gehäusekörper in keiner der 13 geprüften Stellungen.
 - Benachbarte Phalangen und alle fünf Fingersockel zur Handfläche:
   **0,000 mm³** Schnittvolumen. Die sichtbaren Gelenkspalten sind real; nur der
   definierte PLA-Flexursteg verbindet die Segmente.
@@ -126,14 +135,15 @@ geprüft.
 | Scherenarm | 4 | 84 × 12 × 4 | PLA naturweiß |
 | Schlitten | 1 | 30 × 119,2 × 26 | PLA naturweiß |
 | Hubjoch | 1 | 82 × 92 × 51 | PLA naturweiß |
-| Klinkenrocker | 1 | 88,5 × 20 × 41 | PLA naturweiß |
-| Klinkenhalter | 1 | 102,5 × 10 × 18 | PLA naturweiß |
-| Kurbel | 1 | 52 × 28 × 47,7 | PLA naturweiß |
-| Bandanker | 1 | 14 × 96 × 25,5 | PLA naturweiß |
+| Rastschieber | 1 | 81 × 15 × 44 | PLA naturweiß |
+| Interne Rastschieberführung | 1 | 102,5 × 22,9 × 34 | PLA naturweiß |
+| Interne Seilspule | 1 | 24 × 24 × 29 | PLA naturweiß |
+| Abnehmbarer Knochen-Schlüssel | 1 | 32,3 × 14 × 6,6 | PLA naturweiß |
+| Bandanker | 1 | 14 × 110 × 25,5 | PLA naturweiß |
 | Unterarm mit Sektorscheibe | 1 | 27,4 × 47 × 56,7 | PLA knochenfarben |
 | Pivot-Pin klein | 8 | Ø6,2 × 26 | PLA naturweiß |
 | Pivot-Pin groß | 4 | Ø7,2 × 34 | PLA naturweiß |
-| Totenkopf-Auslöser | 1 | 42,2 × 47,9 × 40 | PLA grau |
+| Flacher Totenkopf-Auslöser | 1 | 42,2 × 47,9 × 21,5 | PLA grau |
 | Handfläche | 1 | 67,9 × 96,5 × 25,2 | PLA knochenfarben |
 | Sehnenführung | 1 | 62,0 × 77,4 × 25,0 | PLA knochenfarben |
 | Daumen | 1 | 19,3 × 35,6 × 11,5 | PLA knochenfarben |
@@ -152,7 +162,7 @@ Zusätzliche Lieferdateien:
 - `models/ghouls-grip-print-bone-pla.3mf` - Handfläche, Führung, Unterarm.
 - `models/ghouls-grip-print-mechanism-pla.3mf` - supportfreie Mechanik inklusive
   4 Scherenarmen, Schlitten sowie 8 kleinen und 4 großen Pins.
-- `models/ghouls-grip-print-mechanism-supported-{platform,latch-rocker,latch-bracket,crank,band-anchor}-pla.3mf` - fünf Einzelplatten für Hubjoch, Klinkenrocker, Klinkenhalter, Kurbel und Bandanker mit bettgebundenen, eng anliegenden Normalstützen.
+- `models/ghouls-grip-print-mechanism-supported-{platform,latch-slider,latch-bracket,crank,band-anchor}-pla.3mf` - fünf Einzelplatten für Hubjoch, Rastschieber, interne Führung, Spule plus Schlüssel und Bandanker mit bettgebundenen, eng anliegenden Normalstützen.
 - `models/ghouls-grip-print-accent-pla.3mf` - grauer Totenkopf-Auslöser.
 - `models/ghouls-grip-print-fingers-pla.3mf` - fünf Finger mit
   0,8-mm-Filmscharnieren und automatischen, nur vom Druckbett ausgehenden
@@ -201,13 +211,13 @@ Mit OrcaSlicer 2.4.2 erfolgreich geslicte Werte:
 | Knochen PLA | 262 | 51,24 g | 3 h 27 min | Baum |
 | Mechanik PLA, supportfrei | 170 | 50,10 g | 2 h 31 min | nein |
 | Hubjoch PLA | 344 | 46,21 g | 1 h 59 min | normal/snug |
-| Klinkenrocker PLA | 293 | 8,63 g | 35 min | normal/snug |
-| Klinkenhalter PLA | 193 | 10,96 g | 29 min | normal/snug |
-| Kurbel PLA | 375 | 11,54 g | 43 min | normal/snug |
+| Rastschieber PLA | 344 | 8,94 g | 32 min | normal/snug |
+| Rastschieberführung PLA | 170 | 18,93 g | 35 min | normal/snug |
+| Spule + Schlüssel PLA | 165 | 5,73 g | 23 min | normal/snug |
 | Bandanker PLA | 143 | 12,25 g | 40 min | normal/snug |
-| Akzent PLA | 200 | 19,56 g | 1 h 07 min | Baum |
+| Akzent PLA | 107 | 14,32 g | 51 min | Baum |
 | Finger PLA | 57 | 12,01 g | 1 h 23 min | Baum |
-| **Gesamt** | - | **837,93 g** | **40 h 24 min** | - |
+| **Gesamt** | - | **849,39 g** | **40 h 19 min** | - |
 
 Alle Projekte starten mit **55/215 °C** (PLA). Das Fingerprojekt fährt die
 Außenwände bewusst mit 30 mm/s und reduzierter Beschleunigung, damit der
@@ -223,15 +233,19 @@ Die vollständige Slice-Evidenz steht in
    trocken prüfen.
 3. Das 82 × 92 mm große offene Hubjoch montieren: je ein oberes Ende in das
    feste Auge, das andere in die Kulisse. Der mittlere Handraum bleibt frei.
-4. Den äußeren Klinkenhalter an der Front montieren, Rockerwelle einsetzen und
-   prüfen, dass ihr Haken bei x = 68,5 mm in die Schlittennut fällt. Der
-   Totenkopf muss das mittlere Paddle betätigen; es darf keine lose, nur
-   dekorative Hebelverbindung mehr geben.
+4. Die Rastschieberführung mit einer dünnen CA-/Epoxidschicht vollständig
+   hinter der Frontinnenwand montieren. Zwei lokale Montagepads umgehen das
+   nach innen ragende Relief und lassen 0,1 mm Klebefuge zur glatten Wand.
+   Den Rastschieber von oben einsetzen und prüfen, dass seine Zunge bei
+   x = 68,5 mm in die Schlittennut fällt. Der Totenkopfstift muss auf die
+   interne Rampe drücken und den Schieber um 12 mm anheben; außen bleiben nur
+   Totenkopf und schmale Führungsbohrung sichtbar.
 5. Bandanker bei x = -76 mm montieren. Je ein Gummiband von y = ±40 zum
    jeweiligen Schlittenhaken legen. Mit minimaler Vorspannung beginnen.
-6. Kurbel rechts durch die Ø6,4-mm-Bohrung bei (+100, 0, 30) führen. Ein
-   0,8-mm-Seil vom Schlittenauge zur Kurbelspule legen: Aufwickeln muss den
-   Schlitten nach rechts in die Raststellung ziehen.
+6. Die Spule von innen einsetzen und ihre Welle durch die Ø6,4-mm-Bohrung bei
+   (+100, 0, 30) führen. Ein 0,8-mm-Seil vom Schlittenauge zur internen Spule
+   legen. Den abnehmbaren Knochen-Schlüssel außen auf den Vierkant stecken:
+   Aufwickeln muss den Schlitten nach rechts in die Raststellung ziehen.
 7. Unterarm in die Hubjoch-Ohren hängen. Steuerseil am Gehäuseauge
    (x = 72,2, y = 34, z = 18) befestigen, mit **28,7 mm Spiel** zur
    Sektorscheibe führen und aufwickeln. Erst nach vollständiger Deckelöffnung
@@ -244,11 +258,11 @@ Die vollständige Slice-Evidenz steht in
    einstellen, dass die Finger im letzten Drittel des Hubs schließen.
 10. Deckel mit 1,75-mm-Filamentstift montieren. Je ein Öffnungsband zwischen
     den hinteren Gehäuseaugen und Deckellaschen einhängen. Die vordere
-    Deckelschlaufe am Rocker einhängen und ein Fangband auf 82° einstellen.
+    Deckelschlaufe am Rastschieber einhängen und ein Fangband auf 82° einstellen.
 11. Ohne Süßigkeiten prüfen: Totenkopf drücken → Deckel öffnet zuerst → Schere
     hebt → Unterarm richtet sich auf → Finger schließen. Danach mit der rechten
-    Kurbel zurückspannen; die Hand muss vollständig verschwinden und der Deckel
-    ohne Druck schließen.
+    aufgesteckten Schlüssel zurückspannen, den Schlüssel abziehen; die Hand
+    muss vollständig verschwinden und der Deckel ohne Druck schließen.
 
 ## OrcaSlicer-Ablauf
 

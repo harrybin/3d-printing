@@ -11,13 +11,15 @@ Die Prüfung rekonstruiert die kompakte 72-mm-Scherengeometrie in 31 Stellungen.
 | Schlitten/Festpivot-Schnitt | 0.000 mm³ |
 | Rastklinken-Versatz | 0.000 mm |
 | Positive Rastüberdeckung | 3.000 mm |
-| Getrennte Körper je Bauteil | {'platform': 1, 'forearm': 1, 'latch': 1, 'latch_bracket': 1, 'band_anchor': 1, 'chest': 1, 'lid': 1} |
+| Kleinster Gehäuserand verdeckter Mechanik | 0.000 mm |
+| Überstand des flachen Aufziehschlüssels | 9.593 mm |
+| Getrennte Körper je Bauteil | {'platform': 1, 'forearm': 1, 'latch': 1, 'latch_bracket': 1, 'crank_spool': 1, 'crank_key': 1, 'band_anchor': 1, 'chest': 1, 'lid': 1} |
 | Hubjoch XY | 82.0 × 98.0 mm |
 | Antriebsgummi gespannt/ausgefahren | 152.5 / 99.0 mm |
 | Benachbarte Fingerknochen-Schnittmenge | 0.000 mm³ |
 | Beliebige Fingerknochen-Schnittmenge (flach/gegriffen) | 0.000 mm³ |
 | Fingersockel/Handfläche-Schnittmenge | 0.000 mm³ |
-| Laufzeit der Verifikation | 310.2 s |
+| Laufzeit der Verifikation | 187.8 s |
 | retracted: Hand/Gehäuse-Schnitt | 0.000 mm³ |
 | retracted: Hand/Hubjoch-Schnitt | 0.000 mm³ |
 | deployed: Hand/Gehäuse-Schnitt | 0.000 mm³ |
@@ -27,9 +29,11 @@ Die Prüfung rekonstruiert die kompakte 72-mm-Scherengeometrie in 31 Stellungen.
 | Sweep hand_platform | 0.000 mm³ |
 | Sweep hand_scissor | 0.000 mm³ |
 | Sweep latch_slider | 0.000 mm³ |
-| Sweep slider_chest | 0.004 mm³ |
+| Sweep slider_chest | 0.008 mm³ |
 | Sweep latch_chest | 0.000 mm³ |
 | Sweep bracket_chest | 0.000 mm³ |
+| Sweep latch_bracket | 0.000 mm³ |
+| Sweep trigger_latch | 0.000 mm³ |
 | Sweep drive_band_scissor | 0.000 mm³ |
 | Sweep control_cord_platform | 0.000 mm³ |
 

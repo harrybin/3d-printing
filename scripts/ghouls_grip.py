@@ -191,8 +191,8 @@ def place(mesh: trimesh.Trimesh, translation, rotations=()) -> trimesh.Trimesh:
 PART_MATERIAL = {
     "chest": BLACK, "lid": BLACK,
     "scissor-arm": MECH, "slider": MECH, "platform": MECH,
-    "latch-rocker": MECH, "latch-bracket": MECH,
-    "crank": MECH, "band-anchor": MECH,
+    "latch-slider": MECH, "latch-bracket": MECH,
+    "crank-spool": MECH, "crank-key": MECH, "band-anchor": MECH,
     "pivot-pin-3": MECH, "pivot-pin-4": MECH,
     "skull-trigger": ACCENT,
     "forearm": BONE, "hand-palm": BONE, "hand-tendon-guide": BONE,
@@ -259,13 +259,13 @@ def assembly_objects(pose: str) -> list:
     return [(name, mesh, assembly_material(name), None)
             for name, mesh, _colour in render_ghouls_grip.build_scene(pose)]
 
-def arrange(parts: dict, gap: float = 6.0) -> list:
+def arrange(parts: dict, gap: float = 6.0, margin: float = 0.0) -> list:
     """Lay every part out on the 250 x 250 bed, in rows, nothing overlapping."""
-    items, x, y, row = [], 0.0, 0.0, 0.0
+    items, x, y, row = [], margin, margin, 0.0
     for name, mesh in parts.items():
         ext = mesh.extents
-        if x + ext[0] > BED and x > 0.0:
-            x, y, row = 0.0, y + row + gap, 0.0
+        if x + ext[0] > BED - margin and x > margin:
+            x, y, row = margin, y + row + gap, 0.0
         placed = mesh.copy()
         placed.apply_translation([x - mesh.bounds[0][0],
                                   y - mesh.bounds[0][1],

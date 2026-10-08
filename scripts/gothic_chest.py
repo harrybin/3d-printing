@@ -193,7 +193,7 @@ def _wall_decoration(length: float, x_sign: float, y_sign: float,
 
 
 def build_chest() -> trimesh.Trimesh:
-    """Open-topped gothic chest with rails, latch window and trigger bore."""
+    """Open-topped gothic chest with internal rails and control bores."""
     shell = box((CHEST_L, CHEST_W, BODY_H), (0.0, 0.0, BODY_H / 2.0))
     cavity = box((CHEST_L - 2 * WALL, CHEST_W - 2 * WALL, BODY_H),
                  (0.0, 0.0, FLOOR + BODY_H / 2.0))
@@ -256,12 +256,6 @@ def build_chest() -> trimesh.Trimesh:
         cylinder(4.4 / 2.0, 40.0, (0.0, -CHEST_W / 2.0, 46.0), (0.0, 1.0, 0.0)),
 
         cylinder(6.4 / 2.0, 40.0, (CHEST_L / 2.0, 0.0, 30.0), (1.0, 0.0, 0.0)),
-        box((16.0, 30.0, 50.0),
-            (mechanism.RETRACTED_SLIDER_X, -60.0, 24.0)),
-        box((20.0, 20.0, 50.0), (0.0, -60.0, 30.0)),
-        box((mechanism.LATCH_SUPPORT_XS[1] - mechanism.LATCH_SUPPORT_XS[0] + 20.0,
-             14.0, 36.0),
-            (sum(mechanism.LATCH_SUPPORT_XS) / 2.0, -65.0, 18.0)),
     ]
     body = difference(body, service)
 

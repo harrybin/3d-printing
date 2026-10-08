@@ -101,8 +101,12 @@ FOREARM_SECTOR_R = FOREARM_CORD_TRAVEL / np.deg2rad(-STOW_ANGLE)
 FOREARM_CORD_X = float(forearm_hinge(THETA_MIN)[0] + FOREARM_SECTOR_R)
 RETRACTED_SLIDER_X = slider_x(THETA_MIN)
 LATCH_SUPPORT_XS = (-8.0, RETRACTED_SLIDER_X + 8.0)
-LATCH_AXIS_Y = -64.0
+LATCH_AXIS_Y = -50.0
 LATCH_AXIS_Z = 24.0
+LATCH_TRIGGER_Y = -53.0
+LATCH_RETURN_Y = -49.0
+LATCH_RELEASE_TRAVEL = 12.0
+CRANK_SPOOL_X = 82.0
 
 
 def forearm_angle(theta: float) -> float:
@@ -245,85 +249,88 @@ def build_platform() -> trimesh.Trimesh:
                         cord_guide_support, cord_guide]))
 
 def build_latch() -> trimesh.Trimesh:
-    """Torsion rocker linking the centred skull to the slider catch.
+    """Vertical internal latch raised by the skull plunger's cam face.
 
-    The shaft carries a trigger paddle at x=0 and a pawl at the exact
-    retracted slider x.  Pushing the skull rotates both together, so the pawl
-    leaves the front notch and the rubber bands can pull the slider left.
+    The overhead bridge and pawl translate together.  Twelve millimetres of
+    lift clears the complete slider envelope without any rocker arm crossing
+    the carriage path.
     """
-    x_mid = sum(LATCH_SUPPORT_XS) / 2.0
-    shaft = cylinder(
-        3.2,
-        LATCH_SUPPORT_XS[1] - LATCH_SUPPORT_XS[0] + 4.0,
-        (x_mid, LATCH_AXIS_Y, LATCH_AXIS_Z),
-        (1.0, 0.0, 0.0),
+    bridge = rounded_box(
+        (80.0, 6.0, 6.0), 2.0, (34.0, -49.0, 46.0)
     )
-    trigger_paddle = rounded_box(
-        (8.0, 8.0, 24.0), 2.0, (0.0, -61.0, 36.0)
+    pawl_drop = rounded_box(
+        (6.0, 4.0, 34.0), 1.5,
+        (RETRACTED_SLIDER_X, -51.0, 31.0)
     )
-    points = np.array([
-        [-68.0, 31.0], [-60.0, 32.0], [-57.0, 21.0],
-        [-48.0, 18.0], [-48.0, 7.0], [-56.0, 7.0],
-        [-58.0, 16.0], [-68.0, 20.0],
+    pawl_tab = rounded_box(
+        (4.0, 6.0, 4.0), 1.0,
+        (RETRACTED_SLIDER_X, -51.0, 15.0)
+    )
+    cam_points = np.array([
+        [-53.0, 38.0],
+        [-51.0, 50.0],
+        [-43.0, 50.0],
+        [-39.0, 38.0],
     ])
-    yz = np.column_stack([
-        np.full(len(points), RETRACTED_SLIDER_X),
-        points[:, 0],
-        points[:, 1],
+    cam_yz = np.column_stack([
+        np.zeros(len(cam_points)),
+        cam_points[:, 0],
+        cam_points[:, 1],
     ])
-    pawl = trimesh.Trimesh(
-        vertices=np.vstack([yz - [2.0, 0.0, 0.0],
-                            yz + [2.0, 0.0, 0.0]])
+    cam = trimesh.Trimesh(
+        vertices=np.vstack([
+            cam_yz - [4.0, 0.0, 0.0],
+            cam_yz + [4.0, 0.0, 0.0],
+        ])
     ).convex_hull
-    return_arm = rounded_box((6.0, 8.0, 18.0), 2.0,
-                             (-4.0, -66.0, 30.0))
-    return_eye = cylinder(5.0, 6.0, (-4.0, -68.0, 36.0),
+    return_eye = cylinder(5.0, 6.0, (-4.0, LATCH_RETURN_Y, 52.0),
                           (1.0, 0.0, 0.0))
-    body = union([shaft, trigger_paddle, pawl, return_arm, return_eye])
+    body = union([bridge, pawl_drop, pawl_tab, cam, return_eye])
     return clean(difference(body, [
-        cylinder(2.0, 10.0, (-4.0, -68.0, 36.0), (1.0, 0.0, 0.0)),
-        cylinder(1.6, 12.0, (0.0, -61.0, 40.0), (1.0, 0.0, 0.0)),
+        cylinder(2.0, 10.0, (-4.0, LATCH_RETURN_Y, 52.0),
+                 (1.0, 0.0, 0.0)),
     ]))
 
 
 def build_latch_bracket() -> trimesh.Trimesh:
-    """External front-wall bracket supporting the latch rocker shaft."""
+    """Internal guide cage for the vertically sliding latch."""
     x_mid = sum(LATCH_SUPPORT_XS) / 2.0
     span = LATCH_SUPPORT_XS[1] - LATCH_SUPPORT_XS[0]
-    base = box((span + 18.0, 4.0, 18.0),
-               (x_mid, -62.0, LATCH_AXIS_Z))
-    posts = [
-        box((6.0, 10.0, 18.0), (x, -64.0, LATCH_AXIS_Z))
-        for x in LATCH_SUPPORT_XS
+    # The frame clears the inward-projecting front scrollwork. Two local pads
+    # leave a 0.1 mm adhesive gap to the plain inner wall outside that relief.
+    outer = box((span + 18.0, 22.1, 34.0), (x_mid, -45.05, 51.0))
+    channel = box((span + 10.0, 19.0, 38.0), (x_mid, -45.0, 51.0))
+    frame = difference(outer, [channel])
+    mounting_pads = [
+        box((8.0, 1.8, 20.0), (x, -56.0, 51.0))
+        for x in (-12.0, 80.0)
     ]
-    return_support = box((6.0, 8.0, 18.0), (-4.0, -66.0, 16.0))
-    return_eye = cylinder(5.0, 6.0, (-4.0, -68.0, 8.0),
-                          (1.0, 0.0, 0.0))
-    body = union([base, *posts, return_support, return_eye])
-    body = difference(body, [
-        cylinder(3.5, span + 24.0,
-                 (x_mid, LATCH_AXIS_Y, LATCH_AXIS_Z),
-                 (1.0, 0.0, 0.0)),
-        cylinder(2.0, 10.0, (-4.0, -68.0, 8.0),
-                 (1.0, 0.0, 0.0)),
-    ])
-    return clean(body)
+    return clean(union([frame, *mounting_pads]))
 
 
-def build_crank() -> trimesh.Trimesh:
-    """Skeleton key winder: shaft, cord spool and a bone shaped handle."""
-    shaft = cylinder(6.0 / 2.0 - 0.2, 26.0, (0.0, 0.0, 13.0))
-    spool = difference(cylinder(14.0, 10.0, (0.0, 0.0, 31.0)),
-                       [difference(cylinder(14.1, 6.0, (0.0, 0.0, 31.0)),
-                                   [cylinder(9.0, 7.0, (0.0, 0.0, 31.0))])])
-    collar = cylinder(11.0, 3.0, (0.0, 0.0, -1.5))
-    handle = segment_mesh(
-        [*bone((0.0, 0.0, -6.0), (34.0, 0.0, -6.0), 3.0, 5.0),
-         sdf_sphere((0.0, 0.0, -6.0), 5.5)], pitch=0.6, blend=1.6)
-    body = union([shaft, spool, collar, handle])
-    body = difference(body, [cylinder(1.3, 20.0, (0.0, 0.0, 31.0),
+def build_crank_spool() -> trimesh.Trimesh:
+    """Internal reset spool with a keyed shaft through the right wall."""
+    shaft = cylinder(6.0 / 2.0 - 0.2, 25.0, (0.0, 0.0, -11.5))
+    spool = difference(cylinder(12.0, 10.0, (0.0, 0.0, -18.0)),
+                       [difference(cylinder(12.1, 6.0, (0.0, 0.0, -18.0)),
+                                   [cylinder(9.0, 7.0, (0.0, 0.0, -18.0))])])
+    collar = cylinder(6.0, 3.0, (0.0, 0.0, -1.5))
+    key_tongue = rounded_box((4.0, 4.0, 4.0), 0.8, (0.0, 0.0, 3.0))
+    body = union([shaft, spool, collar, key_tongue])
+    body = difference(body, [cylinder(1.3, 20.0, (0.0, 0.0, -18.0),
                                       (1.0, 0.0, 0.0))])
     return clean(body)
+
+
+def build_crank_key() -> trimesh.Trimesh:
+    """Removable low-profile bone key for the reset-spool square drive."""
+    collar = cylinder(7.0, 4.0, (0.0, 0.0, 5.0))
+    handle = segment_mesh(
+        [*bone((-13.0, 0.0, 6.2), (13.0, 0.0, 6.2), 2.3, 3.2),
+         sdf_sphere((0.0, 0.0, 6.2), 3.4)], pitch=0.5, blend=1.1)
+    body = union([collar, handle])
+    socket = rounded_box((4.5, 4.5, 7.0), 0.9, (0.0, 0.0, 4.5))
+    return clean(difference(body, [socket]))
 
 
 def build_band_anchor() -> trimesh.Trimesh:
@@ -383,9 +390,10 @@ PARTS = {
     "scissor-arm": build_scissor_arm,
     "slider": build_slider,
     "platform": build_platform,
-    "latch-rocker": build_latch,
+    "latch-slider": build_latch,
     "latch-bracket": build_latch_bracket,
-    "crank": build_crank,
+    "crank-spool": build_crank_spool,
+    "crank-key": build_crank_key,
     "band-anchor": build_band_anchor,
     "forearm": build_forearm,
 }

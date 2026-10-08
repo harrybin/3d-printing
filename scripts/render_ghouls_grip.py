@@ -199,26 +199,24 @@ def build_scene_at(theta: float):
     release = min(max(
         (mechanism.RETRACTED_SLIDER_X - slider_x) / 1.0, 0.0
     ), 1.0)
-    latch_transform = np.eye(4)
-    if release:
-        latch_transform = rot(
-            -65.0 * release, [1, 0, 0],
-            [0.0, mechanism.LATCH_AXIS_Y, mechanism.LATCH_AXIS_Z]
-        )
-        latch.apply_transform(latch_transform)
+    latch_transform = trimesh.transformations.translation_matrix(
+        [0.0, 0.0, mechanism.LATCH_RELEASE_TRAVEL * release]
+    )
+    latch.apply_transform(latch_transform)
     items.append(("latch", latch, "#8d8d96"))
     items.append(("latch-bracket", mechanism.build_latch_bracket(), "#8d8d96"))
     return_eye = trimesh.transform_points(
-        [[-4.0, -68.0, 36.0]], latch_transform
+        [[-4.0, mechanism.LATCH_RETURN_Y, 52.0]], latch_transform
     )[0]
     items.append((
         "latch-return-band",
-        tube_between((-4.0, -68.0, 8.0), return_eye, 0.9),
+        tube_between((-4.0, mechanism.LATCH_RETURN_Y, 34.0),
+                     return_eye, 0.9),
         "#6f4a2d",
     ))
 
     lid_catch = trimesh.transform_points(
-        [[0.0, -62.0, LID_DROP + 7.0]], lid_transform
+        [[0.0, -52.0, LID_DROP + 7.0]], lid_transform
     )[0]
     if theta <= mechanism.THETA_MIN + 0.01:
         items.append((
@@ -226,7 +224,8 @@ def build_scene_at(theta: float):
             tube_between(
                 lid_catch,
                 trimesh.transform_points(
-                    [[0.0, -61.0, 40.0]], latch_transform
+                    [[0.0, mechanism.LATCH_RETURN_Y, 46.0]],
+                    latch_transform
                 )[0],
                 0.7,
             ),
@@ -240,7 +239,7 @@ def build_scene_at(theta: float):
         ))
 
     anchor = mechanism.build_band_anchor()
-    anchor.apply_translation([-76.0, 0.0, 3.0])
+    anchor.apply_translation([-76.0, 0.0, 4.5])
     items.append(("band-anchor", anchor, "#d8c6a5"))
 
     for sy in (-1.0, 1.0):
@@ -254,15 +253,19 @@ def build_scene_at(theta: float):
             "#6f4a2d",
         ))
 
-    crank = mechanism.build_crank()
-    crank.apply_transform(rot(90.0, [0, 1, 0]))
-    crank.apply_translation([100.0, 0.0, 30.0])
-    items.append(("crank", crank, "#8d8d96"))
+    for name, builder in (
+        ("crank-spool", mechanism.build_crank_spool),
+        ("crank-key", mechanism.build_crank_key),
+    ):
+        crank = builder()
+        crank.apply_transform(rot(90.0, [0, 1, 0]))
+        crank.apply_translation([100.0, 0.0, 30.0])
+        items.append((name, crank, "#8d8d96"))
     items.append((
         "reset-cord",
         tube_between(
             (slider_x + 20.0, 0.0, mechanism.RAIL_Z + 6.0),
-            (95.0, 0.0, 30.0),
+            (mechanism.CRANK_SPOOL_X, 0.0, 30.0),
             0.7,
         ),
         "#dedede",
