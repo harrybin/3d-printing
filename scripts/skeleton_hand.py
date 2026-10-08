@@ -58,11 +58,11 @@ FLAT_POSE = {
     "little": (0.0, 0.0, 0.0),
 }
 GRIP_POSE = {
-    "thumb": (MCP_DEG["thumb"], 48.0),
-    "index": (MCP_DEG["index"], 68.0, 52.0),
-    "middle": (MCP_DEG["middle"], 66.0, 48.0),
-    "ring": (MCP_DEG["ring"], 68.0, 52.0),
-    "little": (MCP_DEG["little"], 66.0, 50.0),
+    "thumb": (MCP_DEG["thumb"], 32.0),
+    "index": (MCP_DEG["index"], 52.0, 32.0),
+    "middle": (MCP_DEG["middle"], 50.0, 30.0),
+    "ring": (MCP_DEG["ring"], 52.0, 32.0),
+    "little": (MCP_DEG["little"], 54.0, 34.0),
 }
 
 PHALANGES = {
@@ -143,8 +143,10 @@ class PosedRay:
 def pose_ray(skeleton: Skeleton, ray: str, angles) -> PosedRay:
     """Re-aim the phalanges of one ray along a designed chain of directions."""
     head_axis = skeleton.axes[f"metacarpal-{ray}"]
-    direction = head_axis[1] - head_axis[0]
-    direction = direction / np.linalg.norm(direction)
+    base_direction = head_axis[1] - head_axis[0]
+    base_direction = base_direction / np.linalg.norm(base_direction)
+    flex_axis = _flex_axis(base_direction)
+    cumulative_angle = 0.0
     joint = head_axis[1].copy()
 
     base = joint.copy()
@@ -153,7 +155,9 @@ def pose_ray(skeleton: Skeleton, ray: str, angles) -> PosedRay:
         mesh = skeleton.bones[f"{ray}-{name}"].copy()
         a, b = skeleton.axes[f"{ray}-{name}"]
         length = float(np.linalg.norm(b - a))
-        direction = _rotate(direction, _flex_axis(direction), np.deg2rad(angle))
+        cumulative_angle += angle
+        direction = _rotate(
+            base_direction, flex_axis, np.deg2rad(cumulative_angle))
         direction = direction / np.linalg.norm(direction)
 
         rotation = trimesh.geometry.align_vectors((b - a) / length, direction)

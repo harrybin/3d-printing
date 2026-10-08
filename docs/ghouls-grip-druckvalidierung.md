@@ -41,6 +41,11 @@ Toolpath-conflict-, Out-of-bed-, Empty-layer- oder Invalid-toolpath-Warnung.
 | `ghouls-grip-print-fingers-pla.3mf` | Daumen und vier Finger | 57 | 12,01 g | 1 h 22 min 55 s | Baum | [PNG](images/ghouls-grip-slices/ghouls-grip-print-fingers-pla.png) |
 | **Gesamt** | 33 physische Druckobjekte | - | **837,93 g** | **40 h 23 min 32 s** | - | - |
 
+Nach der Fingerketten-Korrektur wurde
+`ghouls-grip-print-fingers-pla.3mf` erneut mit demselben Profil gesliced:
+57 Layer, 12,01 g, 1 h 22 min 55 s, Tree-Support und keine unaufgelösten
+Toolpath-, Druckbett- oder Leerlagenfehler.
+
 Die G-Code-Pfad-Vorschauen werden von `scripts/render_gcode_preview.py` direkt
 aus den erfolgreichen OrcaSlicer-Ausgaben gerendert. Rosa markiert höhere,
 blau niedrigere Extrusionspfade; die Bilder sind kein Ersatz für die
@@ -64,8 +69,8 @@ regeneriert. SHA-256:
 
 | Datei | SHA-256 |
 | --- | --- |
-| `ghouls-grip-master.3mf` | `E5F28C592A52C43299297CD3D5E8F24B9E55CC5DEEAB71A168BAF76D673A7A13` |
-| `ghouls-grip-master-retracted.3mf` | `5FF44DB006B15AE5BAB9153EB84160DD32A143861C0CBFEAF187D2E610420DCF` |
+| `ghouls-grip-master.3mf` | `4FFAA81AA911C77F0191909AD5D2C279193F075819F618710C5A564425FCEAC7` |
+| `ghouls-grip-master-retracted.3mf` | `D9B719864C32AD58569B4EF83BB7B7DEB26C9FD5A4D76220EF143F994D53ECCC` |
 | `ghouls-grip-print-black-pla.3mf` | `F3943B53EED0658AE24C03229B5945876D764C2ED02F02141B674672CB14BB36` |
 | `ghouls-grip-print-bone-pla.3mf` | `F009BDEC41E270C5E1116B4100A88DC40BDFA6A68E754845814B6F06AD5C0E8C` |
 | `ghouls-grip-print-mechanism-pla.3mf` | `E3F8F0865559975912AF2389933DCE2395540C1111459EBFFCA0C4D3E0878A44` |
@@ -75,7 +80,7 @@ regeneriert. SHA-256:
 | `ghouls-grip-print-mechanism-supported-crank-pla.3mf` | `887860496E1EA3091A19F6A0C4993113932ACA866A3AFF9BF7449683636E2EB3` |
 | `ghouls-grip-print-mechanism-supported-band-anchor-pla.3mf` | `8249AA87FF3613C8E16FFE9C43903E12CA906B702FE8CBDED0C126B319AA2A79` |
 | `ghouls-grip-print-accent-pla.3mf` | `AAD5584D5BBE5538B6E86B5A93B3F2699570793AA3E4AC8073CCFF45EE466FB9` |
-| `ghouls-grip-print-fingers-pla.3mf` | `F7110ECF4DB21C62910CD248EA5EC6407ED9463CC867C599B24F13430A098999` |
+| `ghouls-grip-print-fingers-pla.3mf` | `9A5FD9E4FBE441D931D6F554EBBA44EA41F59174273305CE92CDB0B95346E51B` |
 
 ## Verbleibende physische Risiken
 
