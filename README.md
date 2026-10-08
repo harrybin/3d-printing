@@ -13,9 +13,9 @@ A collection of ASCII STL models for the Anycubic Kobra S1 Combo + ACE Pro (250 
 | `models/zylinder_scheibe_2026_2027.stl` | Cylindrical/washer-style reference part |
 | `models/lampe-5-rahmen.3mf` | Multi-material frame for the 240 mm number-5 wall lamp |
 | `models/lampe-5-leuchtflaechen.stl` | All four translucent lamp panels arranged together on the 250 × 250 mm bed |
-| `models/ghouls-grip.3mf` | Multi-material deployed assembly of the mechanical Halloween candy-box ([dimensions and assembly](docs/ghouls-grip-masse-und-bauanleitung.md)) |
-| `models/ghouls-grip-{black-pla,bone-pla,mechanism-pla,accent-pla,fingers-pla}.3mf` | Print-ready OrcaSlicer material projects (all PLA, colour change only) with Anycubic Kobra S1, Textured PEI, filament/process presets, object overrides and complete quantities |
-| `models/ghouls-grip-preview.stl` | Assembly-only multi-body preview; printable parts live in the five material 3MF projects and regenerate from `scripts/` |
+| `models/ghouls-grip-master.3mf` | Multi-material deployed master assembly of the mechanical Halloween candy-box ([dimensions and assembly](docs/ghouls-grip-masse-und-bauanleitung.md)) |
+| `models/ghouls-grip-print-*.3mf` | Ten print-ready OrcaSlicer plate projects for five PLA colours/spools; the five support-intensive mechanism parts use separate plates to eliminate support-toolpath collisions. Every project embeds Anycubic Kobra S1, Textured PEI, filament/process settings and complete quantities. |
+| `models/ghouls-grip-preview.stl` | Assembly-only multi-body preview; printable parts live in the print 3MF projects and regenerate from `scripts/` |
 
 ## Setup
 
@@ -32,14 +32,11 @@ Generator scripts live in `scripts/` and write their output to `models/`:
 .\.venv\Scripts\python.exe scripts\lineal_clip_kappe.py
 ```
 
-The optional, repository-pinned OrcaSlicer MCP integration is installed with:
-
-```powershell
-.\scripts\setup_orcaslicer_mcp.ps1
-```
-
-It uses standard OrcaSlicer for headless slicing and G-code analysis. Printer
-control remains disabled by project policy unless explicitly requested.
+The final print gate uses OrcaSlicer's official CLI. `.vscode/mcp.json` supports
+the official Blender Lab MCP through a user-local `BLENDER_MCP_DIR`, bound to
+`127.0.0.1:9876`. The third-party OrcaSlicer MCP entry remains disabled; official
+Orca CLI slicing is authoritative. See [`docs/mcp-setup.md`](docs/mcp-setup.md).
+Printer control remains disabled unless explicitly requested.
 
 ## Example: From Photo to Printable STL
 
@@ -187,10 +184,12 @@ If the fit is too tight or too loose, adjust `HOLE_DIA` / `PRESS_CLEAR` in
 ## Blender and OrcaSlicer workflow
 
 Technical features, dimensions, fits, joints and clearances remain parametric in
-Python. Organic or visually complex regions may be authored or refined in Blender,
-preferably through the official local Blender Lab MCP integration. Blender exports
-are treated as external meshes and must pass the same scale, topology, feature and
-render checks as any downloaded model.
+Python. Organic or visually complex regions may be authored or refined in Blender.
+Use Blender CLI for deterministic scene builds, batch import/export and renders,
+and the official local Blender Lab MCP for bounded interactive inspection and
+visual edits. The two paths may be combined, but Blender exports are always treated
+as external meshes and must pass the same scale, topology, feature and render
+checks as any downloaded model.
 
 Every new complex assembly is delivered as `models/<name>-master.3mf` plus one or
 more `models/<name>-print-<plate-or-material>.3mf` files. OrcaSlicer is the final

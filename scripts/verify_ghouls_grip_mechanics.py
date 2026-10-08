@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -24,14 +25,25 @@ INNER_LO = np.array([-97.0, -57.0, 3.0])
 INNER_HI = np.array([97.0, 57.0, 86.0])
 
 
+def progress(message: str, started: float) -> None:
+    elapsed = time.perf_counter() - started
+    print(f"[verify +{elapsed:7.1f}s] {message}", file=sys.stderr, flush=True)
+
+
 def volume_intersection(a: trimesh.Trimesh, b: trimesh.Trimesh) -> float:
+    overlap = np.minimum(a.bounds[1], b.bounds[1]) - np.maximum(
+        a.bounds[0], b.bounds[0])
+    if np.any(overlap <= 0.0):
+        return 0.0
     hit = trimesh.boolean.intersection([a, b], engine="manifold")
     return 0.0 if hit is None else abs(float(hit.volume))
 
 
 def check() -> dict:
+    started = time.perf_counter()
     failures: list[str] = []
     rows = []
+    progress("Pruefe analytische Scherenkinematik (31 Stellungen)", started)
     fixed_posts = [mechanism.box((12.0, 6.0, 14.0),
                                  (mechanism.FLOOR_PIVOT_X,
                                   sy * mechanism.SCISSOR_Y, 10.0))
@@ -94,6 +106,7 @@ def check() -> dict:
         failures.append(f"Rastklinke versetzt: {latch_alignment:.3f} mm")
 
     platform_xy = mechanism.build_platform().extents[:2]
+    progress("Pruefe zusammenhaengende Einzelteile", started)
     part_builders = {
         "platform": mechanism.build_platform,
         "forearm": mechanism.build_forearm,
@@ -128,7 +141,14 @@ def check() -> dict:
     max_bracket_chest = 0.0
     max_band_arm = 0.0
     max_cord_platform = 0.0
-    for theta in np.linspace(THETA_MIN, THETA_MAX, 13):
+    sweep_angles = np.linspace(THETA_MIN, THETA_MAX, 13)
+    progress("Starte booleschen Baugruppen-Sweep (13 Stellungen)", started)
+    for index, theta in enumerate(sweep_angles, start=1):
+        progress(
+            f"Baugruppen-Sweep {index}/{len(sweep_angles)} "
+            f"bei {theta:.1f} Grad",
+            started,
+        )
         items = assembly.build_scene_at(float(theta))
         named = {name: mesh for name, mesh, _colour in items}
         hand_names = [
@@ -238,7 +258,9 @@ def check() -> dict:
         failures.append("Unterarm richtet sich nicht vollständig auf")
 
     pose_metrics = {}
+    progress("Pruefe eingefahrene und ausgefahrene Endstellung", started)
     for pose in ("retracted", "deployed"):
+        progress(f"Endstellung: {pose}", started)
         items = assembly.build_scene(pose)
         named = {name: mesh for name, mesh, _colour in items}
         hand_names = [name for name in named
@@ -276,10 +298,16 @@ def check() -> dict:
     # The phalanges are distinct anatomical shells. They may be connected by
     # the explicit PLA flexure collar, but the source bone volumes themselves
     # must never occupy the same space, nor may a socket intersect the palm.
+    progress("Lade anatomische Fingerknochen", started)
     anatomical = skeleton_hand.load_skeleton()
     max_adjacent_bone_overlap = 0.0
     max_any_bone_overlap = 0.0
-    for pose in (skeleton_hand.FLAT_POSE, skeleton_hand.GRIP_POSE):
+    anatomy_poses = (
+        ("flat", skeleton_hand.FLAT_POSE),
+        ("grip", skeleton_hand.GRIP_POSE),
+    )
+    for pose_name, pose in anatomy_poses:
+        progress(f"Pruefe Knochenueberlappungen: {pose_name}", started)
         posed_bones = []
         for ray in skeleton_hand.RAYS:
             posed = skeleton_hand.pose_ray(anatomical, ray, pose[ray])
@@ -350,7 +378,12 @@ def check() -> dict:
         "poses": pose_metrics,
         "samples": rows,
         "motion_sweep": sweep_metrics,
+        "duration_seconds": time.perf_counter() - started,
     }
+    progress(
+        f"Abgeschlossen: {'PASS' if result['passed'] else 'FAIL'}",
+        started,
+    )
     return result
 
 
@@ -379,6 +412,7 @@ def write_report(result: dict) -> None:
         f"| Benachbarte Fingerknochen-Schnittmenge | {result['max_adjacent_bone_overlap_mm3']:.3f} mm³ |",
         f"| Beliebige Fingerknochen-Schnittmenge (flach/gegriffen) | {result['max_any_bone_overlap_mm3']:.3f} mm³ |",
         f"| Fingersockel/Handfläche-Schnittmenge | {result['max_finger_palm_overlap_mm3']:.3f} mm³ |",
+        f"| Laufzeit der Verifikation | {result['duration_seconds']:.1f} s |",
     ]
     for pose, values in result["poses"].items():
         lines.extend([

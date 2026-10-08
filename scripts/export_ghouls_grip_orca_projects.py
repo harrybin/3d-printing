@@ -33,31 +33,65 @@ MATERIAL_PROJECTS = {
         "match": "Schatulle - schwarzes PLA",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "4", "infill": "20%", "speed": "standard",
-        "filament_type": "PLA",
+        "filament_type": "PLA", "support": "tree",
     },
     "bone-pla": {
         "match": "Knochen - beiges PLA",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "4", "infill": "25%", "speed": "standard",
-        "filament_type": "PLA",
+        "filament_type": "PLA", "support": "tree", "manual_gap": 24.0,
     },
     "mechanism-pla": {
         "match": "Mechanik - naturweisses PLA",
+        "exclude": {
+            "platform", "latch-rocker", "latch-bracket", "crank",
+            "band-anchor",
+        },
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "5", "infill": "40%", "speed": "mechanism",
         "filament_type": "PLA", "object_overrides": True,
+    },
+    "mechanism-supported-platform-pla": {
+        "match": "Mechanik - naturweisses PLA", "include": {"platform"},
+        "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
+        "wall_loops": "5", "infill": "40%", "speed": "mechanism",
+        "filament_type": "PLA", "object_overrides": True, "support": "normal",
+    },
+    "mechanism-supported-latch-rocker-pla": {
+        "match": "Mechanik - naturweisses PLA", "include": {"latch-rocker"},
+        "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
+        "wall_loops": "5", "infill": "40%", "speed": "mechanism",
+        "filament_type": "PLA", "object_overrides": True, "support": "normal",
+    },
+    "mechanism-supported-latch-bracket-pla": {
+        "match": "Mechanik - naturweisses PLA", "include": {"latch-bracket"},
+        "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
+        "wall_loops": "5", "infill": "40%", "speed": "mechanism",
+        "filament_type": "PLA", "object_overrides": True, "support": "normal",
+    },
+    "mechanism-supported-crank-pla": {
+        "match": "Mechanik - naturweisses PLA", "include": {"crank"},
+        "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
+        "wall_loops": "5", "infill": "40%", "speed": "mechanism",
+        "filament_type": "PLA", "object_overrides": True, "support": "normal",
+    },
+    "mechanism-supported-band-anchor-pla": {
+        "match": "Mechanik - naturweisses PLA", "include": {"band-anchor"},
+        "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
+        "wall_loops": "5", "infill": "40%", "speed": "mechanism",
+        "filament_type": "PLA", "object_overrides": True, "support": "normal",
     },
     "accent-pla": {
         "match": "Totenkopf-Ausloeser - graues PLA",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "4", "infill": "25%", "speed": "standard",
-        "filament_type": "PLA",
+        "filament_type": "PLA", "support": "tree",
     },
     "fingers-pla": {
         "match": "Finger - beiges PLA (Filmscharniere)",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "2", "infill": "15%", "speed": "flexure",
-        "filament_type": "PLA",
+        "filament_type": "PLA", "manual_gap": 20.0,
     },
 }
 
@@ -108,6 +142,20 @@ def _process_settings(spec: dict) -> dict:
         "detect_thin_wall": "1",
         "only_one_wall_top": "0",
     }
+    support = spec.get("support")
+    if support == "tree":
+        data.update({
+            "enable_support": "1", "support_type": "tree(auto)",
+            "support_on_build_plate_only": "1",
+            "support_threshold_angle": "30",
+        })
+    elif support == "normal":
+        data.update({
+            "enable_support": "1",
+            "support_type": "normal(auto)", "support_style": "snug",
+            "support_on_build_plate_only": "1",
+            "support_threshold_angle": "30",
+        })
     if spec["speed"] == "mechanism":
         data.update({
             "outer_wall_speed": "120", "inner_wall_speed": "180",
@@ -125,6 +173,9 @@ def _process_settings(spec: dict) -> dict:
             "travel_acceleration": "3000",
             "wall_generator": "classic", "top_shell_layers": "4",
             "bottom_shell_layers": "4",
+            "enable_support": "1", "support_type": "tree(auto)",
+            "support_on_build_plate_only": "1",
+            "support_threshold_angle": "30",
         })
     return data
 
@@ -217,17 +268,27 @@ def export_material_projects(parts, write_3mf, arrange, material_for) -> list[Pa
         for slug, spec in MATERIAL_PROJECTS.items():
             selected = {name: mesh for name, mesh in parts.items()
                         if material_for(name).name == spec["match"]}
+            include = spec.get("include")
+            exclude = spec.get("exclude", set())
+            if include is not None:
+                selected = {name: mesh for name, mesh in selected.items()
+                            if _base_name(name) in include}
+            selected = {name: mesh for name, mesh in selected.items()
+                        if _base_name(name) not in exclude}
             if not selected:
                 raise RuntimeError(f"No parts assigned to material project {slug}")
             source = temp / f"{slug}-source.3mf"
-            write_3mf(source, arrange(selected))
+            manual_gap = spec.get("manual_gap")
+            write_3mf(source, arrange(
+                selected, gap=manual_gap if manual_gap is not None else 6.0))
             filament = PROFILE_ROOT / "filament" / spec["filament"]
-            output = MODELS / f"ghouls-grip-{slug}.3mf"
+            output = MODELS / f"ghouls-grip-print-{slug}.3mf"
             output.unlink(missing_ok=True)
             cmd = [
                 str(ORCA_BIN), "--load-settings", f"{MACHINE};{BASE_PROCESS}",
                 "--load-filaments", str(filament),
-                "--arrange", "1", "--orient", "0", "--ensure-on-bed",
+                "--arrange", "0" if manual_gap is not None else "1",
+                "--orient", "0", "--ensure-on-bed",
                 "--export-3mf", str(output), str(source),
             ]
             result = subprocess.run(cmd, capture_output=True, text=True,

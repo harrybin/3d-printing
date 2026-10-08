@@ -111,8 +111,11 @@ Maßgebliche Daten:
 
 ## Stückliste (20 Teiltypen / 33 physische Druckobjekte)
 
-Die Einzelteile liegen ausschließlich in den fünf Material-3MFs; redundante
-Einzel-STLs werden nicht mehr ausgeliefert. Alle Teiltypen werden beim Erzeugen
+Die Einzelteile liegen ausschließlich in zehn Druck-3MFs für fünf
+PLA-Farben/Spulen. Die fünf stützpflichtigen Mechanikteile erhalten jeweils
+eine eigene kleine Platte, weil OrcaSlicers Kollisionsprüfung bei gemeinsamer
+Anordnung überlappende Stützbahnen nachgewiesen hat. Redundante Einzel-STLs
+werden nicht mehr ausgeliefert. Alle Teiltypen werden beim Erzeugen
 in-memory auf Wasserdichtheit, konsistente Wicklung und degenerierte Flächen
 geprüft.
 
@@ -141,22 +144,26 @@ geprüft.
 
 Zusätzliche Lieferdateien:
 
-- `models/ghouls-grip.3mf` - ausgefahrene, zusammengebaute Materialansicht.
-- `models/ghouls-grip-retracted.3mf` - geschlossene Einbaukontrolle.
+- `models/ghouls-grip-master.3mf` - ausgefahrene, zusammengebaute
+  Master-Materialansicht.
+- `models/ghouls-grip-master-retracted.3mf` - geschlossene Einbaukontrolle.
 - `models/ghouls-grip-preview.stl` - Montagevorschau für das STL-Canvas.
-- `models/ghouls-grip-black-pla.3mf` - Gehäuse/Deckel, zwei Orca-Platten.
-- `models/ghouls-grip-bone-pla.3mf` - Handfläche, Führung, Unterarm.
-- `models/ghouls-grip-mechanism-pla.3mf` - vollständige Mechanik inklusive
-  4 Scherenarmen, 8 kleinen und 4 großen Pins.
-- `models/ghouls-grip-accent-pla.3mf` - grauer Totenkopf-Auslöser.
-- `models/ghouls-grip-fingers-pla.3mf` - fünf Finger mit 0,8-mm-Filmscharnieren.
+- `models/ghouls-grip-print-black-pla.3mf` - Gehäuse/Deckel, zwei Orca-Platten.
+- `models/ghouls-grip-print-bone-pla.3mf` - Handfläche, Führung, Unterarm.
+- `models/ghouls-grip-print-mechanism-pla.3mf` - supportfreie Mechanik inklusive
+  4 Scherenarmen, Schlitten sowie 8 kleinen und 4 großen Pins.
+- `models/ghouls-grip-print-mechanism-supported-{platform,latch-rocker,latch-bracket,crank,band-anchor}-pla.3mf` - fünf Einzelplatten für Hubjoch, Klinkenrocker, Klinkenhalter, Kurbel und Bandanker mit bettgebundenen, eng anliegenden Normalstützen.
+- `models/ghouls-grip-print-accent-pla.3mf` - grauer Totenkopf-Auslöser.
+- `models/ghouls-grip-print-fingers-pla.3mf` - fünf Finger mit
+  0,8-mm-Filmscharnieren und automatischen, nur vom Druckbett ausgehenden
+  Baumstützen für die organischen Unterseiten.
 
 Das gesamte Modell ist auf **reines PLA** ausgelegt. TPU und PETG werden nicht
-benötigt; alle fünf Projekte laufen mit demselben Filamenttyp und müssen nur
-farblich getauscht werden. Wer PLA+ oder ASA vorrätig hat, kann das
-Mechanik-Projekt damit drucken - ASA braucht dann ein Gehäuse und 100/250 °C.
+benötigt; alle zehn Druckprojekte laufen mit demselben Filamenttyp und fünf
+Farb-/Spulenzuordnungen. Wer PLA+ oder ASA vorrätig hat, kann die sechs
+Mechanik-Projekte damit drucken - ASA braucht dann ein Gehäuse und 100/250 °C.
 
-Die fünf Materialdateien sind echte OrcaSlicer-Projekte. Sie enthalten den
+Die zehn Druckdateien sind echte OrcaSlicer-Projekte. Sie enthalten den
 Drucker `Anycubic Kobra S1 0.4 nozzle`, `Textured PEI Plate`, das passende
 Anycubic-Filamentprofil und globale Materialwerte. Das Mechanik-Projekt enthält
 zusätzlich objektbezogene Verstärkungen für Arme, Klinke und Pins.
@@ -179,24 +186,34 @@ M3×16-Schrauben mit selbstsichernden Muttern besser als die gedruckten Stifte.
 Schichthöhe 0,20 mm, 0,4-mm-Düse, Textured PEI Plate.
 `XY Hole Compensation` +0,10 mm, `XY Contour Compensation` 0 mm und
 Elefantenfuß-Kompensation 0,15 mm sind in den Materialprojekten gespeichert.
-Reliefs und Nieten der Schatulle sind
-2,6-3,0 mm erhaben und brauchen keine Stützen; der Deckel druckt flach mit der
-Oberseite nach unten.
+Reliefs und Nieten der Schatulle sind 2,6-3,0 mm erhaben. OrcaSlicer 2.4.2
+meldete bei Gehäuse, Deckel, organischen Knochenformen und fünf komplexen
+Mechanikteilen dennoch schwebende Regionen; diese Platten verwenden deshalb
+nur vom Druckbett ausgehende Stützen. Die supportfreie Mechanikplatte enthält
+Arme, Schlitten und Pins.
 
-Headless in OrcaSlicer geprüfte Schätzwerte:
+Mit OrcaSlicer 2.4.2 erfolgreich geslicte Werte:
 
-| Projekt/Platte | Filament | Druckzeit |
-| --- | ---: | ---: |
-| Schwarz PLA, Platte 1 | 162,93 g | 6 h 02 min |
-| Schwarz PLA, Platte 2 | 333,08 g | 10 h 52 min |
-| Knochen PLA | 40,56 g | 2 h 30 min |
-| Mechanik PLA | 116,06 g | 5 h 28 min |
-| Akzent PLA | 15,87 g | 46 min |
-| Finger PLA | 8,14 g | 55 min |
+| Projekt/Platte | Schichten | Filament | Druckzeit | Stützen |
+| --- | ---: | ---: | ---: | --- |
+| Schwarz PLA, Platte 1 | 137 | 229,27 g | 12 h 24 min | Baum |
+| Schwarz PLA, Platte 2 | 490 | 386,16 g | 15 h 07 min | Baum |
+| Knochen PLA | 262 | 51,24 g | 3 h 27 min | Baum |
+| Mechanik PLA, supportfrei | 170 | 50,10 g | 2 h 31 min | nein |
+| Hubjoch PLA | 344 | 46,21 g | 1 h 59 min | normal/snug |
+| Klinkenrocker PLA | 293 | 8,63 g | 35 min | normal/snug |
+| Klinkenhalter PLA | 193 | 10,96 g | 29 min | normal/snug |
+| Kurbel PLA | 375 | 11,54 g | 43 min | normal/snug |
+| Bandanker PLA | 143 | 12,25 g | 40 min | normal/snug |
+| Akzent PLA | 200 | 19,56 g | 1 h 07 min | Baum |
+| Finger PLA | 57 | 12,01 g | 1 h 23 min | Baum |
+| **Gesamt** | - | **837,93 g** | **40 h 24 min** | - |
 
 Alle Projekte starten mit **55/215 °C** (PLA). Das Fingerprojekt fährt die
 Außenwände bewusst mit 30 mm/s und reduzierter Beschleunigung, damit der
 0,8 mm dünne Steg als zwei saubere Perimeter entsteht und nicht ausdünnt.
+Die vollständige Slice-Evidenz steht in
+[`ghouls-grip-druckvalidierung.md`](ghouls-grip-druckvalidierung.md).
 
 ## Montage
 
@@ -235,14 +252,15 @@ Außenwände bewusst mit 30 mm/s und reduzierter Beschleunigung, damit der
 
 ## OrcaSlicer-Ablauf
 
-1. `models/ghouls-grip.3mf` nur zur Montage- und Materialkontrolle öffnen.
+1. `models/ghouls-grip-master.3mf` nur zur Montage- und Materialkontrolle öffnen.
 2. Zum Drucken die passende Material-Projektdatei öffnen. Drucker, Textured
    PEI Plate, Filament, 0,20-mm-Prozess und Objekt-Overrides sind bereits
    eingebettet; vor dem Slicen trotzdem Düsendurchmesser und reale Spule prüfen.
 3. Das schwarze PLA-Projekt enthält wegen der Bettgröße zwei Platten. Alle
    anderen Materialprojekte sind jeweils auf einer Platte angeordnet.
-4. Alle fünf Projekte drucken PLA; es ist nur ein Farbwechsel nötig. Die
-   Finger liegen flach, ohne Stützen, und werden langsam gedruckt.
+4. Alle zehn Projekte drucken PLA; es werden fünf Farben/Spulen verwendet.
+   Finger und organische Knochenformen erhalten nur bettgebundene Stützen;
+   die Finger werden zusätzlich langsam gedruckt.
 5. Vor dem Gesamtdruck einen Arm, einen Pin und ein Fingerglied als
    Passungsmuster slicen. Keines der Projekte startet oder sendet einen Druck.
 
@@ -260,7 +278,7 @@ Außenwände bewusst mit 30 mm/s und reduzierter Beschleunigung, damit der
 - Die 0,8-mm-Filmscharniere sind die Schwachstelle der Hand. PLA erlaubt dort
   nur wenige hundert Zyklen; die Finger sind bewusst als Verschleißteil
   ausgelegt und einzeln nachdruckbar. Wer später doch TPU 95A bekommt, kann
-  allein `ghouls-grip-fingers-pla.3mf` auf ein TPU-Filament umstellen.
+  allein `ghouls-grip-print-fingers-pla.3mf` auf ein TPU-Filament umstellen.
 - Gedruckte Pins in PLA sind für Dauerbetrieb grenzwertig. Für die vier
   hochbelasteten Scherengelenke sind M3×16-Schrauben die bessere Wahl.
 
@@ -268,10 +286,32 @@ Außenwände bewusst mit 30 mm/s und reduzierter Beschleunigung, damit der
 
 Die 27 Handknochen stammen aus **"Wrist Bones Full Hand - Human Skeleton"**,
 NIH 3D Print Exchange, Modell `3DPX-016815`, hochgeladen von *My Segmenter*
-(mysegmenter.com), lizenziert unter **CC BY**.
+(mysegmenter.com), lizenziert unter **CC BY 4.0**.
+
+| Kandidat | Quelle | Lizenzentscheidung | Verwendung |
+| --- | --- | --- | --- |
+| Wrist Bones Full Hand - Human Skeleton | [NIH 3D, 3DPX-016815](https://3d.nih.gov/entries/3DPX-016815) | CC BY 4.0; Bearbeitung und Weitergabe mit Namensnennung zulässig | **Hybrid**: anatomische, nicht fitkritische Knochenformen werden wiederverwendet; Sockel, Flexuren, Sehnenführung und alle Mechanikanschlüsse werden parametrisch neu gebaut |
+| Anonyme Marktplatz-/Spieldateien | keine belastbare Originalquelle | unklare oder inkompatible Lizenz | verworfen |
 
 Im Repository liegt nur der abgeleitete, klassifizierte und dezimierte Datensatz
 `model-sources/ghouls-grip/reference/hand_bones.npz`. Die 12 MB große
 Original-STL wird von `scripts/extract_hand_bones.py` bei Bedarf neu geladen und
 nicht eingecheckt. Bei Weitergabe der Modelle muss die CC-BY-Nennung erhalten
 bleiben.
+
+### Python-/Blender-Routing
+
+Blender wird als **visuelle und organische Arbeitsumgebung**, aber nicht als
+Quelle der fitkritischen Mechanik eingesetzt. Die exakte Master-3MF wird durch
+`scripts/build_ghouls_grip_blender_scene.py` reproduzierbar in
+`model-sources/ghouls-grip/ghouls-grip-master.blend` importiert. Darin sind
+19 technische Objekte in `frozen_technical` gesperrt; 11 Hand-, Unterarm- und
+Schädelobjekte liegen getrennt in `organic_approved`.
+
+Die Blender-CLI baut die Basisszene, rendert und übernimmt reproduzierbare
+Batch-Operationen. Der offizielle Blender-Lab-MCP dient zusätzlich zur
+interaktiven Szenenprüfung und zu kleinen, freigegebenen visuellen Änderungen.
+Python bleibt Quelle der Wahrheit für Maßstab, Knochenausrichtung, Flexursteg,
+Sockel, Sehnenkanäle, Gelenke, Freiräume und die vollständige Mechanik. Nach
+jeder Blender-Geometrieänderung müssen Mesh, Bounds, Komponenten und eingefrorene
+Datums erneut geprüft werden.

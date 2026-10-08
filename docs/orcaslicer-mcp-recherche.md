@@ -2,36 +2,21 @@
 
 Stand: 2026-10-07.
 
-## Ausgewählte Integration
+## Aktuelle Entscheidung
+
+Für die verbindliche Druckvalidierung wird OrcaSlicers **offizielle CLI**
+verwendet. Sie sliced die exakten 3MF-Projekte, exportiert G-Code und liefert
+Zeit-, Material-, Schicht- und Warnungsdaten ohne zusätzlichen MCP-Server.
 
 `ShreddyKrueger75/claude-orcaslicer-mcp`, Commit
-`b1a7cd13c853a733e09367f18d3c183f04c349d9`, MIT-Lizenz.
+`b1a7cd13c853a733e09367f18d3c183f04c349d9`, wurde früher als MIT-lizenzierte
+lokale Integration geprüft. Es bleibt eine Drittanbieteroption und ist nicht
+mehr die voreingestellte oder automatisch aktivierte Projektlösung.
 
-Gründe:
-
-- funktioniert mit einer normalen OrcaSlicer-Installation über deren CLI;
-- unterstützt STL, 3MF und STEP, Preset-Auflösung und G-Code-Analyse;
-- Windows-Pfade werden automatisch erkannt;
-- Installation ist über `tools/orcaslicer-mcp-requirements.txt` reproduzierbar;
-- Druckersteuerung ist vorhanden, wird durch den Repository-Skill aber nicht
-  ohne einen separaten, ausdrücklichen Benutzerauftrag verwendet.
-
-Installation:
-
-```powershell
-.\scripts\setup_orcaslicer_mcp.ps1
-```
-
-Die Client-Konfiguration liegt in `.vscode/mcp.json`. Sie enthält keine
-Zugangsdaten und setzt nur OrcaSlicer-Pfad sowie Druckbett-Typ.
-
-Der Importtest des Servers und die Erkennung von
-`C:\Program Files\OrcaSlicer\orca-slicer.exe` waren erfolgreich. Ein
-Headless-Test-Slice war noch nicht möglich, weil die laufende Installation nur
-ein unbenanntes Maschinenprofil, aber kein gespeichertes Prozess- und
-Filamentprofil enthält. Nach dem einmaligen OrcaSlicer-Einrichtungsassistenten
-und dem Speichern dieser drei Presets liefert `list_profiles` die Namen für
-`slice_model`.
+Die `.vscode/mcp.json` enthält daher nur ein deaktiviertes, umgebungsvariablen-
+basiertes OrcaSlicer-Template. Absolute Installationspfade, heruntergeladene
+Server und persönliche Profile werden nicht eingecheckt. Einrichtung und
+Sicherheitsregeln stehen in `docs/mcp-setup.md`.
 
 ## Geprüfte Alternative
 

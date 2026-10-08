@@ -40,9 +40,19 @@ from skeleton_hand import FLAT_POSE, RAYS, assemble, load_skeleton
 from skull import build_trigger
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT_3MF = ROOT / "models" / "ghouls-grip.3mf"
-OUT_RETRACTED_3MF = ROOT / "models" / "ghouls-grip-retracted.3mf"
+OUT_3MF = ROOT / "models" / "ghouls-grip-master.3mf"
+OUT_RETRACTED_3MF = ROOT / "models" / "ghouls-grip-master-retracted.3mf"
 OUT_PREVIEW = ROOT / "models" / "ghouls-grip-preview.stl"
+
+LEGACY_OUTPUTS = (
+    ROOT / "models" / "ghouls-grip.3mf",
+    ROOT / "models" / "ghouls-grip-retracted.3mf",
+    ROOT / "models" / "ghouls-grip-black-pla.3mf",
+    ROOT / "models" / "ghouls-grip-bone-pla.3mf",
+    ROOT / "models" / "ghouls-grip-mechanism-pla.3mf",
+    ROOT / "models" / "ghouls-grip-accent-pla.3mf",
+    ROOT / "models" / "ghouls-grip-fingers-pla.3mf",
+)
 
 BED = 250.0
 
@@ -249,10 +259,9 @@ def assembly_objects(pose: str) -> list:
     return [(name, mesh, assembly_material(name), None)
             for name, mesh, _colour in render_ghouls_grip.build_scene(pose)]
 
-def arrange(parts: dict) -> list:
+def arrange(parts: dict, gap: float = 6.0) -> list:
     """Lay every part out on the 250 x 250 bed, in rows, nothing overlapping."""
     items, x, y, row = [], 0.0, 0.0, 0.0
-    gap = 6.0
     for name, mesh in parts.items():
         ext = mesh.extents
         if x + ext[0] > BED and x > 0.0:
@@ -268,6 +277,11 @@ def arrange(parts: dict) -> list:
 
 
 def main() -> None:
+    for path in LEGACY_OUTPUTS:
+        path.unlink(missing_ok=True)
+    for path in (ROOT / "models").glob("ghouls-grip-print-*.3mf"):
+        path.unlink()
+
     parts = build_parts()
     for name, mesh in parts.items():
         validate(name, mesh)
