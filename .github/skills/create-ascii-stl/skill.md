@@ -7,9 +7,26 @@ description: Create ASCII STL files using print-safe defaults for Anycubic Kobra
 
 Use this skill to generate new STL files for FDM printing.
 
+## Tool routing before construction
+
+Run `research-reusable-3d-assets` before original construction of every nontrivial
+object, searching similar functional or stylistic templates when no exact model is
+expected. Use this skill as the source of truth for technical solids, dimensions,
+interfaces, clearances, bores, and keyed assembly features.
+
+For organic, sculptural, or visually complex regions, invoke
+`blender-assisted-modeling` instead of forcing the surface into brittle Python mesh
+code. For a hybrid model, generate and freeze the technical datums here, then
+roundtrip only the approved organic region through Blender and validate the export.
+
 ## Mandatory library usage
 
-Never write STL facets or triangle lists by hand and never assemble complex geometry from manually computed vertices. Always generate geometry through a parametric Python script (in `scripts/`, run with the project venv `.venv`) using the supported repo libraries first, plus optional helpers only when the repo explicitly adopts them:
+Never write STL facets or triangle lists by hand and never assemble complex geometry
+from manually computed vertices. For geometry owned by this skill, generate it
+through a parametric Python script (in `scripts/`, run with the project venv `.venv`)
+using the supported repo libraries first, plus optional helpers only when the repo
+explicitly adopts them. Organic geometry delegated to `blender-assisted-modeling`
+must return through the same validation and export gates.
 
 | Task                                                                                 | Library                                |
 | ------------------------------------------------------------------------------------ | -------------------------------------- |
@@ -95,6 +112,19 @@ Hand-written meshes (raw `Trimesh(vertices, faces)` constructions, manual `solid
 - Put color boundaries on natural geometry breaks.
 - Avoid tiny isolated color islands (reduces purge waste and print time).
 - If color/material regions must be preserved in the output file, finalize as 3MF, not STL.
+- Before choosing in-place ACE Pro color changes, evaluate separately printed keyed
+  color bodies through `multimaterial-assembly-packaging` to reduce purge waste.
+
+## Complex output packaging
+
+For a complex assembly or multiple print orientations, produce:
+
+- an assembled `models/<name>-master.3mf`
+- one or more `models/<name>-print-<plate-or-material>.3mf` files
+- optional `models/<name>-part-<part>.stl` files for independent validation
+
+Every print 3MF must pass `orcaslicer-print-validation`. Do not report print time or
+final print readiness from analytical estimates alone.
 
 ## Output checklist
 
@@ -103,6 +133,12 @@ Hand-written meshes (raw `Trimesh(vertices, faces)` constructions, manual `solid
 - Triangle count and bounding box are reported.
 - Printability risks are reported (thin walls, steep overhangs, tiny details).
 - If the requested geometry cannot be made printable within the stated constraints without fundamental redesign, explain the specific conflict and propose an alternative geometry before generating the output.
+- Reusable-asset source, license, and attribution decisions are documented.
+- Blender exports, when used, preserve frozen datums and pass full mesh validation.
+- Complex outputs include both the assembled master 3MF and print-optimized 3MF
+  files.
+- OrcaSlicer validation status and profiles are reported; unavailable slicing is
+  labeled `not verified`.
 - For STL outputs: the finished STL was opened in the STL canvas and the previewed path is reported.
 - For 3MF outputs: the written 3MF path is reported, and an STL counterpart preview is shown when available.
 

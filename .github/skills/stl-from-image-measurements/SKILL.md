@@ -99,6 +99,12 @@ Rules:
 
 Before committing to a geometry strategy, research available models and reference data. Do not classify the job until research is complete. The classification decision is made exclusively in step 3.
 
+Invoke `research-reusable-3d-assets` for the model search and license gate. Online
+templates are preferred over original construction only when their provenance,
+modification rights, redistribution rights, attribution, scale, and geometry quality
+are documented. An unclear, no-derivatives, or incompatible license makes the mesh
+reference-only.
+
 ### 1b. High-accuracy photo branch (use when precision matters)
 
 When the job is fit-critical and the user can provide additional photos, request a capture set that follows photogrammetry-safe basics:
@@ -217,7 +223,24 @@ If the reference indicates multiple materials, inserts, coatings, or color regio
 
 ### 6. Compose or edit the output geometry
 
-Use the project libraries for all geometry work — never hand-write STL facets or manually computed triangle meshes for complex objects: **build123d** for engineering solids (sketches, hulls, countersinks, bosses, ribs), **trimesh + manifold3d** for simple CSG, repair, and export, **vedo** for render verification, **opencv-python-headless** for frame extraction, relief preprocessing, and silhouette comparison, plus optional helpers such as **scikit-image** when they materially improve contour cleanup. When material/color regions must remain distinct, package the preserved separate solids in a slicer-managed **3MF** handoff and include evidence (3MF path plus slicer preview/screenshot); this repository's mesh CLI validates STL meshes only.
+Use the project libraries for technical geometry — never hand-write STL facets or
+manually computed triangle meshes for complex objects: **build123d** for engineering
+solids (sketches, hulls, countersinks, bosses, ribs), **trimesh + manifold3d** for
+simple CSG, repair, and export, **vedo** for render verification,
+**opencv-python-headless** for frame extraction, relief preprocessing, and silhouette
+comparison, plus optional helpers such as **scikit-image** when they materially
+improve contour cleanup.
+
+Invoke `blender-assisted-modeling` when the object is organic, sculptural, or
+visually complex enough that a parametric surface would be brittle. For mixed
+objects, freeze measured envelopes, interfaces, fits, bores, and keyed joints in
+Python; Blender may change only the approved organic regions. Revalidate scale,
+component count, datums, topology, and feature probes after every Blender export.
+
+When material/color regions must remain distinct, invoke
+`multimaterial-assembly-packaging`: produce an assembled master 3MF plus
+print-optimized 3MF files, and prefer separately printed keyed color bodies when
+that reduces purge without unacceptable visual or structural loss.
 
 Allowed operations include:
 
@@ -278,6 +301,13 @@ If validation fails, stop and report:
 - the safest correction or redesign option
 
 Never present a failing STL as complete.
+
+After mesh and visual validation, invoke `orcaslicer-print-validation` for every
+delivered print 3MF or STL. Final print readiness requires a successful slice with
+the intended Kobra S1/nozzle/process/filament profiles and recorded print time,
+material use, supports, warnings, and plate preview. If OrcaSlicer is unavailable
+and installation is declined, mark this gate `not verified`; never estimate a fake
+slice time.
 
 ### 8b. Render-and-compare loop against photos and video (mandatory for recreations)
 
@@ -369,7 +399,10 @@ Use the platform's image attachment/inline-image mechanism. If the current inter
 Before finishing, provide:
 
 - the chosen workflow path: reuse, hybrid, or recreate
+- the reusable-asset candidates, license decision, attribution, and why the selected
+  asset was reusable or reference-only
 - the shape-first classification used (primitive, glyph/logo, recognizable part family, organic/mixed)
+- the modeling route: Python, Blender, or hybrid, including frozen technical datums
 - whether segment-and-compose was used, and in which sequence segments were added
 - the evidence used: image cues, researched models, and user measurements
 - the reference image index that was used, and which tile numbers backed which dimension
@@ -377,6 +410,9 @@ Before finishing, provide:
 - final relation measurements between objects in mm
 - the material-semantics decision and resulting output format choice (STL or 3MF)
 - printability findings and any accepted risks
+- master 3MF, print-plate 3MF, and optional part-STL paths for complex outputs
+- OrcaSlicer version, profile names, print time, material use, support decision,
+  warnings, and validation status
 - whether the mesh was centered or origin-aligned and by which convention
 - confirmation that the final file was opened in the STL canvas, including the previewed path
 - the final rendered image displayed inline in chat (or an explicit note and path if inline display is unavailable)
@@ -392,9 +428,16 @@ When relevant, also use these workspace skills:
 - `partial-rebuild-instead-of-mutate` when one local region should be replaced from a clean parametric rebuild instead of being further mutated
 - `research-part-specs` before modeling a real, identifiable product, so fit-critical
   dimensions come from a cited spec instead of photo scaling
+- `research-reusable-3d-assets` before original modeling, so reusable meshes have
+  documented provenance and compatible licenses
+- `blender-assisted-modeling` for controlled organic/visual modeling with frozen
+  technical datums and validated export roundtrips
 - `stl-create-edit-interview` to collect missing print-intent decisions
 - `edit-stl-transform` when modifying an imported STL
 - `create-ascii-stl` when building a new STL from scratch
 - `validate-stl-mesh` before final delivery
 - `optimize-stl-for-print` for orientation, overhang and fit compensation once the
   geometry is correct
+- `multimaterial-assembly-packaging` for master/print 3MF files and purge-minimizing
+  color-part assembly
+- `orcaslicer-print-validation` for the final profile-specific slice gate

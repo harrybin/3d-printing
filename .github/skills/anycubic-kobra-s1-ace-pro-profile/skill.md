@@ -38,6 +38,9 @@ When generating new printable geometry, apply these defaults unless user overrid
 - Avoid tiny isolated color islands that cause excessive tool changes and purge waste.
 - For multi-part assemblies, design keyed alignment features to simplify post-assembly.
 - If distinct material/color regions must stay preserved in the delivered model, the final output format should be **3MF**, not STL.
+- Prefer separately printed keyed color bodies when that preserves appearance and
+  strength with less purge waste. Use in-place ACE Pro color changes only when
+  separation is impractical or explicitly preferred.
 
 ## Required validation before finalizing output
 
@@ -48,6 +51,10 @@ When generating new printable geometry, apply these defaults unless user overrid
 - Normals are consistently outward.
 - Bounding box matches intended physical dimensions in mm.
 - Features smaller than 0.8 mm wall baseline are flagged.
+- The exact Anycubic Kobra S1 printer, nozzle, process, and filament profile names
+  used by OrcaSlicer are recorded.
+- Final print readiness, print time, and material use come from a successful
+  OrcaSlicer slice, not an analytical estimate.
 
 ## Research notes used for defaults
 

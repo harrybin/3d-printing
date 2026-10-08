@@ -1,0 +1,32 @@
+{
+  "servers": {
+    "blender": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "${env:BLENDER_MCP_DIR}",
+        "run",
+        "blender-mcp"
+      ],
+      "env": {
+        "BLENDER_HOST": "127.0.0.1",
+        "BLENDER_PORT": "9876"
+      }
+    },
+    "orcaslicer": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "${env:ORCASLICER_MCP_DIR}",
+        "run",
+        "orcaslicer-mcp"
+      ],
+      "env": {
+        "ORCASLICER_PATH": "${env:ORCASLICER_PATH}"
+      },
+      "disabled": true
+    }
+  }
+}

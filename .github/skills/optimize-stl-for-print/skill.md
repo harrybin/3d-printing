@@ -11,6 +11,8 @@ sagging overhangs, a hole that came out too tight, a lid that does not close).
 
 Correctness first: run `.github/skills/validate-stl-mesh` for manifold and feature
 checks. This skill assumes a watertight mesh and only changes how it prints.
+After design-level optimization, run `orcaslicer-print-validation`; analytical
+overhang and volume estimates do not replace a successful slice.
 
 All numbers below assume the **0.4 mm** stock nozzle from
 `.github/skills/anycubic-kobra-s1-ace-pro-profile`. For another nozzle, scale
@@ -136,6 +138,23 @@ python scripts\mesh_tool.py arrange models\a.stl models\b.stl -o models\plate.st
 - Put color boundaries on a chamfer, fillet or step so the seam is not on a flat face.
 - Avoid tiny isolated islands of a second color: each one costs a full tool change
   plus purge.
+- First evaluate whether color regions can be printed separately and joined with
+  keyed, tolerance-controlled features. Prefer that route when it preserves
+  appearance and strength while reducing purge waste.
+
+## Final OrcaSlicer gate
+
+For every delivered print plate:
+
+1. Load the exact validated STL/3MF in OrcaSlicer.
+2. Select the intended Kobra S1, nozzle, process, and filament profiles.
+3. Slice and inspect layers, first layer, bridges, supports, seams, thin walls,
+   color/material transitions, and warnings.
+4. Record print time, material use, layer count, supports, profile names, and
+   validation status from that slice.
+
+If OrcaSlicer is unavailable and installation is declined, mark the result
+`not verified` and do not invent slicer-specific values.
 
 ## Output format
 
@@ -149,6 +168,9 @@ Report:
 - footprint, placement convention, centered yes/no
 - volume plus estimated mass and filament length
 - output format choice when multi-color/material semantics matter (STL vs 3MF)
+- OrcaSlicer version, selected profiles, print time, material use, layer count,
+  support decision, warnings, and `verified | failed | not verified` status
+- master 3MF and print-plate 3MF paths for complex assemblies
 
 ## Mandatory canvas preview after writing an optimized STL
 

@@ -22,9 +22,13 @@ If a procedure is needed more than once, it belongs in a skill file.
 | Multi-view envelope | `visual-hull-envelope-fit` | Constrain an outer shell from several silhouettes before rebuilding or refining the model |
 | Partial rebuild | `partial-rebuild-instead-of-mutate` | Rebuild only the wrong local region from a stable boundary instead of continuing to mutate a drifting model |
 | Spec sourcing | `research-part-specs` | Fit-critical dimension sourcing and measurement docs in `docs/` |
+| Reusable asset research | `research-reusable-3d-assets` | Online model discovery, license/attribution gate, and reuse-vs-rebuild decision |
 | Preflight interview | `stl-create-edit-interview` | Required intent questions before creating/editing |
+| Blender modeling | `blender-assisted-modeling` | Organic/visual modeling, MCP safety, frozen datums, and validated export roundtrip |
 | Mesh quality | `validate-stl-mesh` | Integrity checks, feature probes, stale-file checks |
 | Print optimization | `optimize-stl-for-print` | Orientation and compensation decisions after geometry is correct |
+| Slicer validation | `orcaslicer-print-validation` | Final profiles, slicing, time/material estimates, warnings, and preview evidence |
+| Multimaterial packaging | `multimaterial-assembly-packaging` | Master 3MF, print plates, purge-minimizing color splits, and keyed assembly |
 
 ## Central consistency matrix
 
@@ -43,6 +47,12 @@ If a procedure is needed more than once, it belongs in a skill file.
 | Mesh proof and feature existence | `scripts/mesh_tool.py` checks | `validate-stl-mesh` | `stl-from-image-measurements`, `photo-anchor-candidate-fit` | Prove ambiguous internal features with probes/slices, not screenshots alone. |
 | STL canvas preview | written output path under `models/` | `create-ascii-stl` | `edit-stl-transform`, `stl-from-image-measurements`, `validate-stl-mesh`, `optimize-stl-for-print` | Preview any written STL immediately; for 3MF-first outputs, report the 3MF path and preview an STL counterpart when available. |
 | Optional helper libraries | repo support status | `.github/skills/README.md` | all skills | Mark non-default helpers such as `scikit-image` or `shapely` explicitly as optional where applicable. |
+| Reusable online assets | original source and explicit license | `research-reusable-3d-assets` | `research-part-specs`, `stl-from-image-measurements` | Search before original modeling; unclear or incompatible licenses are reference-only. |
+| Python vs Blender routing | feature type and frozen datums | `blender-assisted-modeling` | `create-ascii-stl`, `stl-from-image-measurements`, `edit-stl-transform` | Python owns fit geometry; Blender owns approved organic/visual regions. |
+| Blender MCP security | current official integration docs and local-only configuration | `blender-assisted-modeling` | `AGENTS.md` | Do not expose Blender MCP publicly or silently install/enable it. |
+| Project MCP configuration | `.vscode/mcp.json` plus local environment variables | `blender-assisted-modeling`, `orcaslicer-print-validation` | `docs/mcp-setup.md` | Commit names and safe defaults, never executable paths, secrets, downloaded servers, or personal profiles. |
+| Final slice evidence | successful OrcaSlicer project slice | `orcaslicer-print-validation` | `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Never claim print time or final print readiness without a successful slice. |
+| Complex 3MF packaging | assembled master plus print plates | `multimaterial-assembly-packaging` | `stl-create-edit-interview`, `optimize-stl-for-print` | Deliver master and print 3MF files; prefer keyed color parts when practical. |
 
 ## What belongs in the library
 

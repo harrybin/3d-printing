@@ -7,6 +7,21 @@ description: Guided question flow for STL/3MF authoring/editing choices (wall st
 
 Use this skill before creating or editing STL or 3MF outputs. It forces key printability decisions up front.
 
+## Preflight gates before geometry questions
+
+Before the print settings interview:
+
+1. Run `research-reusable-3d-assets` for every new nontrivial model and record
+   `asset_strategy = reuse | hybrid | reference-only | rebuild`.
+2. Classify the geometry route:
+   - `python`: technical, dimensional, fit-critical
+   - `blender`: organic, sculptural, or visually complex without critical free-form
+     fits
+   - `hybrid`: frozen Python datums plus Blender-authored organic regions
+3. Detect Blender, the selected Blender MCP integration, and OrcaSlicer before
+   promising their use. If missing, ask about installation; if declined, record the
+   fallback and never invent unavailable slicer metrics.
+
 ## Step-by-step user interview (ask one question at a time)
 
 1. What is the part purpose?
@@ -46,7 +61,8 @@ Use this skill before creating or editing STL or 3MF outputs. It forces key prin
 
 7. Multi-color with ACE Pro?
    - No
-   - Yes: separate bodies per color + seam hiding boundaries
+   - Yes: first evaluate separately printed keyed bodies
+   - Yes: in-place ACE Pro color changes are required
 
 8. If multiple materials/colors are visible in the real object: should those regions stay distinct in the model?
    - No: merge into one printable body/material intent
@@ -58,7 +74,11 @@ Use this skill before creating or editing STL or 3MF outputs. It forces key prin
 
    If answer 8 is "Yes", force output_format = 3mf.
 
-10. Does the part have overhangs greater than 45°?
+10. Is this a complex assembly or does it require multiple print orientations?
+   - No: normal STL/3MF output
+   - Yes: require assembled `master.3mf` plus print-optimized 3MF plate files
+
+11. Does the part have overhangs greater than 45°?
 
 - Yes (set `support_likelihood` = high)
 - No (set `support_likelihood` = low)
@@ -114,6 +134,14 @@ Produce a concise parameter set:
 - multi_color_plan
 - material_semantics_plan
 - output_format
+- asset_strategy
+- modeling_route
+- frozen_datums
+- tool_availability
+- color_split_strategy
+- master_3mf_required
+- print_3mf_plan
+- orcaslicer_profile_plan
 
 Record mesh/lattice wall pattern in `wall_pattern` and internal infill pattern in `infill_pattern` separately.
 

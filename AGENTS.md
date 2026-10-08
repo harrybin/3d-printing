@@ -7,6 +7,11 @@ This repository contains parametric STL generation workflows for FDM printing on
 1. Read [README.md](README.md) for project context and the image-to-STL workflow.
 2. Use Python in the local virtual environment under `.venv`.
 3. Treat scripts in `scripts/` as source of truth; regenerate STL files in `models/` instead of hand-editing mesh files.
+4. Before building any new nontrivial object from scratch, run the reusable-asset
+   and license search from `research-reusable-3d-assets`, including searches for
+   similar functional or stylistic templates when no exact model is expected.
+5. Route technical/fit geometry to Python, organic/visual geometry to the controlled
+   Blender workflow, and every final print job through OrcaSlicer when available.
 
 ## Build And Validation Commands
 
@@ -28,6 +33,8 @@ There is no separate test suite in this repo at the moment.
 
 - For work that starts from `.github/ISSUE_TEMPLATE/model-request.yml`, fill out `.github/pull_request_template.md`.
 - PRs for 3D-model work must list the exact script/model/doc paths changed, the validation commands/results, and any remaining fit-risk.
+- Include the source/license decision, Blender roundtrip evidence when used, and the
+  OrcaSlicer version, profiles, print time, material estimate, warnings, and status.
 - When geometry or delivered outputs change, attach rendered preview images for the final STL/3MF (or slicer previews for multi-material 3MF output) and reference them in the PR description.
 
 ## Final model image in chat (mandatory)
@@ -42,6 +49,8 @@ There is no separate test suite in this repo at the moment.
 - `scripts/`: parametric geometry definitions, boolean operations, reference-image tooling (`make_contact_sheet.py`) and the shared mesh CLI (`mesh_tool.py`).
 - `models/`: generated STL outputs (ASCII STL expected).
 - `.github/skills/`: task-specialized behavior used by agents for STL creation, editing, and validation.
+- `.blend` files may preserve organic modeling sources, but Python scripts and
+  measurement docs remain authoritative for fit-critical geometry.
 
 If behavior around print constraints, validation policy, or coordinate targeting changes, update both script logic and the relevant skill file so they stay aligned.
 
@@ -55,9 +64,40 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - When convention is not explicitly provided, prefer auto-detection (negative XY implies center-origin; otherwise corner-origin).
 - For fit-critical features, keep clearances explicit and parameterized (example: `PRESS_CLEAR` in `scripts/lineal_clip_kappe.py`).
 - For mesh booleans, use the manifold engine and keep output watertight.
-- Never hand-write STL facets or manual vertex/triangle lists for complex objects: always generate geometry through the Python libraries in `requirements.txt` (build123d for engineering solids, trimesh + manifold3d for CSG/repair/export, vedo for render checks, opencv for reference comparison).
+- Never hand-write STL facets or manual vertex/triangle lists for complex objects.
+  Generate technical geometry through the Python libraries in `requirements.txt`
+  (build123d for engineering solids, trimesh + manifold3d for CSG/repair/export,
+  vedo for render checks, opencv for reference comparison); route approved organic
+  geometry through `blender-assisted-modeling`.
+- Blender is allowed for organic, sculptural, relief, and visually complex regions.
+  It must not freely alter measured datums, bores, fits, interfaces, or keyed joints.
+  Validate every Blender export independently with the repo tools.
+- Prefer the official Blender Lab MCP integration, bind it only to localhost, save a
+  `.blend` checkpoint before agent-controlled changes, and treat arbitrary Blender
+  Python execution as trusted local code execution.
+- Use the versioned `.vscode/mcp.json` template and `docs/mcp-setup.md`; keep
+  executable paths, downloaded servers, add-ons, secrets, and personal profiles out
+  of Git.
+- Before original modeling, always search for exact or similar adaptable 3D assets
+  with a clear license. Record source, author, license,
+  modification/redistribution rights, and attribution. Never use unclear or
+  no-derivatives assets as an editable base.
 - Never invent a fit-critical dimension. Every such number is user-measured, taken from a cited published spec, or explicitly flagged as an estimate needing a test print; record origin, source and confidence in the `docs/` measurement doc (see `research-part-specs`).
 - Print-orientation rotations go into a new file or the slicer. Never overwrite a generator's `models/` output with a rotated copy - that desyncs the mesh from its parametric source.
+- Every delivered print plate must be sliced in OrcaSlicer with the intended Kobra
+  S1/nozzle/process/filament profiles when OrcaSlicer is available. Record print
+  time and material only from a successful slice.
+- New complex assemblies use `models/<name>-master.3mf` for the complete assembled
+  object and one or more `models/<name>-print-<plate-or-material>.3mf` files for
+  print-optimized jobs. Optional part STLs do not replace these files.
+- Prefer separately printed, keyed color bodies over purge-heavy in-place
+  multicolor when assembly, strength, and appearance remain acceptable.
+- Detect Blender, Blender MCP, and OrcaSlicer before relying on them. If a tool is
+  missing, ask whether the user wants it installed or enabled. If declined,
+  continue with repo-native tools and label unavailable validation explicitly.
+- OrcaSlicer has an official CLI but no project-approved first-party MCP entry. Keep
+  the repository's OrcaSlicer MCP template disabled unless a specific third-party
+  server has been audited and explicitly enabled.
 - For engineering shapes (countersinks, bosses, ribs, hulled contours), prefer **build123d** for the solid and re-export through trimesh (round vertices to 0.001 mm, merge, dedupe faces) to guarantee a watertight ASCII STL.
 - When recreating parts from photos/videos, run the render-and-compare loop (vedo offscreen renders vs. reference frames) before declaring the model done; see `.github/skills/stl-from-image-measurements/SKILL.md`.
 - Before reading reference photos, build a numbered contact sheet with `python scripts/make_contact_sheet.py <image folder>` and open only the tiles that show the feature in question. Commit the sheet as `<image folder>/_index.png` and cite tile numbers in the measurement doc.
@@ -71,6 +111,10 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - `make_hull` of two circles produces straight tangent segments and is the wrong way to build teardrop/egg contours; use tangent flank arcs (see `create-ascii-stl`).
 - Internal ledges must be sketched on the plane they sit on and extruded upwards; sketching them in a side plane hides them mid-cavity and looks like a missing feature.
 - `pymeshfix` deletes geometry on thin-walled multi-chamber parts; do not use it.
+- Slicer auto-repair is not a source fix. Return to Python or Blender, repair the
+  source geometry, re-export, and revalidate.
+- PATH absence alone does not prove Blender or OrcaSlicer is uninstalled; inspect
+  common install locations or ask for the executable path.
 - Editing `models/*.stl` directly can desync files from their parametric source script.
 - Fit tweaks should be made in script parameters, then regenerated and revalidated.
 - User-edited measurement docs under `docs/` are authoritative; re-read them before every geometry change.
@@ -87,6 +131,11 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Print optimization policy: [.github/skills/optimize-stl-for-print/skill.md](.github/skills/optimize-stl-for-print/skill.md)
 - Dimension sourcing policy: [.github/skills/research-part-specs/skill.md](.github/skills/research-part-specs/skill.md)
 - Image-to-STL workflow: [.github/skills/stl-from-image-measurements/SKILL.md](.github/skills/stl-from-image-measurements/SKILL.md)
+- Reusable asset/license research: [.github/skills/research-reusable-3d-assets/skill.md](.github/skills/research-reusable-3d-assets/skill.md)
+- Blender-assisted modeling: [.github/skills/blender-assisted-modeling/skill.md](.github/skills/blender-assisted-modeling/skill.md)
+- OrcaSlicer validation: [.github/skills/orcaslicer-print-validation/skill.md](.github/skills/orcaslicer-print-validation/skill.md)
+- Multimaterial packaging: [.github/skills/multimaterial-assembly-packaging/skill.md](.github/skills/multimaterial-assembly-packaging/skill.md)
+- Local MCP setup: [docs/mcp-setup.md](docs/mcp-setup.md)
 
 ## Central consistency matrix
 
@@ -106,6 +155,10 @@ If behavior around print constraints, validation policy, or coordinate targeting
 | Final model image in chat | exact final STL/3MF output | `create-ascii-stl` | `edit-stl-transform`, `stl-from-image-measurements`, `optimize-stl-for-print` | Post an inline rendered image in the final chat response; a canvas preview or path alone is not enough. |
 | STL canvas preview | written output path under `models/` | `create-ascii-stl` | `edit-stl-transform`, `stl-from-image-measurements`, `validate-stl-mesh`, `optimize-stl-for-print` | Also preview written STL outputs in the canvas; for 3MF-first outputs, report the 3MF path and preview an STL counterpart when available. |
 | Optional helper libraries | repo support status | `.github/skills/README.md` | all skills | Mark non-default helpers such as `scikit-image` or `shapely` explicitly as optional where applicable. |
+| Reusable online assets | original source and explicit license | `research-reusable-3d-assets` | `research-part-specs`, `stl-from-image-measurements` | Search before original modeling; unclear or incompatible licenses are reference-only. |
+| Python vs Blender routing | feature type and frozen datums | `blender-assisted-modeling` | `create-ascii-stl`, `stl-from-image-measurements` | Python owns fit geometry; Blender owns approved organic/visual regions. |
+| Final slice evidence | successful OrcaSlicer project slice | `orcaslicer-print-validation` | `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Never claim print time or final print readiness without a successful slice. |
+| Complex 3MF packaging | assembled master plus print plates | `multimaterial-assembly-packaging` | `stl-create-edit-interview`, `optimize-stl-for-print` | Deliver a master 3MF and print-optimized 3MFs; prefer keyed color parts when practical. |
 
 ## Session-Learned Friction To Avoid
 
