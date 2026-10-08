@@ -10,6 +10,10 @@ product** - a lens cap, a hinge, a post plug, a rail profile, a standard fastene
 Photo scaling is good for shape; it is not good for the two or three numbers a fit
 actually depends on.
 
+Use `research-reusable-3d-assets` alongside this skill when an existing 3D model may
+be reused. This skill owns dimensional truth; the asset skill owns provenance,
+license, attribution, and reuse permission.
+
 Rule: **never invent a dimension.** Every fit-critical number is either measured by
 the user, taken from a cited published spec, or explicitly flagged as an estimate
 that needs a test print.
@@ -120,5 +124,6 @@ Report:
 ## Related
 
 - `.github/skills/stl-from-image-measurements` - the photo-to-STL workflow this feeds
+- `.github/skills/research-reusable-3d-assets` - model asset and license research
 - `.github/skills/optimize-stl-for-print` - clearance and hole compensation on top
   of the nominal dimensions found here

@@ -142,8 +142,12 @@ If the fit is too tight or too loose, adjust `HOLE_DIA` / `PRESS_CLEAR` in
 | `partial-rebuild-instead-of-mutate` | Rebuilds one wrong local region from a stable boundary instead of continuing to mutate a drifting model. |
 | `stl-from-image-measurements` | Creates or edits STL/3MF outputs from user photos plus measurements: identifies the whole shape first, researches existing models, applies reuse-vs-segmentation strategy, derives scale from reference objects, and validates against printer constraints. |
 | `research-part-specs` | Sources real published dimensions for an identifiable product before modeling, records origin/source/confidence per value in `docs/`, and forbids invented fit-critical numbers. |
+| `research-reusable-3d-assets` | Always searches for exact or similar reusable models before nontrivial original construction, verifies modification/redistribution rights, records attribution, and chooses reuse, hybrid, reference-only, or rebuild. |
+| `blender-assisted-modeling` | Routes organic and visually complex geometry through a controlled local Blender/MCP workflow while freezing technical datums and revalidating every export. |
 | `validate-stl-mesh` | Validates an STL for manifold correctness and FDM printability: syntax, triangle count, watertight topology, normal consistency, and bed-fit. |
 | `optimize-stl-for-print` | Optimizes a correct mesh for printing: orientation for load direction, overhang and bridge reduction, hole/elephant-foot compensation, bed layout and filament estimate. |
+| `orcaslicer-print-validation` | Performs the final slicer gate and records exact profiles, print time, material use, supports, warnings, status, and plate previews. |
+| `multimaterial-assembly-packaging` | Builds an assembled master 3MF plus print-optimized 3MF plates, favoring keyed separately printed color parts to reduce purge waste. |
 | `.github/skills/README.md` *(meta)* | Skills library index for reusable procedures: which rules are maintained in which skills and how new findings should be categorized. |
 
 ## Central consistency matrix
@@ -163,6 +167,32 @@ If the fit is too tight or too loose, adjust `HOLE_DIA` / `PRESS_CLEAR` in
 | Feature proof | `validate-stl-mesh` | Use probes, slices, and compare checks instead of screenshots alone. |
 | Final model image in chat | `create-ascii-stl` | Post an inline render of the exact final STL/3MF in the final chat response; a canvas preview or path alone is not enough. |
 | Canvas preview | `create-ascii-stl` | Also preview written STL files from `models/`; for 3MF-first outputs, report the 3MF path and preview an STL counterpart when available. |
+| Reusable model assets | `research-reusable-3d-assets` | Always search exact and similar templates before nontrivial original modeling and use only assets with documented, compatible modification and redistribution rights. |
+| Python vs Blender | `blender-assisted-modeling` | Python owns fit-critical geometry; Blender owns approved organic and visual regions, followed by independent export validation. |
+| Final slicing | `orcaslicer-print-validation` | Do not claim print time or final print readiness without a successful slice using the intended profiles. |
+| Complex and multicolor packaging | `multimaterial-assembly-packaging` | Deliver an assembled master 3MF and print-optimized 3MF plates; prefer separately printed keyed colors when practical. |
+
+## Blender and OrcaSlicer workflow
+
+Technical features, dimensions, fits, joints and clearances remain parametric in
+Python. Organic or visually complex regions may be authored or refined in Blender,
+preferably through the official local Blender Lab MCP integration. Blender exports
+are treated as external meshes and must pass the same scale, topology, feature and
+render checks as any downloaded model.
+
+Every new complex assembly is delivered as `models/<name>-master.3mf` plus one or
+more `models/<name>-print-<plate-or-material>.3mf` files. OrcaSlicer is the final
+print gate: each print plate is sliced with the intended Kobra S1, nozzle, process
+and filament profiles, and the resulting print time, material estimate, supports
+and warnings are documented. When colors can be separated without unacceptable
+loss of appearance or strength, keyed separately printed bodies are preferred over
+purge-heavy in-place multicolor printing.
+
+The project MCP template is `.vscode/mcp.json`. Blender uses the official Blender
+Lab MCP server through a local `uv` installation. OrcaSlicer is configured as an
+opt-in, disabled-by-default template because the official OrcaSlicer integration is
+its CLI rather than a first-party MCP server. See
+[`docs/mcp-setup.md`](docs/mcp-setup.md) before enabling either integration.
 
 ## Mesh CLI
 

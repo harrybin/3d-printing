@@ -41,6 +41,19 @@ script only for checks the CLI does not cover.
 - Consistent outward normals
 - Single connected component unless separate bodies are intentional (check `mesh.split(only_watertight=False)`)
 
+## Imported and Blender-exported meshes
+
+Treat every downloaded, Blender-authored, or Blender-roundtripped mesh as
+untrusted external geometry:
+
+- validate each intended printable body separately
+- verify units and bounds against a known dimension
+- compare component count and frozen fit-datum positions with the source contract
+- probe bores, joints, floors, and interfaces after export
+- reject unexpected internal shells or merged color/material bodies
+
+Slicer auto-repair is not a substitute for fixing the Python or Blender source.
+
 ## Repair recipe for CAD-kernel exports (session-verified)
 
 OCCT-based exporters (build123d, CadQuery) frequently produce STLs that are not watertight even though the solid is valid. Apply this lossless repair before failing the mesh:
@@ -138,6 +151,8 @@ Return:
 - mesh stats (bounds, facets, unique vertices)
 - placement status (centered/not centered), including convention (`center-origin` or `corner-origin`)
 - applied transform (if auto-correction was requested and performed)
+- per-body results for assemblies and preserved color/material bodies
+- whether the file is ready for handoff to `orcaslicer-print-validation`
 
 ## Mandatory canvas preview after auto-correction
 
