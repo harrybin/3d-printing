@@ -311,8 +311,11 @@ def check() -> dict:
     if abs(mechanism.forearm_angle(THETA_MIN)
            - mechanism.STOW_ANGLE) > 0.01:
         failures.append("Unterarm erreicht die Stauposition nicht")
-    if abs(mechanism.forearm_angle(THETA_MAX)) > 0.01:
-        failures.append("Unterarm richtet sich nicht vollständig auf")
+    if abs(
+        mechanism.forearm_angle(THETA_MAX)
+        - mechanism.DEPLOYED_FOREARM_ANGLE
+    ) > 0.01:
+        failures.append("Unterarm erreicht die Präsentationsneigung nicht")
 
     pose_metrics = {}
     progress("Pruefe eingefahrene und ausgefahrene Endstellung", started)

@@ -12,7 +12,7 @@ chain documented in docs/ghouls-grip-masse-und-bauanleitung.md:
 The lid has its own opening bands and is released by the same rocker as the
 slider.  A control cord with deliberate slack keeps the hand folded during the
 first part of the lift; once taut, it unwraps from a sector drum on the
-forearm hinge and rotates the hand upright.
+forearm hinge and rotates the hand into its presentation angle.
 
 Every part is modelled in its print orientation: flat parts lie in XY with
 their thickness along Z, so nothing needs support.
@@ -49,7 +49,9 @@ PLATFORM_W = 90.0
 PLATFORM_T = 6.0
 ARM_HINGE_X = 33.0
 ARM_HINGE_Z = 22.0
-STOW_ANGLE = -100.0
+STOW_ANGLE = -105.0
+DEPLOYED_FOREARM_ANGLE = -45.0
+HAND_PALM_ROLL = -75.0
 
 FOREARM_ENGAGE_THETA = 45.0
 FOREARM_CORD_Y = 34.0
@@ -97,7 +99,9 @@ FOREARM_CORD_TRAVEL = (
     forearm_cord_distance(THETA_MAX)
     - forearm_cord_distance(FOREARM_ENGAGE_THETA)
 )
-FOREARM_SECTOR_R = FOREARM_CORD_TRAVEL / np.deg2rad(-STOW_ANGLE)
+FOREARM_SECTOR_R = FOREARM_CORD_TRAVEL / np.deg2rad(
+    DEPLOYED_FOREARM_ANGLE - STOW_ANGLE
+)
 FOREARM_CORD_X = float(forearm_hinge(THETA_MIN)[0] + FOREARM_SECTOR_R)
 RETRACTED_SLIDER_X = slider_x(THETA_MIN)
 LATCH_SUPPORT_XS = (-8.0, RETRACTED_SLIDER_X + 8.0)
@@ -116,7 +120,7 @@ def forearm_angle(theta: float) -> float:
     used = forearm_cord_distance(theta) - forearm_cord_distance(
         FOREARM_ENGAGE_THETA
     )
-    return float(min(0.0, STOW_ANGLE + np.rad2deg(
+    return float(min(DEPLOYED_FOREARM_ANGLE, STOW_ANGLE + np.rad2deg(
         used / FOREARM_SECTOR_R
     )))
 
@@ -372,9 +376,15 @@ def build_forearm(length: float = 34.0) -> trimesh.Trimesh:
         (0.0, 1.0, 0.0),
     )
     body = union([body, spigot, ear, control_shaft, sector])
+    wrist_pin_angle = HAND_PALM_ROLL + 0.5
+    wrist_pin_axis = (
+        np.cos(np.deg2rad(wrist_pin_angle)),
+        np.sin(np.deg2rad(wrist_pin_angle)),
+        0.0,
+    )
     body = difference(body, [
-        cylinder(1.9 / 2.0, 20.0, (0.0, 0.0, length + 9.0), (1.0, 0.0, 0.0)),
-        cylinder((PIN_D + 0.4) / 2.0, 30.0, (0.0, 0.0, 4.0), (1.0, 0.0, 0.0)),
+        cylinder(1.9 / 2.0, 20.0, (0.0, 0.0, length + 9.0), wrist_pin_axis),
+        cylinder((PIN_D + 0.4) / 2.0, 30.0, (0.0, 0.0, 4.0), (0.0, 1.0, 0.0)),
     ])
     return clean(body)
 

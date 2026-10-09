@@ -19,7 +19,7 @@ Die Prüfung rekonstruiert die kompakte 72-mm-Scherengeometrie in 31 Stellungen.
 | Benachbarte Fingerknochen-Schnittmenge | 0.000 mm³ |
 | Beliebige Fingerknochen-Schnittmenge (flach/gegriffen) | 0.000 mm³ |
 | Fingersockel/Handfläche-Schnittmenge | 0.000 mm³ |
-| Laufzeit der Verifikation | 187.8 s |
+| Laufzeit der Verifikation | 164.9 s |
 | retracted: Hand/Gehäuse-Schnitt | 0.000 mm³ |
 | retracted: Hand/Hubjoch-Schnitt | 0.000 mm³ |
 | deployed: Hand/Gehäuse-Schnitt | 0.000 mm³ |
@@ -41,8 +41,8 @@ Die Prüfung rekonstruiert die kompakte 72-mm-Scherengeometrie in 31 Stellungen.
 
 | Zustand | Hand-/Unterarm-Bounds (min → max) |
 | --- | --- |
-| retracted | `[-95.791, -32.079, 4.183]` → `[70.308, 38.0, 83.796]` |
-| deployed | `[27.469, -32.079, 99.117]` → `[107.493, 38.0, 263.785]` |
+| retracted | `[-96.812, -39.018, 19.028]` → `[74.843, 39.139, 74.092]` |
+| deployed | `[-38.17, -39.018, 94.576]` → `[74.851, 39.139, 246.733]` |
 
 ## Scherensweep
 
@@ -84,16 +84,16 @@ Die Prüfung rekonstruiert die kompakte 72-mm-Scherengeometrie in 31 Stellungen.
 
 | Scherenwinkel | Deckel | Unterarm |
 | ---: | ---: | ---: |
-| 18° | -0.0° | -100.0° |
-| 23° | -12.0° | -100.0° |
-| 28° | -26.8° | -100.0° |
-| 33° | -44.3° | -100.0° |
-| 38° | -64.3° | -100.0° |
-| 43° | -82.0° | -100.0° |
-| 48° | -82.0° | -92.7° |
-| 53° | -82.0° | -76.7° |
-| 58° | -82.0° | -58.6° |
-| 63° | -82.0° | -40.7° |
-| 68° | -82.0° | -24.4° |
-| 73° | -82.0° | -10.6° |
-| 78° | -82.0° | 0.0° |
+| 18° | -0.0° | -105.0° |
+| 23° | -13.5° | -105.0° |
+| 28° | -30.1° | -105.0° |
+| 33° | -49.7° | -105.0° |
+| 38° | -72.1° | -105.0° |
+| 43° | -92.0° | -105.0° |
+| 48° | -92.0° | -100.6° |
+| 53° | -92.0° | -91.0° |
+| 58° | -92.0° | -80.2° |
+| 63° | -92.0° | -69.4° |
+| 68° | -92.0° | -59.6° |
+| 73° | -92.0° | -51.4° |
+| 78° | -92.0° | -45.0° |

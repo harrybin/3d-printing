@@ -39,6 +39,7 @@ POSES = {
     "retracted": mechanism.THETA_MIN,
     "deployed": mechanism.THETA_MAX,
 }
+LID_OPEN_ANGLE = 92.0
 
 
 def rot(angle_deg: float, axis, point=(0.0, 0.0, 0.0)):
@@ -80,7 +81,7 @@ def lid_angle(theta: float) -> float:
     released = (
         mechanism.RETRACTED_SLIDER_X - mechanism.slider_x(theta)
     ) / travel
-    return -82.0 * min(max(released / 0.28, 0.0), 1.0)
+    return -LID_OPEN_ANGLE * min(max(released / 0.28, 0.0), 1.0)
 
 
 
@@ -180,11 +181,11 @@ def build_scene_at(theta: float):
     hand = grip_hand()
     stack = trimesh.util.concatenate(list(hand.values()))
     wrist_y = stack.bounds[0][1]
-    transverse_shift = float(np.mean(stack.bounds[:, 2]))
     for name, mesh in hand.items():
         part = mesh.copy()
         part.apply_transform(rot(90.0, [1, 0, 0]))
-        part.apply_translation([0.0, transverse_shift, -wrist_y + 38.0])
+        part.apply_translation([0.0, 0.0, -wrist_y + 38.0])
+        part.apply_transform(rot(mechanism.HAND_PALM_ROLL, [0, 0, 1]))
         part.apply_transform(rot(tilt, [0, 1, 0]))
         part.apply_translation(hinge)
         colour = "#efe2c4" if name.startswith("hand-finger") else "#d8c6a5"

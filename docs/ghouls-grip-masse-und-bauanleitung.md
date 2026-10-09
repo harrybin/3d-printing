@@ -57,10 +57,10 @@ Das passt weiterhin in den 194 × 114 mm großen Innenraum.
 ### Abweichung: Hubweg
 
 Die kompakte Schere hebt das Hubjoch um **48,2 mm** (22,2 → 70,4 mm
-Scherenhöhe). Weil Unterarm und Hand erst nach vollständiger Deckelöffnung
-aufrichten, erreichen die Fingerspitzen **263,6 mm über der Aufstellfläche**,
-also rund **162 mm über dem geschlossenen Deckel**. Der Effekt bleibt erhalten,
-obwohl Schere und Hubjoch deutlich kleiner sind.
+Scherenhöhe). Weil Unterarm und Hand erst nach vollständiger Deckelöffnung in
+die Präsentationslage schwenken, erreichen die Fingerspitzen **246,7 mm über
+der Aufstellfläche**, also rund **145 mm über dem geschlossenen Deckel**. Der
+Effekt bleibt erhalten, obwohl Schere und Hubjoch deutlich kleiner sind.
 
 ## Kinematik und vollständiger Kraftpfad
 
@@ -71,11 +71,13 @@ obwohl Schere und Hubjoch deutlich kleiner sind.
    12 mm und zieht seine Rastzunge bei x = 68,5 mm aus der Schlittennut.
 3. Derselbe Rastschieber gibt die innen geführte Deckelschlaufe frei. Zwei
    kurze Gummibänder an der
-   Rückkante öffnen den Deckel schnell auf 82°, bevor die Hand aufrichtet.
-4. Während der ersten 28,7 mm Hub bleibt der Unterarm um 100° gefaltet. Danach
+   Rückkante öffnen den Deckel schnell auf 92°, bevor die Hand aufrichtet.
+4. Während der ersten 28,7 mm Hub bleibt der Unterarm um 105° gefaltet. Danach
    wird das vorbereitete Spiel im Steuerseil aufgebraucht; die restlichen
-   19,5 mm Hub wickeln das Seil von der Ø22,4-mm-Sektorscheibe ab und richten
-   den Unterarm zwangsgeführt auf.
+   19,5 mm Hub wickeln das Seil von der Ø27,7-mm-Sektorscheibe ab und schwenken
+   den Unterarm zwangsgeführt bis zur nach links geneigten Endlage von
+   -45°. Die Hand ist am Spigot fest um -75° gerollt, sodass die gekrümmte
+   Handfläche nach oben zeigt und Süßigkeiten aufnehmen kann.
 5. Eine Spule hinter der rechten Innenwand ist über ein vollständig
    innenliegendes 0,8-mm-Rückholseil mit dem Schlitten verbunden. Zum Spannen
    wird der flache Knochen-Schlüssel auf den 4-mm-Vierkant gesteckt und danach
@@ -90,13 +92,14 @@ Maßgebliche Daten:
 - Schlittenweg x = +68,5 → +15,0 mm (**53,5 mm**).
 - Kompaktes offenes Hubjoch: **82 × 92 mm**; der zentrale Handraum bleibt frei.
 - Unterarmscharnier: Weltposition x = 61 mm; z = 60,2 → 108,4 mm.
+- Unterarm-Endlage: **-45°** nach links; feste Handgelenk-Rollung **-75°** mit nach oben gerichteter Handfläche.
 - Deckelscharnier: X-Achse an der langen Rückkante, y = 61 mm, z = 93 mm;
-  federgeöffnet und durch Fangband auf 82° begrenzt.
+  federgeöffnet und durch Fangband auf 92° begrenzt.
 - Spulenwelle in der rechten Seitenwand bei **(+100, 0, 30) mm**; Spule und
   Seil liegen innen, der abnehmbare Schlüssel steht aufgesteckt nur 9,6 mm vor.
 - Der 5,5-mm-Totenkopf-Stößel endet in Ruhe 1,3 mm vor der Rastschieberrampe;
   der 13-mm-Schädelkopf liegt vollständig außerhalb der Frontwand.
-- Eingefahrene Hand: 1,18 mm kleinster Innenraumrand und 2,27 mm Abstand zur
+- Eingefahrene Hand: 0,19 mm kleinster Innenraumrand und 11,91 mm Abstand zur
   geschlossenen Deckelunterseite.
 - Nachgewiesene Schnittvolumen über den vollständigen Sweep: Hand/Gehäuse,
   Hand/Deckel, Hand/Hubjoch, Hand/Scherenarme und Klinke/Schlitten jeweils
@@ -114,7 +117,7 @@ Maßgebliche Daten:
   ohne um Finger zuzuschnappen.
 - Zwei Haushaltsgummibänder treiben nur den Hub an. Mit **einem** Band je Seite
   beginnen und die Vorspannung erst nach einem Leerlauftest erhöhen.
-- Der Deckel braucht ein Fangband auf höchstens 82° Öffnungswinkel.
+- Der Deckel braucht ein Fangband auf höchstens 92° Öffnungswinkel.
 - Alle Quetschstellen der Schere bleiben im Gehäuse.
 - Nicht unbeaufsichtigt an Kinder geben, nicht auf Gesicht oder Augen richten.
 
@@ -140,7 +143,7 @@ geprüft.
 | Interne Seilspule | 1 | 24 × 24 × 29 | PLA naturweiß |
 | Abnehmbarer Knochen-Schlüssel | 1 | 32,3 × 14 × 6,6 | PLA naturweiß |
 | Bandanker | 1 | 14 × 110 × 25,5 | PLA naturweiß |
-| Unterarm mit Sektorscheibe | 1 | 27,4 × 47 × 56,7 | PLA knochenfarben |
+| Unterarm mit Sektorscheibe | 1 | 27,7 × 47 × 56,9 | PLA knochenfarben |
 | Pivot-Pin klein | 8 | Ø6,2 × 26 | PLA naturweiß |
 | Pivot-Pin groß | 4 | Ø7,2 × 34 | PLA naturweiß |
 | Flacher Totenkopf-Auslöser | 1 | 42,2 × 47,9 × 21,5 | PLA grau |
@@ -208,7 +211,7 @@ Mit OrcaSlicer 2.4.2 erfolgreich geslicte Werte:
 | --- | ---: | ---: | ---: | --- |
 | Schwarz PLA, Platte 1 | 137 | 229,27 g | 12 h 24 min | Baum |
 | Schwarz PLA, Platte 2 | 490 | 386,16 g | 15 h 07 min | Baum |
-| Knochen PLA | 262 | 51,24 g | 3 h 27 min | Baum |
+| Knochen PLA | 284 | 53,21 g | 3 h 34 min | Baum |
 | Mechanik PLA, supportfrei | 170 | 50,10 g | 2 h 31 min | nein |
 | Hubjoch PLA | 344 | 46,21 g | 1 h 59 min | normal/snug |
 | Rastschieber PLA | 344 | 8,94 g | 32 min | normal/snug |
@@ -217,7 +220,7 @@ Mit OrcaSlicer 2.4.2 erfolgreich geslicte Werte:
 | Bandanker PLA | 143 | 12,25 g | 40 min | normal/snug |
 | Akzent PLA | 107 | 14,32 g | 51 min | Baum |
 | Finger PLA | 57 | 12,01 g | 1 h 23 min | Baum |
-| **Gesamt** | - | **849,39 g** | **40 h 19 min** | - |
+| **Gesamt** | - | **851,36 g** | **40 h 26 min** | - |
 
 Alle Projekte starten mit **55/215 °C** (PLA). Das Fingerprojekt fährt die
 Außenwände bewusst mit 30 mm/s und reduzierter Beschleunigung, damit der
@@ -246,21 +249,25 @@ Die vollständige Slice-Evidenz steht in
    (+100, 0, 30) führen. Ein 0,8-mm-Seil vom Schlittenauge zur internen Spule
    legen. Den abnehmbaren Knochen-Schlüssel außen auf den Vierkant stecken:
    Aufwickeln muss den Schlitten nach rechts in die Raststellung ziehen.
-7. Unterarm in die Hubjoch-Ohren hängen. Steuerseil am Gehäuseauge
-   (x = 72,2, y = 34, z = 18) befestigen, mit **28,7 mm Spiel** zur
-   Sektorscheibe führen und aufwickeln. Erst nach vollständiger Deckelöffnung
-   darf das Seil straff werden und den Unterarm aufrichten.
-8. Handfläche und Sehnenführung auf den Unterarmspigot stecken. Die fünf
-   Fingersockel mit 1,0 mm Durchmesserspiel auf ihre beschrifteten Knöchelzapfen
-   setzen. Kein Fingerknochen darf einen Nachbarknochen oder die Handfläche
-   schneiden.
+7. Unterarm mit der jetzt zur Y-Achse passenden Hauptgelenkbohrung in die
+   Hubjoch-Ohren hängen. Steuerseil am Gehäuseauge (x = 72,2, y = 34, z = 18)
+   befestigen, mit **28,7 mm Spiel** zur Sektorscheibe führen und aufwickeln.
+   Erst nach vollständiger Deckelöffnung darf das Seil straff werden und den
+   Unterarm bis zum -45°-Anschlag schwenken.
+8. Handfläche und Sehnenführung um **-75°** gerollt auf den Unterarmspigot
+   stecken, bis die schräg ausgerichteten 1,9-mm-Querbohrungen fluchten, und
+   mit 1,75-mm-Filament sichern. In Endlage muss die Handfläche nach oben
+   zeigen. Die fünf Fingersockel mit 1,0 mm Durchmesserspiel auf ihre
+   beschrifteten Knöchelzapfen setzen. Kein Fingerknochen darf einen
+   Nachbarknochen oder die Handfläche schneiden.
 9. Fingersehnen von den Spitzen durch die Führung zum Jochauge führen. So
    einstellen, dass die Finger im letzten Drittel des Hubs schließen.
 10. Deckel mit 1,75-mm-Filamentstift montieren. Je ein Öffnungsband zwischen
     den hinteren Gehäuseaugen und Deckellaschen einhängen. Die vordere
-    Deckelschlaufe am Rastschieber einhängen und ein Fangband auf 82° einstellen.
+    Deckelschlaufe am Rastschieber einhängen und ein Fangband auf 92° einstellen.
 11. Ohne Süßigkeiten prüfen: Totenkopf drücken → Deckel öffnet zuerst → Schere
-    hebt → Unterarm richtet sich auf → Finger schließen. Danach mit der rechten
+    hebt → Unterarm schwenkt nach links und präsentiert die Handfläche nach oben
+    → Finger schließen. Danach mit der rechten
     aufgesteckten Schlüssel zurückspannen, den Schlüssel abziehen; die Hand
     muss vollständig verschwinden und der Deckel ohne Druck schließen.
 
@@ -281,7 +288,7 @@ Die vollständige Slice-Evidenz steht in
 ## Offene Testdruck-Risiken
 
 - Der rechnerisch kleinste Innenraumrand der eingeklappten Hand beträgt
-  **1,18 mm**; zur Deckelunterseite bleiben **2,27 mm**. Der Kollisionsnachweis ist geometrisch bestanden, aber
+  **0,19 mm**; zur Deckelunterseite bleiben **11,91 mm**. Der Kollisionsnachweis ist geometrisch bestanden, aber
   Drucktoleranzen und Sehnenspiel erfordern einen Einbau-/Stow-Test vor dem
   endgültigen Deckelanschlag.
 - Die Gummibandlänge von ca. 60 mm ist nur das ungespannte Kaufmaß;
