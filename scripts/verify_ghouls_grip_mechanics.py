@@ -137,6 +137,7 @@ def check() -> dict:
     last_lid_angle = 1.0
     max_latch_overlap = 0.0
     max_hand_chest = 0.0
+    max_lid_chest = 0.0
     max_hand_lid = 0.0
     max_hand_platform = 0.0
     max_hand_arm = 0.0
@@ -171,6 +172,7 @@ def check() -> dict:
             mesh for name, mesh in named.items() if name.startswith("arm-")
         ])
         hand_chest = volume_intersection(hand, named["chest"])
+        lid_chest = volume_intersection(named["lid"], named["chest"])
         hand_lid = volume_intersection(hand, named["lid"])
         hand_platform = sum(
             volume_intersection(named[name], named["platform"])
@@ -215,6 +217,7 @@ def check() -> dict:
             )
         last_lid_angle = angle
         max_hand_chest = max(max_hand_chest, hand_chest)
+        max_lid_chest = max(max_lid_chest, lid_chest)
         max_hand_lid = max(max_hand_lid, hand_lid)
         max_hand_platform = max(max_hand_platform, hand_platform)
         max_hand_arm = max(max_hand_arm, hand_arm)
@@ -258,6 +261,7 @@ def check() -> dict:
             "lid_angle": angle,
             "forearm_angle": mechanism.forearm_angle(float(theta)),
             "hand_chest_mm3": hand_chest,
+            "lid_chest_mm3": lid_chest,
             "hand_lid_mm3": hand_lid,
             "hand_platform_mm3": hand_platform,
             "hand_arm_mm3": hand_arm,
@@ -273,6 +277,7 @@ def check() -> dict:
 
     for label, value in (
         ("Hand/Gehäuse", max_hand_chest),
+        ("Deckel/Gehäuse", max_lid_chest),
         ("Hand/Deckel", max_hand_lid),
         ("Hand/Hubjoch", max_hand_platform),
         ("Hand/Scherenarme", max_hand_arm),
@@ -427,6 +432,7 @@ def check() -> dict:
         "max_finger_palm_overlap_mm3": max_finger_palm_overlap,
         "max_sweep_collisions_mm3": {
             "hand_chest": max_hand_chest,
+            "lid_chest": max_lid_chest,
             "hand_lid": max_hand_lid,
             "hand_platform": max_hand_platform,
             "hand_scissor": max_hand_arm,

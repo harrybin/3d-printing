@@ -101,9 +101,12 @@ Maßgebliche Daten:
   der 13-mm-Schädelkopf liegt vollständig außerhalb der Frontwand.
 - Eingefahrene Hand: 0,19 mm kleinster Innenraumrand und 11,91 mm Abstand zur
   geschlossenen Deckelunterseite.
-- Nachgewiesene Schnittvolumen über den vollständigen Sweep: Hand/Gehäuse,
-  Hand/Deckel, Hand/Hubjoch, Hand/Scherenarme und Klinke/Schlitten jeweils
-  **0,000 mm³**.
+- Nachgewiesene Schnittvolumen über den vollständigen Sweep: Deckel/Gehäuse,
+  Hand/Gehäuse, Hand/Deckel, Hand/Hubjoch, Hand/Scherenarme und
+  Klinke/Schlitten jeweils **0,000 mm³**.
+- Der Deckel sitzt auf einer offenen U-Führung statt auf einem geschlossenen
+  Rechteckzapfen. Dadurch kann die Vorderkante aus dem Gehäuse ausschwenken;
+  definierte Taschen halten Scharnierlager und Seilführung frei.
 - Schlitten, Scherenarme, Rastschieber, Führung, Antriebsbänder und Rückholseil
   verlassen den Gehäusekörper in keiner der 13 geprüften Stellungen.
 - Benachbarte Phalangen und alle fünf Fingersockel zur Handfläche:
@@ -134,7 +137,7 @@ geprüft.
 | Teil im Materialprojekt | Anzahl | Maße (mm) | Material |
 | --- | ---: | --- | --- |
 | Schatulle | 1 | 209,2 × 131,4 × 98,0 | PLA schwarz |
-| Deckel | 1 | 206,0 × 142,0 × 27,5 | PLA schwarz |
+| Deckel | 1 | 206,0 × 129,0 × 27,5 | PLA schwarz |
 | Scherenarm | 4 | 84 × 12 × 4 | PLA naturweiß |
 | Schlitten | 1 | 30 × 119,2 × 26 | PLA naturweiß |
 | Hubjoch | 1 | 82 × 92 × 51 | PLA naturweiß |

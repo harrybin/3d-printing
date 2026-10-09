@@ -19,12 +19,13 @@ Die Prüfung rekonstruiert die kompakte 72-mm-Scherengeometrie in 31 Stellungen.
 | Benachbarte Fingerknochen-Schnittmenge | 0.000 mm³ |
 | Beliebige Fingerknochen-Schnittmenge (flach/gegriffen) | 0.000 mm³ |
 | Fingersockel/Handfläche-Schnittmenge | 0.000 mm³ |
-| Laufzeit der Verifikation | 164.9 s |
+| Laufzeit der Verifikation | 458.9 s |
 | retracted: Hand/Gehäuse-Schnitt | 0.000 mm³ |
 | retracted: Hand/Hubjoch-Schnitt | 0.000 mm³ |
 | deployed: Hand/Gehäuse-Schnitt | 0.000 mm³ |
 | deployed: Hand/Hubjoch-Schnitt | 0.000 mm³ |
 | Sweep hand_chest | 0.000 mm³ |
+| Sweep lid_chest | 0.000 mm³ |
 | Sweep hand_lid | 0.000 mm³ |
 | Sweep hand_platform | 0.000 mm³ |
 | Sweep hand_scissor | 0.000 mm³ |

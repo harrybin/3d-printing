@@ -329,11 +329,22 @@ def build_lid() -> trimesh.Trimesh:
                 (0.0, 0.0, LID_H - 9.0))
     step = box((CHEST_L + PROUD, CHEST_W + PROUD, 3.0),
                (0.0, 0.0, LID_H - 10.5))
-    spigot = box((CHEST_L - 2 * WALL - 0.6, CHEST_W - 2 * WALL - 0.6, 12.0),
-                 (0.0, 0.0, 6.0))
-    spigot = difference(spigot, [box((CHEST_L - 2 * WALL - 2 * 3.6,
-                                      CHEST_W - 2 * WALL - 2 * 3.6, 16.0),
-                                     (0.0, 0.0, 6.0))])
+    # A full rectangular plug cannot rotate out of the chest: its front edge
+    # sweeps into the front wall during the first opening degrees.  A rear-and-
+    # side U-guide seats the lid just as accurately while leaving that sweep
+    # volume open.
+    spigot_outer_x = CHEST_L - 2 * WALL - 0.6
+    spigot_outer_y = CHEST_W - 2 * WALL - 0.6
+    spigot_wall = 3.3
+    side_length = spigot_outer_y - 18.0
+    spigot = union([
+        box((spigot_outer_x, spigot_wall, 12.0),
+            (0.0, (spigot_outer_y - spigot_wall) / 2.0, 6.0)),
+        box((spigot_wall, side_length, 12.0),
+            (-(spigot_outer_x - spigot_wall) / 2.0, 9.0, 6.0)),
+        box((spigot_wall, side_length, 12.0),
+            ((spigot_outer_x - spigot_wall) / 2.0, 9.0, 6.0)),
+    ])
 
     body = union([top, frame, step, spigot])
 
@@ -374,6 +385,13 @@ def build_lid() -> trimesh.Trimesh:
 
     body = union([body, cartouche, bead, lid_scrolls, *beads, *wings])
 
+    # The decorative rear frame stops at the hinge axis. Material extending
+    # behind that axis would dip into the chest rim during the first degrees
+    # of opening; only the cylindrical knuckles may project farther rearward.
+    body = difference(body, [
+        box((CHEST_L + 8.0, 3.0, 18.0), (0.0, 62.5, 9.0))
+    ])
+
     # Four lid knuckles fill the gaps between the three chest knuckles.
     lid_segments = ((-90.0, 18.0), (-33.0, 36.0),
                     (33.0, 36.0), (90.0, 18.0))
@@ -384,26 +402,38 @@ def build_lid() -> trimesh.Trimesh:
                                       (0.0, HINGE_Y, LID_H - 5.0),
                                       (1.0, 0.0, 0.0))])
 
+    # The opening-band eyes must sit on the front side of the hinge axis.
+    # Eyes behind the axis sweep down through the chest while the lid opens.
     band_tabs = []
     for x in (-70.0, 70.0):
-        band_tabs.append(box((12.0, 12.0, 10.0),
-                             (x, 65.0, LID_H - 5.0)))
-        tab = cylinder(5.0, 8.0, (x, 70.0, LID_H - 5.0),
+        band_tabs.append(box((12.0, 10.0, 10.0),
+                             (x, 55.0, LID_H - 5.0)))
+        tab = cylinder(5.0, 8.0, (x, 50.0, LID_H - 5.0),
                        (1.0, 0.0, 0.0))
         tab = difference(tab, [
-            cylinder(2.0, 12.0, (x, 70.0, LID_H - 5.0),
+            cylinder(2.0, 12.0, (x, 50.0, LID_H - 5.0),
                      (1.0, 0.0, 0.0))
         ])
         band_tabs.append(tab)
 
+    catch_y = -45.0
     catch = rounded_box((12.0, 10.0, 12.0), 2.0,
-                        (0.0, -CHEST_W / 2.0 - 2.0, 7.0))
+                        (0.0, catch_y, 7.0))
     catch = difference(catch, [
-        cylinder(2.0, 18.0, (0.0, -CHEST_W / 2.0 - 2.0, 7.0),
+        cylinder(2.0, 18.0, (0.0, catch_y, 7.0),
                  (1.0, 0.0, 0.0))
     ])
     body = union([body, *band_tabs, catch])
-    return clean(body)
+
+    # Rebuild only the rear seating region around frozen chest-side hardware.
+    # Alternating pockets clear the three chest hinge supports; the small
+    # right-hand notch clears the existing forearm-cord boss below the rim.
+    clearance_pockets = [
+        box((30.0, 12.0, 18.0), (x, HINGE_Y, 16.5))
+        for x in (-66.0, 0.0, 66.0)
+    ]
+    clearance_pockets.append(box((16.0, 9.0, 9.0), (70.0, 54.5, 4.0)))
+    return clean(difference(body, clearance_pockets))
 
 
 if __name__ == "__main__":

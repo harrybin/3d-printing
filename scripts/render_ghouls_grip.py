@@ -112,7 +112,7 @@ def build_scene_at(theta: float):
 
     for index, x in enumerate((-70.0, 70.0)):
         moving = trimesh.transform_points(
-            [[x, 70.0, LID_DROP + 19.0]], lid_transform
+            [[x, 50.0, LID_DROP + 19.0]], lid_transform
         )[0]
         items.append((
             f"lid-opening-band-{index}",
@@ -217,7 +217,7 @@ def build_scene_at(theta: float):
     ))
 
     lid_catch = trimesh.transform_points(
-        [[0.0, -52.0, LID_DROP + 7.0]], lid_transform
+        [[0.0, -45.0, LID_DROP + 7.0]], lid_transform
     )[0]
     if theta <= mechanism.THETA_MIN + 0.01:
         items.append((
