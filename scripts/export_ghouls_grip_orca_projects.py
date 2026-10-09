@@ -32,6 +32,7 @@ METADATA_ENTRY = "Metadata/ghouls_grip_print_metadata.xml"
 MATERIAL_PROJECTS = {
     "black-pla": {
         "match": "Schatulle - schwarzes PLA",
+        "color": "#202124",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         # Economy shell: the 3 mm source walls still retain a durable
         # 1.2 mm perimeter envelope, while lower infill and a 45-degree
@@ -43,12 +44,14 @@ MATERIAL_PROJECTS = {
     },
     "bone-pla": {
         "match": "Knochen - beiges PLA",
+        "color": "#D8C6A5",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "4", "infill": "25%", "speed": "standard",
         "filament_type": "PLA", "support": "tree", "manual_gap": 24.0,
     },
     "mechanism-pla": {
         "match": "Mechanik - naturweisses PLA",
+        "color": "#F1EBDD",
         "exclude": {
             "platform", "latch-slider", "latch-bracket",
             "crank-spool", "crank-key",
@@ -60,24 +63,28 @@ MATERIAL_PROJECTS = {
     },
     "mechanism-supported-platform-pla": {
         "match": "Mechanik - naturweisses PLA", "include": {"platform"},
+        "color": "#F1EBDD",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "5", "infill": "40%", "speed": "mechanism",
         "filament_type": "PLA", "object_overrides": True, "support": "normal",
     },
     "mechanism-supported-latch-slider-pla": {
         "match": "Mechanik - naturweisses PLA", "include": {"latch-slider"},
+        "color": "#F1EBDD",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "5", "infill": "40%", "speed": "mechanism",
         "filament_type": "PLA", "object_overrides": True, "support": "normal",
     },
     "mechanism-supported-latch-bracket-pla": {
         "match": "Mechanik - naturweisses PLA", "include": {"latch-bracket"},
+        "color": "#F1EBDD",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "5", "infill": "40%", "speed": "mechanism",
         "filament_type": "PLA", "object_overrides": True, "support": "normal",
     },
     "mechanism-supported-crank-pla": {
         "match": "Mechanik - naturweisses PLA",
+        "color": "#F1EBDD",
         "include": {"crank-spool", "crank-key"},
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "5", "infill": "40%", "speed": "mechanism",
@@ -87,18 +94,21 @@ MATERIAL_PROJECTS = {
     },
     "mechanism-supported-band-anchor-pla": {
         "match": "Mechanik - naturweisses PLA", "include": {"band-anchor"},
+        "color": "#F1EBDD",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "5", "infill": "40%", "speed": "mechanism",
         "filament_type": "PLA", "object_overrides": True, "support": "normal",
     },
     "accent-pla": {
         "match": "Totenkopf-Ausloeser - graues PLA",
+        "color": "#777777",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "4", "infill": "25%", "speed": "standard",
         "filament_type": "PLA", "support": "tree",
     },
     "fingers-pla": {
         "match": "Finger - beiges PLA (Filmscharniere)",
+        "color": "#C9B48E",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "2", "infill": "15%", "speed": "flexure",
         "filament_type": "PLA", "manual_gap": 20.0,
@@ -201,6 +211,12 @@ def _patch_project_settings(path: Path, spec: dict) -> dict:
     project_key = "Metadata/project_settings.config"
     project = json.loads(entries[project_key].decode("utf-8"))
     overrides = _process_settings(spec)
+    color = spec["color"].upper()
+    overrides.update({
+        "default_filament_colour": [color],
+        "extruder_colour": [color],
+        "filament_colour": [color],
+    })
     project.update(overrides)
     changed = ";".join(sorted(key for key in overrides
                               if key != "filament_type"))
@@ -264,6 +280,8 @@ def _write_project_metadata(path: Path, spec: dict, checks: dict) -> None:
         "filamentProfile": ", ".join(checks["filament"]) if isinstance(
             checks["filament"], list) else checks["filament"],
         "materialType": spec["filament_type"],
+        "materialColorName": spec["match"],
+        "materialColorHex": spec["color"].upper(),
         "bedType": checks["bed"],
         "wallLoops": spec["wall_loops"],
         "infillDensity": spec["infill"],
@@ -298,6 +316,7 @@ def _verify_project(path: Path, expected_objects: int) -> dict:
         "filament": project.get("filament_settings_id"),
         "bed": project.get("curr_bed_type"),
         "layer_height": project.get("layer_height"),
+        "color": project.get("filament_colour"),
         "objects": len(objects),
         "plates": len(plates),
     }
@@ -307,6 +326,11 @@ def _verify_project(path: Path, expected_objects: int) -> dict:
         raise RuntimeError(f"{path.name}: wrong bed: {checks['bed']}")
     if checks["layer_height"] != "0.2":
         raise RuntimeError(f"{path.name}: wrong layer height")
+    expected_color = [MATERIAL_PROJECTS[
+        path.stem.removeprefix("ghouls-grip-print-")]["color"].upper()]
+    if checks["color"] != expected_color:
+        raise RuntimeError(
+            f"{path.name}: wrong filament color: {checks['color']}")
     if len(objects) != expected_objects or not plates:
         raise RuntimeError(f"{path.name}: object/plate count mismatch {checks}")
     return checks

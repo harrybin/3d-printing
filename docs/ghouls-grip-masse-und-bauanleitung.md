@@ -182,7 +182,9 @@ Mechanik-Projekte damit drucken - ASA braucht dann ein Gehäuse und 100/250 °C.
 Die zehn Druckdateien sind echte OrcaSlicer-Projekte. Sie enthalten den
 Drucker `Anycubic Kobra S1 0.4 nozzle`, `Textured PEI Plate`, das passende
 Anycubic-Filamentprofil und globale Materialwerte. Das Mechanik-Projekt enthält
-zusätzlich objektbezogene Verstärkungen für Arme, Klinke und Pins.
+zusätzlich objektbezogene Verstärkungen für Arme, Klinke und Pins. Die
+Filamentfarben sind fest eingebettet: Schwarz `#202124`, Knochenbeige
+`#D8C6A5`, Naturweiß `#F1EBDD`, Fingerbeige `#C9B48E` und Grau `#777777`.
 
 Nicht gedruckt: 2 × Haushaltsgummiband ca. 60 mm, ca. 1 m 0,8-mm-Angelsehne,
 1,75-mm-Filament als Scharnierachse. Für hoch belastete Scherengelenke sind
@@ -223,16 +225,16 @@ Mit OrcaSlicer 2.4.2 erfolgreich geslicte Werte:
 | --- | ---: | ---: | ---: | --- |
 | Schwarz PLA, Platte 1 (Schatulle) | 490 | 282,25 g | 10 h 20 min | Baum, nur kritisch |
 | Schwarz PLA, Platte 2 (Deckel) | 137 | 175,91 g | 8 h 50 min | Baum, nur kritisch |
-| Knochen PLA | 284 | 53,21 g | 3 h 34 min | Baum |
-| Mechanik PLA, supportfrei | 170 | 50,10 g | 2 h 31 min | nein |
-| Hubjoch PLA | 344 | 46,21 g | 1 h 59 min | normal/snug |
-| Rastschieber PLA | 344 | 8,94 g | 32 min | normal/snug |
+| Knochen PLA | 284 | 52,30 g | 3 h 30 min | Baum |
+| Mechanik PLA, supportfrei | 170 | 50,04 g | 2 h 31 min | nein |
+| Hubjoch PLA | 344 | 46,11 g | 1 h 59 min | normal/snug |
+| Rastschieber PLA | 344 | 8,89 g | 32 min | normal/snug |
 | Rastschieberführung PLA | 170 | 18,93 g | 35 min | normal/snug |
-| Spule + Schlüssel PLA | 165 | 5,73 g | 23 min | normal/snug |
-| Bandanker PLA | 143 | 12,25 g | 40 min | normal/snug |
-| Akzent PLA | 107 | 14,32 g | 51 min | Baum |
-| Finger PLA | 57 | 12,01 g | 1 h 23 min | Baum |
-| **Gesamt** | - | **694,09 g** | **31 h 14 min** | - |
+| Spule + Schlüssel PLA | 165 | 5,71 g | 22 min | normal/snug |
+| Bandanker PLA | 143 | 12,22 g | 40 min | normal/snug |
+| Akzent PLA | 107 | 14,21 g | 51 min | Baum |
+| Finger PLA | 57 | 11,78 g | 1 h 22 min | Baum |
+| **Gesamt** | - | **678,35 g** | **31 h 31 min** | - |
 
 Alle Projekte starten mit **55/215 °C** (PLA). Das Fingerprojekt fährt die
 Außenwände bewusst mit 30 mm/s und reduzierter Beschleunigung, damit der

@@ -768,6 +768,20 @@ async function parse3mfBuffer(buffer) {
     plateGroups.set(plateId, plate)
   }
 
+  const projectColor = normalizeColor(projectMetadata.materialColorHex)
+  if (projectColor) {
+    for (let index = 0; index < triangleColors.length; index += 1) {
+      if (triangleColors[index] === '#d6d9de') triangleColors[index] = projectColor
+    }
+    for (const plate of plateGroups.values()) {
+      for (let index = 0; index < plate.triangleColors.length; index += 1) {
+        if (plate.triangleColors[index] === '#d6d9de') {
+          plate.triangleColors[index] = projectColor
+        }
+      }
+    }
+  }
+
   return {
     ...finalize3mfStats(stats),
     triangles,
@@ -958,6 +972,7 @@ function renderModelMeta() {
     ['Printer', projectMetadata.printerProfile],
     ['Layer', projectMetadata.layerHeightMm ? `${projectMetadata.layerHeightMm} mm` : undefined],
     ['Material', projectMetadata.materialType],
+    ['Color', projectMetadata.materialColorName || projectMetadata.materialColorHex],
   ].filter(([, value]) => value)
   const meta = document.getElementById('meta')
   meta.innerHTML = '<span><strong>File:</strong> ' + escapeHtml(loadedModelInfo.path) + '</span>' +

@@ -40,6 +40,11 @@ POSES = {
     "deployed": mechanism.THETA_MAX,
 }
 LID_OPEN_ANGLE = 92.0
+BLACK_COLOR = "#202124"
+BONE_COLOR = "#D8C6A5"
+MECHANISM_COLOR = "#F1EBDD"
+FINGER_COLOR = "#C9B48E"
+ACCENT_COLOR = "#777777"
 
 
 def rot(angle_deg: float, axis, point=(0.0, 0.0, 0.0)):
@@ -98,7 +103,7 @@ def build_scene_at(theta: float):
     plat_origin = np.array([FLOOR_PIVOT[0] - PLATFORM_PIN, 0.0, plate_z + 8.0])
 
     items = []
-    items.append(("chest", build_chest(), "#43434e"))
+    items.append(("chest", build_chest(), BLACK_COLOR))
 
     lid = build_lid()
     lid.apply_translation([0.0, 0.0, LID_DROP])
@@ -108,7 +113,7 @@ def build_scene_at(theta: float):
         lid_transform = rot(opening, [1, 0, 0],
                             [0.0, HINGE_Y, HINGE_Z])
         lid.apply_transform(lid_transform)
-    items.append(("lid", lid, "#43434e"))
+    items.append(("lid", lid, BLACK_COLOR))
 
     for index, x in enumerate((-70.0, 70.0)):
         moving = trimesh.transform_points(
@@ -122,18 +127,18 @@ def build_scene_at(theta: float):
 
     slider = mechanism.build_slider()
     slider.apply_translation([slider_x, 0.0, 0.0])
-    items.append(("slider", slider, "#c9b48e"))
+    items.append(("slider", slider, MECHANISM_COLOR))
 
     arm = mechanism.build_scissor_arm()
     for i, y in enumerate((-SCISSOR_Y, SCISSOR_Y)):
         for mirrored in (False, True):
             off = 3.0 if mirrored else -3.0
             items.append((f"arm-{i}-{mirrored}",
-                          lay_arm(arm, theta, y + off, mirrored), "#d8c6a5"))
+                          lay_arm(arm, theta, y + off, mirrored), MECHANISM_COLOR))
 
     platform = mechanism.build_platform()
     platform.apply_translation(plat_origin)
-    items.append(("platform", platform, "#d8c6a5"))
+    items.append(("platform", platform, MECHANISM_COLOR))
 
     hinge = plat_origin + np.array([ARM_HINGE_X, 0.0, ARM_HINGE_Z])
     tilt = mechanism.forearm_angle(theta)
@@ -142,7 +147,7 @@ def build_scene_at(theta: float):
     forearm.apply_translation([0.0, 0.0, -4.0])
     forearm.apply_transform(rot(tilt, [0, 1, 0]))
     forearm.apply_translation(hinge)
-    items.append(("forearm", forearm, "#d8c6a5"))
+    items.append(("forearm", forearm, BONE_COLOR))
 
     radians = np.deg2rad(tilt)
     sector_point = hinge + np.array([
@@ -188,13 +193,13 @@ def build_scene_at(theta: float):
         part.apply_transform(rot(mechanism.HAND_PALM_ROLL, [0, 0, 1]))
         part.apply_transform(rot(tilt, [0, 1, 0]))
         part.apply_translation(hinge)
-        colour = "#efe2c4" if name.startswith("hand-finger") else "#d8c6a5"
+        colour = FINGER_COLOR if name.startswith("hand-finger") else BONE_COLOR
         items.append((name, part, colour))
 
     trigger = build_trigger()
     trigger.apply_transform(rot(90.0, [1, 0, 0]))
     trigger.apply_translation([0.0, -60.0 - 1.5, 46.0])
-    items.append(("trigger", trigger, "#8d8d96"))
+    items.append(("trigger", trigger, ACCENT_COLOR))
 
     latch = mechanism.build_latch()
     release = min(max(
@@ -204,8 +209,8 @@ def build_scene_at(theta: float):
         [0.0, 0.0, mechanism.LATCH_RELEASE_TRAVEL * release]
     )
     latch.apply_transform(latch_transform)
-    items.append(("latch", latch, "#8d8d96"))
-    items.append(("latch-bracket", mechanism.build_latch_bracket(), "#8d8d96"))
+    items.append(("latch", latch, MECHANISM_COLOR))
+    items.append(("latch-bracket", mechanism.build_latch_bracket(), MECHANISM_COLOR))
     return_eye = trimesh.transform_points(
         [[-4.0, mechanism.LATCH_RETURN_Y, 52.0]], latch_transform
     )[0]
@@ -241,7 +246,7 @@ def build_scene_at(theta: float):
 
     anchor = mechanism.build_band_anchor()
     anchor.apply_translation([-76.0, 0.0, 4.5])
-    items.append(("band-anchor", anchor, "#d8c6a5"))
+    items.append(("band-anchor", anchor, MECHANISM_COLOR))
 
     for sy in (-1.0, 1.0):
         items.append((
@@ -261,7 +266,7 @@ def build_scene_at(theta: float):
         crank = builder()
         crank.apply_transform(rot(90.0, [0, 1, 0]))
         crank.apply_translation([100.0, 0.0, 30.0])
-        items.append((name, crank, "#8d8d96"))
+        items.append((name, crank, MECHANISM_COLOR))
     items.append((
         "reset-cord",
         tube_between(
