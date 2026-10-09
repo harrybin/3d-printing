@@ -349,8 +349,10 @@ function parse3mfProjectMetadata(buffer) {
         return {};
     }
     const metadata = {};
-    for (const match of xml.matchAll(/<metadata\b[^>]*\bname="([^"]+)"[^>]*\bvalue="([^"]*)"[^>]*\/?>/g)) {
-        metadata[match[1]] = match[2];
+    for (const match of xml.matchAll(
+        /<metadata\b[^>]*\bname=(["'])(.*?)\1[^>]*\bvalue=(["'])(.*?)\3[^>]*\/?>/g,
+    )) {
+        metadata[match[2]] = match[4];
     }
     return metadata;
 }

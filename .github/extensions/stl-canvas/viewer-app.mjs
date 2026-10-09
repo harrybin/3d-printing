@@ -963,17 +963,40 @@ function renderModelMeta() {
   const stats = plate?.stats || loadedModelInfo.stats
   const bounds = stats?.bounds
   const projectMetadata = loadedModelInfo.projectMetadata || {}
+  const metadataValue = (key, fallback = 'not available') => {
+    const value = projectMetadata[key]
+    return value && value !== 'unknown' ? value : fallback
+  }
+  const metadataWithUnit = (key, unit) => {
+    const value = metadataValue(key)
+    return value === 'not available' ? value : `${value} ${unit}`
+  }
+  const formatPrintTime = () => {
+    const seconds = Number(projectMetadata.estimatedPrintTimeSeconds)
+    if (!Number.isFinite(seconds) || seconds < 0) return 'not available'
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.round((seconds % 3600) / 60)
+    return hours ? `${hours} h ${minutes} min` : `${minutes} min`
+  }
   const printFields = [
-    ['Status', projectMetadata.status],
-    ['Print time', projectMetadata.estimatedPrintTimeSeconds && projectMetadata.estimatedPrintTimeSeconds !== 'unknown'
-      ? `${Math.round(Number(projectMetadata.estimatedPrintTimeSeconds) / 60)} min` : 'not available'],
-    ['Filament', projectMetadata.filamentUsageGrams && projectMetadata.filamentUsageGrams !== 'unknown'
-      ? `${projectMetadata.filamentUsageGrams} g` : 'not available'],
-    ['Printer', projectMetadata.printerProfile],
-    ['Layer', projectMetadata.layerHeightMm ? `${projectMetadata.layerHeightMm} mm` : undefined],
-    ['Material', projectMetadata.materialType],
-    ['Color', projectMetadata.materialColorName || projectMetadata.materialColorHex],
-  ].filter(([, value]) => value)
+    ['Status', metadataValue('status')],
+    ['Print time', formatPrintTime()],
+    ['Filament', metadataWithUnit('filamentUsageGrams', 'g')],
+    ['Filament length', metadataWithUnit('filamentUsageMillimeters', 'mm')],
+    ['Filament volume', metadataWithUnit('filamentUsageCubicMillimeters', 'mm³')],
+    ['Printer', metadataValue('printerProfile')],
+    ['Nozzle', metadataWithUnit('nozzleDiameterMm', 'mm')],
+    ['Process', metadataValue('processProfile')],
+    ['Layer', metadataWithUnit('layerHeightMm', 'mm')],
+    ['Filament profile', metadataValue('filamentProfile')],
+    ['Material', metadataValue('materialType')],
+    ['Color', metadataValue('materialColorName', metadataValue('materialColorHex'))],
+    ['Bed', metadataValue('bedType')],
+    ['Walls', metadataValue('wallLoops')],
+    ['Infill', metadataValue('infillDensity')],
+    ['Supports', metadataValue('supportPolicy')],
+    ['Plates', metadataValue('plateCount')],
+  ]
   const meta = document.getElementById('meta')
   meta.innerHTML = '<span><strong>File:</strong> ' + escapeHtml(loadedModelInfo.path) + '</span>' +
     (loadedModelInfo.source ? '<span><strong>Source:</strong> ' + escapeHtml(loadedModelInfo.source) + '</span>' : '') +
