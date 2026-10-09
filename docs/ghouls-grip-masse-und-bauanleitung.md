@@ -124,15 +124,14 @@ Maßgebliche Daten:
 - Alle Quetschstellen der Schere bleiben im Gehäuse.
 - Nicht unbeaufsichtigt an Kinder geben, nicht auf Gesicht oder Augen richten.
 
-## Stückliste (20 Teiltypen / 33 physische Druckobjekte)
+## Stückliste (20 Teiltypen / 34 physische Druckobjekte)
 
-Die Einzelteile liegen ausschließlich in zehn Druck-3MFs für fünf
-PLA-Farben/Spulen. Die fünf stützpflichtigen Mechanikteile erhalten jeweils
-eine eigene kleine Platte, weil OrcaSlicers Kollisionsprüfung bei gemeinsamer
-Anordnung überlappende Stützbahnen nachgewiesen hat. Redundante Einzel-STLs
-werden nicht mehr ausgeliefert. Alle Teiltypen werden beim Erzeugen
-in-memory auf Wasserdichtheit, konsistente Wicklung und degenerierte Flächen
-geprüft.
+Die Einzelteile liegen ausschließlich in vier Druck-3MFs, genau einer Datei
+pro PLA-Farbe/Spule. Schwarz und Naturweiß verwenden je zwei interne
+Orca-Platten; Unterarm, Handteile und alle fünf Finger liegen gemeinsam auf
+einer knochenbeigen Platte. Redundante Einzel-STLs werden nicht mehr
+ausgeliefert. Alle Teiltypen werden beim Erzeugen in-memory auf
+Wasserdichtheit, konsistente Wicklung und degenerierte Flächen geprüft.
 
 | Teil im Materialprojekt | Anzahl | Maße (mm) | Material |
 | --- | ---: | --- | --- |
@@ -165,26 +164,24 @@ Zusätzliche Lieferdateien:
 - `models/ghouls-grip-master-retracted.3mf` - geschlossene Einbaukontrolle.
 - `models/ghouls-grip-preview.stl` - Montagevorschau für das STL-Canvas.
 - `models/ghouls-grip-print-black-pla.3mf` - Gehäuse/Deckel, zwei Orca-Platten.
-- `models/ghouls-grip-print-bone-pla.3mf` - Handfläche, Führung, Unterarm.
-- `models/ghouls-grip-print-mechanism-pla.3mf` - supportfreie Mechanik inklusive
-  4 Scherenarmen, Schlitten sowie 8 kleinen und 4 großen Pins.
-- `models/ghouls-grip-print-mechanism-supported-{platform,latch-slider,latch-bracket,crank,band-anchor}-pla.3mf` - fünf Einzelplatten für Hubjoch, Rastschieber, interne Führung, Spule plus Schlüssel und Bandanker mit bettgebundenen, eng anliegenden Normalstützen.
+- `models/ghouls-grip-print-bone-pla.3mf` - Unterarm, Handfläche,
+  Sehnenführung und alle fünf Finger gemeinsam auf einer Platte.
+- `models/ghouls-grip-print-mechanism-pla.3mf` - vollständige naturweiße
+  Mechanik auf zwei internen Platten; Stützen und Festigkeit werden
+  objektbezogen gesetzt.
 - `models/ghouls-grip-print-accent-pla.3mf` - grauer Totenkopf-Auslöser.
-- `models/ghouls-grip-print-fingers-pla.3mf` - fünf Finger mit
-  0,8-mm-Filmscharnieren und automatischen, nur vom Druckbett ausgehenden
-  Baumstützen für die organischen Unterseiten.
 
 Das gesamte Modell ist auf **reines PLA** ausgelegt. TPU und PETG werden nicht
-benötigt; alle zehn Druckprojekte laufen mit demselben Filamenttyp und fünf
-Farb-/Spulenzuordnungen. Wer PLA+ oder ASA vorrätig hat, kann die sechs
-Mechanik-Projekte damit drucken - ASA braucht dann ein Gehäuse und 100/250 °C.
+benötigt; alle vier Druckprojekte laufen mit demselben Filamenttyp und vier
+Farb-/Spulenzuordnungen. Wer PLA+ oder ASA vorrätig hat, kann das
+Mechanik-Projekt damit drucken - ASA braucht dann ein Gehäuse und 100/250 °C.
 
-Die zehn Druckdateien sind echte OrcaSlicer-Projekte. Sie enthalten den
+Die vier Druckdateien sind echte OrcaSlicer-Projekte. Sie enthalten den
 Drucker `Anycubic Kobra S1 0.4 nozzle`, `Textured PEI Plate`, das passende
 Anycubic-Filamentprofil und globale Materialwerte. Das Mechanik-Projekt enthält
 zusätzlich objektbezogene Verstärkungen für Arme, Klinke und Pins. Die
 Filamentfarben sind fest eingebettet: Schwarz `#202124`, Knochenbeige
-`#D8C6A5`, Naturweiß `#F1EBDD`, Fingerbeige `#C9B48E` und Grau `#777777`.
+`#D8C6A5`, Naturweiß `#F1EBDD` und Grau `#777777`.
 
 Nicht gedruckt: 2 × Haushaltsgummiband ca. 60 mm, ca. 1 m 0,8-mm-Angelsehne,
 1,75-mm-Filament als Scharnierachse. Für hoch belastete Scherengelenke sind
@@ -205,11 +202,12 @@ Schichthöhe 0,20 mm, 0,4-mm-Düse, Textured PEI Plate.
 `XY Hole Compensation` +0,10 mm, `XY Contour Compensation` 0 mm und
 Elefantenfuß-Kompensation 0,15 mm sind in den Materialprojekten gespeichert.
 Reliefs und Nieten der Schatulle sind 2,6-3,0 mm erhaben. OrcaSlicer 2.4.2
-meldete bei Gehäuse, Deckel, organischen Knochenformen und fünf komplexen
+meldete bei Gehäuse, Deckel, organischen Knochenformen und komplexen
 Mechanikteilen dennoch schwebende Regionen. Gehäuse und Deckel verwenden
 deshalb Baumstützen nur für kritische Bereiche; die organischen Teile nutzen
-vollständige bettgebundene Baumstützen. Die supportfreie Mechanikplatte enthält
-Arme, Schlitten und Pins.
+vollständige bettgebundene Baumstützen. In den beiden Mechanikplatten sind
+Normalstützen nur für die betroffenen Objekte aktiv; Arme, Schlitten und Pins
+bleiben supportfrei.
 
 Breite, nicht funktionale Wandfelder der Schatulle sind von innen auf eine
 1,6-mm-Außenhaut erleichtert. Am Deckel ersetzen zwölf 10 mm breite Kanäle den
@@ -225,20 +223,16 @@ Mit OrcaSlicer 2.4.2 erfolgreich geslicte Werte:
 | --- | ---: | ---: | ---: | --- |
 | Schwarz PLA, Platte 1 (Schatulle) | 490 | 282,25 g | 10 h 20 min | Baum, nur kritisch |
 | Schwarz PLA, Platte 2 (Deckel) | 137 | 175,91 g | 8 h 50 min | Baum, nur kritisch |
-| Knochen PLA | 284 | 52,30 g | 3 h 30 min | Baum |
-| Mechanik PLA, supportfrei | 170 | 50,04 g | 2 h 31 min | nein |
-| Hubjoch PLA | 344 | 46,11 g | 1 h 59 min | normal/snug |
-| Rastschieber PLA | 344 | 8,89 g | 32 min | normal/snug |
-| Rastschieberführung PLA | 170 | 18,93 g | 35 min | normal/snug |
-| Spule + Schlüssel PLA | 165 | 5,71 g | 22 min | normal/snug |
-| Bandanker PLA | 143 | 12,22 g | 40 min | normal/snug |
+| Knochen PLA (Knochen + Finger) | 284 | 64,15 g | 4 h 48 min | Baum |
+| Mechanik PLA, Platte 1 | 467 | 120,44 g | 5 h 04 min | objektbezogen normal/keine |
+| Mechanik PLA, Platte 2 | 206 | 22,25 g | 1 h 24 min | objektbezogen normal/keine |
 | Akzent PLA | 107 | 14,21 g | 51 min | Baum |
-| Finger PLA | 57 | 11,78 g | 1 h 22 min | Baum |
-| **Gesamt** | - | **678,35 g** | **31 h 31 min** | - |
+| **Gesamt** | - | **679,21 g** | **31 h 17 min** | - |
 
-Alle Projekte starten mit **55/215 °C** (PLA). Das Fingerprojekt fährt die
-Außenwände bewusst mit 30 mm/s und reduzierter Beschleunigung, damit der
-0,8 mm dünne Steg als zwei saubere Perimeter entsteht und nicht ausdünnt.
+Alle Projekte starten mit **55/215 °C** (PLA). Die Fingerobjekte auf der
+Knochenplatte fahren ihre Außenwände über Objekt-Overrides bewusst mit 30 mm/s
+und reduzierter Beschleunigung, damit der 0,8 mm dünne Steg als zwei saubere
+Perimeter entsteht und nicht ausdünnt.
 Die vollständige Slice-Evidenz steht in
 [`ghouls-grip-druckvalidierung.md`](ghouls-grip-druckvalidierung.md).
 
@@ -291,9 +285,9 @@ Die vollständige Slice-Evidenz steht in
 2. Zum Drucken die passende Material-Projektdatei öffnen. Drucker, Textured
    PEI Plate, Filament, 0,20-mm-Prozess und Objekt-Overrides sind bereits
    eingebettet; vor dem Slicen trotzdem Düsendurchmesser und reale Spule prüfen.
-3. Das schwarze PLA-Projekt enthält wegen der Bettgröße zwei Platten. Alle
-   anderen Materialprojekte sind jeweils auf einer Platte angeordnet.
-4. Alle zehn Projekte drucken PLA; es werden fünf Farben/Spulen verwendet.
+3. Das schwarze und das naturweiße PLA-Projekt enthalten jeweils zwei
+   Platten. Knochenbeige und Grau benötigen jeweils eine Platte.
+4. Alle vier Projekte drucken PLA; es werden vier Farben/Spulen verwendet.
    Finger und organische Knochenformen erhalten nur bettgebundene Stützen;
    die Finger werden zusätzlich langsam gedruckt.
 5. Vor dem Gesamtdruck einen Arm, einen Pin und ein Fingerglied als
@@ -312,8 +306,9 @@ Die vollständige Slice-Evidenz steht in
   Unterarm-Steuerseils muss beim Prototyp exakt übernommen werden.
 - Die 0,8-mm-Filmscharniere sind die Schwachstelle der Hand. PLA erlaubt dort
   nur wenige hundert Zyklen; die Finger sind bewusst als Verschleißteil
-  ausgelegt und einzeln nachdruckbar. Wer später doch TPU 95A bekommt, kann
-  allein `ghouls-grip-print-fingers-pla.3mf` auf ein TPU-Filament umstellen.
+  ausgelegt und einzeln nachdruckbar. Wer später doch TPU 95A bekommt, muss
+  dafür ein separates TPU-Spulenprojekt nur für die Finger erzeugen; die
+  Knochenplatte bleibt PLA.
 - Gedruckte Pins in PLA sind für Dauerbetrieb grenzwertig. Für die vier
   hochbelasteten Scherengelenke sind M3×16-Schrauben die bessere Wahl.
 

@@ -47,57 +47,19 @@ MATERIAL_PROJECTS = {
         "color": "#D8C6A5",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "4", "infill": "25%", "speed": "standard",
-        "filament_type": "PLA", "support": "tree", "manual_gap": 24.0,
+        "filament_type": "PLA", "support": "tree", "manual_gap": 18.0,
+        "object_overrides": True,
     },
     "mechanism-pla": {
         "match": "Mechanik - naturweisses PLA",
         "color": "#F1EBDD",
-        "exclude": {
-            "platform", "latch-slider", "latch-bracket",
-            "crank-spool", "crank-key",
-            "band-anchor",
-        },
-        "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
-        "wall_loops": "5", "infill": "40%", "speed": "mechanism",
-        "filament_type": "PLA", "object_overrides": True,
-    },
-    "mechanism-supported-platform-pla": {
-        "match": "Mechanik - naturweisses PLA", "include": {"platform"},
-        "color": "#F1EBDD",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "5", "infill": "40%", "speed": "mechanism",
         "filament_type": "PLA", "object_overrides": True, "support": "normal",
-    },
-    "mechanism-supported-latch-slider-pla": {
-        "match": "Mechanik - naturweisses PLA", "include": {"latch-slider"},
-        "color": "#F1EBDD",
-        "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
-        "wall_loops": "5", "infill": "40%", "speed": "mechanism",
-        "filament_type": "PLA", "object_overrides": True, "support": "normal",
-    },
-    "mechanism-supported-latch-bracket-pla": {
-        "match": "Mechanik - naturweisses PLA", "include": {"latch-bracket"},
-        "color": "#F1EBDD",
-        "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
-        "wall_loops": "5", "infill": "40%", "speed": "mechanism",
-        "filament_type": "PLA", "object_overrides": True, "support": "normal",
-    },
-    "mechanism-supported-crank-pla": {
-        "match": "Mechanik - naturweisses PLA",
-        "color": "#F1EBDD",
-        "include": {"crank-spool", "crank-key"},
-        "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
-        "wall_loops": "5", "infill": "40%", "speed": "mechanism",
-        "filament_type": "PLA", "object_overrides": True, "support": "normal",
-        "manual_gap": 30.0,
-        "bed_margin": 20.0,
-    },
-    "mechanism-supported-band-anchor-pla": {
-        "match": "Mechanik - naturweisses PLA", "include": {"band-anchor"},
-        "color": "#F1EBDD",
-        "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
-        "wall_loops": "5", "infill": "40%", "speed": "mechanism",
-        "filament_type": "PLA", "object_overrides": True, "support": "normal",
+        "manual_gap": 24.0,
+        "bed_margin": 10.0,
+        "plate_row_pitch": 265.0,
+        "plate_x_pitch": 300.0,
     },
     "accent-pla": {
         "match": "Totenkopf-Ausloeser - graues PLA",
@@ -106,34 +68,61 @@ MATERIAL_PROJECTS = {
         "wall_loops": "4", "infill": "25%", "speed": "standard",
         "filament_type": "PLA", "support": "tree",
     },
-    "fingers-pla": {
-        "match": "Finger - beiges PLA (Filmscharniere)",
-        "color": "#C9B48E",
-        "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
-        "wall_loops": "2", "infill": "15%", "speed": "flexure",
-        "filament_type": "PLA", "manual_gap": 20.0,
-    },
 }
 
 OBJECT_OVERRIDES = {
     "chest": {"wall_loops": "4", "sparse_infill_density": "20%"},
     "lid": {"wall_loops": "4", "sparse_infill_density": "20%"},
-    "scissor-arm": {"wall_loops": "5", "sparse_infill_density": "100%"},
-    "slider": {"wall_loops": "5", "sparse_infill_density": "40%"},
-    "platform": {"wall_loops": "5", "sparse_infill_density": "40%"},
-    "latch-slider": {"wall_loops": "5", "sparse_infill_density": "50%"},
-    "latch-bracket": {"wall_loops": "5", "sparse_infill_density": "50%"},
-    "crank-spool": {"wall_loops": "5", "sparse_infill_density": "50%"},
-    "crank-key": {"wall_loops": "5", "sparse_infill_density": "50%"},
-    "band-anchor": {"wall_loops": "5", "sparse_infill_density": "50%"},
-    "pivot-pin-3": {"wall_loops": "6", "sparse_infill_density": "100%"},
-    "pivot-pin-4": {"wall_loops": "6", "sparse_infill_density": "100%"},
+    "scissor-arm": {
+        "wall_loops": "5", "sparse_infill_density": "100%",
+        "enable_support": "0",
+    },
+    "slider": {
+        "wall_loops": "5", "sparse_infill_density": "40%",
+        "enable_support": "0",
+    },
+    "platform": {
+        "wall_loops": "5", "sparse_infill_density": "40%",
+        "enable_support": "1",
+    },
+    "latch-slider": {
+        "wall_loops": "5", "sparse_infill_density": "50%",
+        "enable_support": "1",
+    },
+    "latch-bracket": {
+        "wall_loops": "5", "sparse_infill_density": "50%",
+        "enable_support": "1",
+    },
+    "crank-spool": {
+        "wall_loops": "5", "sparse_infill_density": "50%",
+        "enable_support": "1",
+    },
+    "crank-key": {
+        "wall_loops": "5", "sparse_infill_density": "50%",
+        "enable_support": "1",
+    },
+    "band-anchor": {
+        "wall_loops": "5", "sparse_infill_density": "50%",
+        "enable_support": "1",
+    },
+    "pivot-pin-3": {
+        "wall_loops": "6", "sparse_infill_density": "100%",
+        "enable_support": "0",
+    },
+    "pivot-pin-4": {
+        "wall_loops": "6", "sparse_infill_density": "100%",
+        "enable_support": "0",
+    },
     "forearm": {"wall_loops": "4", "sparse_infill_density": "25%"},
     "hand-palm": {"wall_loops": "4", "sparse_infill_density": "25%"},
     "hand-tendon-guide": {"wall_loops": "4", "sparse_infill_density": "25%"},
     "skull-trigger": {"wall_loops": "4", "sparse_infill_density": "25%"},
     "hand-finger": {
         "wall_loops": "2", "sparse_infill_density": "15%",
+        "outer_wall_speed": "30", "inner_wall_speed": "40",
+        "sparse_infill_speed": "50", "top_surface_speed": "30",
+        "default_acceleration": "1500", "outer_wall_acceleration": "800",
+        "inner_wall_acceleration": "1000",
     },
 }
 
@@ -257,6 +246,87 @@ def _patch_project_settings(path: Path, spec: dict) -> dict:
     return applied
 
 
+def _assign_row_plates(path: Path, spec: dict) -> None:
+    """Convert vertically staged rows into explicit Orca multi-plate metadata."""
+    row_pitch = spec.get("plate_row_pitch")
+    if row_pitch is None:
+        return
+    x_pitch = spec.get("plate_x_pitch", 300.0)
+    core = "http://schemas.microsoft.com/3dmanufacturing/core/2015/02"
+    production = "http://schemas.microsoft.com/3dmanufacturing/production/2015/06"
+    ET.register_namespace("", core)
+    ET.register_namespace("p", production)
+
+    with ZipFile(path) as archive:
+        infos = archive.infolist()
+        entries = {info.filename: archive.read(info.filename) for info in infos}
+
+    model_key = "3D/3dmodel.model"
+    model = ET.fromstring(entries[model_key])
+    build = model.find(f"{{{core}}}build")
+    if build is None:
+        raise RuntimeError(f"{path.name}: missing 3MF build")
+
+    plate_objects: dict[int, list[str]] = {}
+    adjusted_positions: dict[str, tuple[float, float]] = {}
+    for item in build.findall(f"{{{core}}}item"):
+        object_id = item.get("objectid")
+        values = [float(value) for value in item.get("transform", "").split()]
+        if object_id is None or len(values) != 12:
+            raise RuntimeError(f"{path.name}: invalid build transform")
+        plate_index = max(0, int(values[10] // row_pitch))
+        values[9] += plate_index * x_pitch
+        values[10] -= plate_index * row_pitch
+        item.set("transform", " ".join(f"{value:.9g}" for value in values))
+        plate_objects.setdefault(plate_index, []).append(object_id)
+        adjusted_positions[object_id] = (values[9], values[10])
+    entries[model_key] = ET.tostring(
+        model, encoding="utf-8", xml_declaration=True)
+
+    settings_key = "Metadata/model_settings.config"
+    settings = ET.fromstring(entries[settings_key])
+    for obj in settings.findall("object"):
+        object_id = obj.get("id")
+        if object_id not in adjusted_positions:
+            continue
+        x_value, y_value = adjusted_positions[object_id]
+        part = obj.find("part")
+        if part is None:
+            continue
+        metadata = {node.get("key"): node for node in part.findall("metadata")}
+        metadata["source_offset_x"].set("value", f"{x_value:.9g}")
+        metadata["source_offset_y"].set("value", f"{y_value:.9g}")
+
+    for old_plate in settings.findall("plate"):
+        settings.remove(old_plate)
+    assemble = settings.find("assemble")
+    insert_at = list(settings).index(assemble) if assemble is not None else len(settings)
+    for plate_index, object_ids in sorted(plate_objects.items()):
+        plate = ET.Element("plate")
+        for key, value in (
+            ("plater_id", str(plate_index + 1)),
+            ("plater_name", ""),
+            ("locked", "false"),
+            ("filament_map_mode", "Auto For Flush"),
+            ("gcode_file", ""),
+        ):
+            ET.SubElement(plate, "metadata", key=key, value=value)
+        for object_id in object_ids:
+            instance = ET.SubElement(plate, "model_instance")
+            ET.SubElement(instance, "metadata", key="object_id", value=object_id)
+            ET.SubElement(instance, "metadata", key="instance_id", value="0")
+            ET.SubElement(instance, "metadata", key="identify_id",
+                          value=object_id)
+        settings.insert(insert_at, plate)
+        insert_at += 1
+    entries[settings_key] = ET.tostring(
+        settings, encoding="utf-8", xml_declaration=True)
+
+    with ZipFile(path, "w") as archive:
+        for info in infos:
+            archive.writestr(info, entries[info.filename])
+
+
 def _write_project_metadata(path: Path, spec: dict, checks: dict) -> None:
     """Add a stable, slicer-neutral summary for the canvas and other tools.
 
@@ -310,6 +380,14 @@ def _verify_project(path: Path, expected_objects: int) -> dict:
             "Metadata/model_settings.config"))
     objects = model.findall("object")
     plates = model.findall("plate")
+    assigned_object_ids = []
+    for plate in plates:
+        for instance in plate.findall("model_instance"):
+            object_id = next((
+                node.get("value") for node in instance.findall("metadata")
+                if node.get("key") == "object_id"), None)
+            if object_id is not None:
+                assigned_object_ids.append(object_id)
     checks = {
         "printer": project.get("printer_settings_id"),
         "process": project.get("print_settings_id"),
@@ -333,6 +411,12 @@ def _verify_project(path: Path, expected_objects: int) -> dict:
             f"{path.name}: wrong filament color: {checks['color']}")
     if len(objects) != expected_objects or not plates:
         raise RuntimeError(f"{path.name}: object/plate count mismatch {checks}")
+    if len(plates) > 1:
+        expected_ids = sorted(obj.get("id") for obj in objects)
+        if (sorted(assigned_object_ids) != expected_ids
+                or len(assigned_object_ids) != len(set(assigned_object_ids))):
+            raise RuntimeError(
+                f"{path.name}: incomplete or duplicate plate assignments")
     return checks
 
 
@@ -385,6 +469,7 @@ def export_material_projects(parts, write_3mf, arrange, material_for) -> list[Pa
                     f"stdout: {result.stdout[-2000:]}\n"
                     f"stderr: {result.stderr[-2000:]}")
             applied = _patch_project_settings(output, spec)
+            _assign_row_plates(output, spec)
             checks = _verify_project(output, len(selected))
             _write_project_metadata(output, spec, checks)
             if spec.get("object_overrides") and len(applied) != len(selected):

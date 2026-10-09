@@ -15,7 +15,7 @@ A collection of ASCII STL models for the Anycubic Kobra S1 Combo + ACE Pro (250 
 | `models/lampe-5-leuchtflaechen.stl` | All four translucent lamp panels arranged together on the 250 × 250 mm bed |
 | `models/ghouls-grip-master.3mf` | Multi-material deployed master assembly of the mechanical Halloween candy-box ([dimensions and assembly](docs/ghouls-grip-masse-und-bauanleitung.md)) |
 | `models/ghouls-grip-master-retracted.3mf` | Closed-lid/retracted master assembly for cavity and clearance inspection |
-| `models/ghouls-grip-print-*.3mf` | Ten print-ready OrcaSlicer plate projects for five PLA colours/spools; the five support-intensive mechanism parts use separate plates to eliminate support-toolpath collisions. Every project embeds Anycubic Kobra S1, Textured PEI, filament/process settings and complete quantities. |
+| `models/ghouls-grip-print-*.3mf` | Four print-ready OrcaSlicer projects, exactly one per PLA colour/spool. Black and natural-white projects contain two internal plates; bones and all five fingers share one bone-beige plate. Every project embeds Anycubic Kobra S1, Textured PEI, filament/process settings and complete quantities. |
 | `models/ghouls-grip-preview.stl` | Assembly-only multi-body preview; printable parts live in the print 3MF projects and regenerate from `scripts/` |
 | `model-sources/ghouls-grip/ghouls-grip-master.blend` | Blender CLI/MCP scene checkpoint; technical objects are frozen and organic objects are separately marked |
 

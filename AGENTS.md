@@ -114,6 +114,11 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Put hinges on the physically correct edge and verify their rotation axis against the reference image before detailing the shell.
 - Keep `models/<name>.3mf` as the assembled presentation model when assembly is the user-visible deliverable; never substitute a print layout for an assembly preview.
 - For complex multi-part projects, also deliver one **printable OrcaSlicer project 3MF per actual material/spool group** (and multiple plates inside that project when the 250 mm bed requires it). Each material project must contain the complete BOM quantities, the Anycubic Kobra S1 0.4 mm machine profile, explicit Textured PEI bed selection, the matching filament profile, material-tuned global process settings, and object-specific overrides for walls, infill, supports, speeds or brim where function differs. Neutral geometry-only 3MF files do not satisfy this requirement.
+- Never split one material/color/spool group into several printable 3MF files
+  solely to isolate supports or orientations. Keep one project per spool and add
+  as many internal plates as needed. Parts sharing material and color should
+  share a plate whenever they fit safely; Ghoul's Grip fingers and bones are the
+  reference example.
 - For ornate reference designs, use real raised/recessed geometry (scrolls, tracery, leaves, ribs, cartouches), not a few generic arches or a texture. Validate minimum stroke and relief depth for the nozzle.
 
 ## Common Pitfalls

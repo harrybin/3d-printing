@@ -67,7 +67,8 @@ named machine, process and filament preset. Stop with a clear message when
 
 - 0.20 mm layer height, 0.4 mm nozzle.
 - Every part is printed in PLA; only the filament colour changes between the
-  five material projects. Do not reintroduce PETG or TPU without asking.
+  four spool-group projects. Bone parts and fingers share bone-beige PLA and one
+  plate. Do not reintroduce PETG or TPU without asking.
 - Rigid shells and mechanism: 4-5 walls, 20-40 % Gyroid.
 - PLA film-hinge fingers: 2 walls so the 0.8 mm web is exactly two perimeters,
   15 % Gyroid, 30 mm/s outer wall, reduced acceleration.

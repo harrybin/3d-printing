@@ -23,6 +23,15 @@ The master file is the overview and assembly source. Print files optimize
 orientation, plate use, supports, material, and print order. A collection of STL
 files does not replace the master 3MF.
 
+Create exactly one printable OrcaSlicer project 3MF for each actual
+material/color/spool combination. Put every part using that spool in this project;
+do not split one spool into separate 3MF files merely because parts need different
+orientations, supports, or process overrides. Use multiple plates inside the same
+project when the bed, support clearance, or print-risk isolation requires it.
+Parts sharing both material and color should share a plate when they fit safely;
+for example, bone-colored fingers and bone parts belong on one plate rather than
+in separate files.
+
 ## Purge-minimizing color strategy
 
 Before assigning ACE Pro color changes within one printed object, evaluate whether
@@ -65,6 +74,8 @@ Do not use glue as an undocumented substitute for missing alignment geometry.
 - Master assembly has the correct final relative positions.
 - Print plates contain every required body exactly once unless duplicates are
   intentional.
+- Every material/color/spool combination has one and only one printable project
+  3MF; plate boundaries must not create duplicate project files.
 - Material and color assignments match the documentation.
 - Every body passes mesh validation independently.
 - Mating pairs preserve their measured clearance after export.
