@@ -683,6 +683,22 @@ async function read3mfPlateAssignments(buffer) {
   return assignments
 }
 
+async function read3mfProjectMetadata(buffer) {
+  let xml
+  try {
+    xml = new TextDecoder().decode(await readZipEntry(buffer, 'Metadata/ghouls_grip_print_metadata.xml'))
+  } catch {
+    return {}
+  }
+  const doc = parseXmlDocument(xml, 'Metadata/ghouls_grip_print_metadata.xml')
+  const metadata = {}
+  for (const entry of Array.from(doc.getElementsByTagName('metadata'))) {
+    const name = entry.getAttribute('name')
+    if (name) metadata[name] = entry.getAttribute('value') || ''
+  }
+  return metadata
+}
+
 async function parse3mfBuffer(buffer) {
   const documents = new Map()
   const resourceCache = new Map()
@@ -695,6 +711,7 @@ async function parse3mfBuffer(buffer) {
   const triangleColors = []
   const stats = create3mfStats()
   const plateAssignments = await read3mfPlateAssignments(buffer)
+  const projectMetadata = await read3mfProjectMetadata(buffer)
   const plateGroups = new Map()
   const build = firstChildByLocalName(rootDoc.documentElement, 'build')
   if (!build) throw new Error(`3MF start model document is missing <build>: ${rootPath}`)
@@ -747,6 +764,7 @@ async function parse3mfBuffer(buffer) {
         triangleColors: plate.triangleColors,
         stats: finalize3mfStats(plate.stats),
       })),
+    projectMetadata,
   }
 }
 
@@ -900,6 +918,17 @@ function renderModelMeta() {
     : loadedPlates.find((candidate) => String(candidate.id) === selected)
   const stats = plate?.stats || loadedModelInfo.stats
   const bounds = stats?.bounds
+  const projectMetadata = loadedModelInfo.projectMetadata || {}
+  const printFields = [
+    ['Status', projectMetadata.status],
+    ['Print time', projectMetadata.estimatedPrintTimeSeconds && projectMetadata.estimatedPrintTimeSeconds !== 'unknown'
+      ? `${Math.round(Number(projectMetadata.estimatedPrintTimeSeconds) / 60)} min` : 'not available'],
+    ['Filament', projectMetadata.filamentUsageGrams && projectMetadata.filamentUsageGrams !== 'unknown'
+      ? `${projectMetadata.filamentUsageGrams} g` : 'not available'],
+    ['Printer', projectMetadata.printerProfile],
+    ['Layer', projectMetadata.layerHeightMm ? `${projectMetadata.layerHeightMm} mm` : undefined],
+    ['Material', projectMetadata.materialType],
+  ].filter(([, value]) => value)
   const meta = document.getElementById('meta')
   meta.innerHTML = '<span><strong>File:</strong> ' + escapeHtml(loadedModelInfo.path) + '</span>' +
     (loadedModelInfo.source ? '<span><strong>Source:</strong> ' + escapeHtml(loadedModelInfo.source) + '</span>' : '') +
@@ -907,7 +936,8 @@ function renderModelMeta() {
     (loadedPlates.length > 1 ? '<span><strong>Plate:</strong> ' + (plate ? escapeHtml(String(plate.id)) : 'All') + '</span>' : '') +
     '<span><strong>Facets:</strong> ' + stats.facets + '</span>' +
     '<span><strong>Vertices:</strong> ' + stats.vertices + '</span>' +
-    (bounds ? '<span><strong>Size (mm):</strong> ' + bounds.size.x.toFixed(1) + ' x ' + bounds.size.y.toFixed(1) + ' x ' + bounds.size.z.toFixed(1) + '</span>' : '')
+    (bounds ? '<span><strong>Size (mm):</strong> ' + bounds.size.x.toFixed(1) + ' x ' + bounds.size.y.toFixed(1) + ' x ' + bounds.size.z.toFixed(1) + '</span>' : '') +
+    printFields.map(([label, value]) => `<span><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</span>`).join('')
 }
 // Average face normals per welded vertex, but fall back to the face
 // normal across creases so 90-degree corners stay crisp.
@@ -1214,6 +1244,7 @@ async function fetchModelData(file) {
     triangles: parsed.triangles || [],
     triangleColors: parsed.triangleColors || [],
     plates: parsed.plates || [],
+    projectMetadata: parsed.projectMetadata || {},
     mtime: await readModelVersion(file),
   }
 }
@@ -1251,6 +1282,7 @@ function loadModel(file, preserveView) {
         path: data.path || file,
         source: data.source || '',
         stats: s,
+        projectMetadata: data.projectMetadata || {},
       }
       triangles = []
       loadedTriangles = []

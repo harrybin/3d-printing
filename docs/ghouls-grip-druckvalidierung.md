@@ -24,6 +24,13 @@ Platte aufgerufen. Jeder Slice erzeugte eine vollständige G-Code-Datei. Die
 Logs enthalten keine verbleibende Floating-region-, Floating-cantilever-,
 Toolpath-conflict-, Out-of-bed-, Empty-layer- oder Invalid-toolpath-Warnung.
 
+Jedes Ghoul's-Grip-3MF enthält zusätzlich
+`Metadata/ghouls_grip_print_metadata.xml`. Dort stehen Drucker, Düse,
+Schichthöhe, Filament, Bett, Wände, Infill, Support und Plattenzahl sowie
+standardisierte Felder für Druckzeit und Filamentverbrauch. Für Exporte ohne
+erfolgreichen Slice bleiben die Verbrauchswerte bewusst `unknown` und der
+Status lautet `not-verified`; die STL-Canvas-App zeigt diese Werte an.
+
 ## Platten und Ergebnisse
 
 | Druckprojekt / Platte | Enthaltene Objekte | Schichten | PLA | Zeit | Stützen | Vorschau |

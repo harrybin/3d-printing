@@ -27,13 +27,18 @@ PROFILE_ROOT = ORCA_BIN.parent / "resources" / "profiles" / "Anycubic"
 MACHINE = PROFILE_ROOT / "machine" / "Anycubic Kobra S1 0.4 nozzle.json"
 BASE_PROCESS = PROFILE_ROOT / "process" / \
     "0.20mm Standard @Anycubic Kobra S1 0.4 nozzle.json"
+METADATA_ENTRY = "Metadata/ghouls_grip_print_metadata.xml"
 
 MATERIAL_PROJECTS = {
     "black-pla": {
         "match": "Schatulle - schwarzes PLA",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
-        "wall_loops": "4", "infill": "20%", "speed": "standard",
+        # Economy shell: the 3 mm source walls still retain a durable
+        # 1.2 mm perimeter envelope, while lower infill and a 45-degree
+        # support threshold avoid filling broad, cosmetic overhangs.
+        "wall_loops": "3", "infill": "10%", "speed": "standard",
         "filament_type": "PLA", "support": "tree",
+        "support_threshold_angle": "45",
     },
     "bone-pla": {
         "match": "Knochen - beiges PLA",
@@ -152,7 +157,7 @@ def _process_settings(spec: dict) -> dict:
         data.update({
             "enable_support": "1", "support_type": "tree(auto)",
             "support_on_build_plate_only": "1",
-            "support_threshold_angle": "30",
+            "support_threshold_angle": spec.get("support_threshold_angle", "30"),
         })
     elif support == "normal":
         data.update({
@@ -233,6 +238,47 @@ def _patch_project_settings(path: Path, spec: dict) -> dict:
     return applied
 
 
+def _write_project_metadata(path: Path, spec: dict, checks: dict) -> None:
+    """Add a stable, slicer-neutral summary for the canvas and other tools.
+
+    Orca remains authoritative for calculated time/material values.  Until a
+    successful slice supplies those values, the fields are explicit
+    ``unknown`` rather than misleading estimates.
+    """
+    with ZipFile(path) as archive:
+        infos = archive.infolist()
+        entries = {info.filename: archive.read(info.filename) for info in infos}
+    values = {
+        "status": "not-verified",
+        "estimatedPrintTimeSeconds": "unknown",
+        "filamentUsageGrams": "unknown",
+        "filamentUsageMillimeters": "unknown",
+        "filamentUsageCubicMillimeters": "unknown",
+        "printerProfile": checks["printer"],
+        "nozzleDiameterMm": "0.4",
+        "processProfile": checks["process"],
+        "layerHeightMm": checks["layer_height"],
+        "filamentProfile": ", ".join(checks["filament"]) if isinstance(
+            checks["filament"], list) else checks["filament"],
+        "materialType": spec["filament_type"],
+        "bedType": checks["bed"],
+        "wallLoops": spec["wall_loops"],
+        "infillDensity": spec["infill"],
+        "supportPolicy": spec.get("support", "none"),
+        "supportThresholdAngleDeg": spec.get("support_threshold_angle", "unknown"),
+        "plateCount": str(checks["plates"]),
+    }
+    root = ET.Element("ghouls-grip-print-metadata", version="1")
+    for name, value in values.items():
+        ET.SubElement(root, "metadata", name=name, value=str(value))
+    entries[METADATA_ENTRY] = ET.tostring(
+        root, encoding="utf-8", xml_declaration=True)
+    with ZipFile(path, "w") as archive:
+        for info in infos:
+            archive.writestr(info, entries[info.filename])
+        archive.writestr(METADATA_ENTRY, entries[METADATA_ENTRY])
+
+
 def _verify_project(path: Path, expected_objects: int) -> dict:
     with ZipFile(path) as archive:
         project = json.loads(archive.read(
@@ -311,6 +357,7 @@ def export_material_projects(parts, write_3mf, arrange, material_for) -> list[Pa
                     f"stderr: {result.stderr[-2000:]}")
             applied = _patch_project_settings(output, spec)
             checks = _verify_project(output, len(selected))
+            _write_project_metadata(output, spec, checks)
             if spec.get("object_overrides") and len(applied) != len(selected):
                 raise RuntimeError(
                     f"{output.name}: object overrides {len(applied)}/{len(selected)}")

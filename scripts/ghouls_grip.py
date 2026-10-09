@@ -161,6 +161,25 @@ def write_3mf(path: Path, objects) -> None:
   <Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>
 </Relationships>
 """
+    metadata = ET.Element("ghouls-grip-print-metadata", version="1")
+    neutral_values = {
+        "status": "not-verified",
+        "estimatedPrintTimeSeconds": "unknown",
+        "filamentUsageGrams": "unknown",
+        "filamentUsageMillimeters": "unknown",
+        "filamentUsageCubicMillimeters": "unknown",
+        "printerProfile": "unknown",
+        "nozzleDiameterMm": "unknown",
+        "processProfile": "unknown",
+        "layerHeightMm": "unknown",
+        "filamentProfile": "unknown",
+        "materialType": "unknown",
+        "bedType": "unknown",
+        "plateCount": "1",
+        "objectCount": str(len(objects)),
+    }
+    for name, value in neutral_values.items():
+        ET.SubElement(metadata, "metadata", name=name, value=value)
 
     def member(archive: ZipFile, name: str, data) -> None:
         info = ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
@@ -174,6 +193,11 @@ def write_3mf(path: Path, objects) -> None:
             archive,
             "3D/3dmodel.model",
             ET.tostring(model, encoding="utf-8", xml_declaration=True),
+        )
+        member(
+            archive,
+            "Metadata/ghouls_grip_print_metadata.xml",
+            ET.tostring(metadata, encoding="utf-8", xml_declaration=True),
         )
 
 

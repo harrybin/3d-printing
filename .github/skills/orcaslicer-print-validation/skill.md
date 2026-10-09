@@ -29,6 +29,11 @@ local executable's help before using them; CLI behavior can change between versi
 Use the GUI when the installed CLI cannot expose the required project, plate, or
 preview information.
 
+Computer Use is a fallback only: use it to start or stop OrcaSlicer when no
+usable CLI/MCP path exists, or to enable/configure the local MCP. Once a CLI or
+MCP path is available, perform slicing and inspection through that path rather
+than driving the GUI.
+
 The repository MCP template is `.vscode/mcp.json`, but the OrcaSlicer entry is
 disabled by default because OrcaSlicer officially documents a CLI, not a first-party
 MCP server. Only enable a third-party OrcaSlicer MCP after auditing its source,
@@ -78,6 +83,24 @@ document with:
 
 Capture a slicer preview for every delivered print plate. For multi-color output,
 the preview must make the assigned regions visible.
+
+## 3MF metadata contract
+
+Every generated project 3MF must include a slicer-neutral metadata part named
+`Metadata/ghouls_grip_print_metadata.xml`. It must expose, at minimum:
+
+- `estimatedPrintTimeSeconds`
+- `filamentUsageGrams`
+- `filamentUsageMillimeters`
+- `filamentUsageCubicMillimeters`
+- printer, nozzle, process/layer height, filament/material, bed, supports,
+  infill, wall loops, and plate count
+
+Values that are not backed by a successful slice must be `unknown`, with
+`status=not-verified`; never invent estimates. The STL Canvas reads and displays
+these fields alongside mesh and plate information. After a successful slice,
+patch the same metadata entry with the exact slicer-reported values and set
+`status=verified`.
 
 ## Acceptance
 

@@ -26,6 +26,10 @@ named machine, process and filament preset. Stop with a clear message when
 ## Rules
 
 - Use MCP for slicing, profile inspection and G-code analysis only.
+- Prefer the OrcaSlicer CLI or the audited local MCP for all slicer work. Use
+  Computer Use only to start/stop OrcaSlicer when no CLI/MCP path is available,
+  or to enable/configure that MCP; once enabled, return to CLI/MCP and do not
+  drive the slicer GUI for routine slicing.
 - Do not configure a printer, upload G-code or start a print unless the user
   explicitly requests that separate physical action.
 - Prefer the Anycubic Kobra S1 profile already configured in OrcaSlicer.
@@ -52,6 +56,12 @@ named machine, process and filament preset. Stop with a clear message when
   materials first and prefer a single-material (PLA) solution; a living hinge
   can be redesigned as a 0.8 mm PLA film hinge instead of requiring TPU.
 - Report layer height, walls, infill, supports, estimated time and filament.
+- Every generated 3MF, including neutral assembly 3MFs, must contain
+  `Metadata/ghouls_grip_print_metadata.xml` with the standard print-time,
+  filament-usage, printer, nozzle, layer, material, support, infill and plate
+  fields. Use `unknown` and `status=not-verified` until a successful slice
+  provides measured values; never invent estimates. The STL Canvas displays
+  these fields.
 
 ## Ghoul's Grip defaults
 

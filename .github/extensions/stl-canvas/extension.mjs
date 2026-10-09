@@ -341,11 +341,26 @@ function parse3mfPlateAssignments(buffer) {
     return assignments;
 }
 
+function parse3mfProjectMetadata(buffer) {
+    let xml;
+    try {
+        xml = readZipEntry(buffer, "Metadata/ghouls_grip_print_metadata.xml").toString("utf8");
+    } catch {
+        return {};
+    }
+    const metadata = {};
+    for (const match of xml.matchAll(/<metadata\b[^>]*\bname="([^"]+)"[^>]*\bvalue="([^"]*)"[^>]*\/?>/g)) {
+        metadata[match[1]] = match[2];
+    }
+    return metadata;
+}
+
 function parse3mfBuffer(buffer) {
     const rootXml = readZipEntry(buffer, "3D/3dmodel.model").toString("utf8");
     const triangles = [];
     const triangleColors = [];
     parse3mfDocument(rootXml, null, triangles, triangleColors);
+    const projectMetadata = parse3mfProjectMetadata(buffer);
     const plateAssignments = parse3mfPlateAssignments(buffer);
     const plateGroups = new Map();
 
@@ -392,7 +407,13 @@ function parse3mfBuffer(buffer) {
             ...plate,
             stats: meshStats(plate.triangles, "3mf"),
         }));
-    return { ...meshStats(triangles, "3mf"), triangles, triangleColors, plates };
+    return {
+        ...meshStats(triangles, "3mf"),
+        triangles,
+        triangleColors,
+        plates,
+        projectMetadata,
+    };
 }
 
 function parseModelBuffer(modelPath, buffer) {
@@ -406,6 +427,7 @@ function readStlFile(modelPath) {
         path: modelPath.split(/[\\/]/).pop(),
         format: parsed.format,
         stats: { ...parsed, triangles: undefined, triangleColors: undefined },
+        projectMetadata: parsed.projectMetadata || {},
         content: parsed.format === "ascii" ? raw.toString("utf8") : "",
         triangles: parsed.triangles || [],
         triangleColors: parsed.triangleColors || [],
