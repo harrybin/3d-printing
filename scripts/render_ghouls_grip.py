@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import mechanism
 from gothic_chest import HINGE_Y, HINGE_Z, LID_DROP, build_chest, build_lid
 from skeleton_hand import GRIP_POSE, assemble, load_skeleton
-from skull import build_trigger
+from skull import build_drive_knob
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "images"
@@ -39,7 +39,6 @@ POSES = {
     "retracted": mechanism.THETA_MIN,
     "deployed": mechanism.THETA_MAX,
 }
-LID_OPEN_ANGLE = 92.0
 BLACK_COLOR = "#202124"
 BONE_COLOR = "#D8C6A5"
 MECHANISM_COLOR = "#F1EBDD"
@@ -78,15 +77,8 @@ def tube_between(start, end, radius: float) -> trimesh.Trimesh:
 
 
 def lid_angle(theta: float) -> float:
-    """Fast spring opening released by the same rocker as the slider."""
-    travel = (
-        mechanism.RETRACTED_SLIDER_X
-        - mechanism.slider_x(mechanism.THETA_MAX)
-    )
-    released = (
-        mechanism.RETRACTED_SLIDER_X - mechanism.slider_x(theta)
-    ) / travel
-    return -LID_OPEN_ANGLE * min(max(released / 0.28, 0.0), 1.0)
+    """Compatibility wrapper for the physical rack-and-crank solution."""
+    return mechanism.lid_angle(theta)
 
 
 
@@ -115,19 +107,51 @@ def build_scene_at(theta: float):
         lid.apply_transform(lid_transform)
     items.append(("lid", lid, BLACK_COLOR))
 
-    for index, x in enumerate((-70.0, 70.0)):
-        moving = trimesh.transform_points(
-            [[x, 50.0, LID_DROP + 19.0]], lid_transform
-        )[0]
-        items.append((
-            f"lid-opening-band-{index}",
-            tube_between((x, 50.0, 65.0), moving, 1.1),
-            "#6f4a2d",
-        ))
+    lid_crank = mechanism.build_lid_crank()
+    lid_crank.apply_transform(rot(90.0, [0, 1, 0]))
+    lid_crank.apply_transform(rot(opening, [1, 0, 0]))
+    lid_crank.apply_translation([
+        -mechanism.DRIVE_PITCH_R, HINGE_Y, HINGE_Z
+    ])
+    items.append(("lid-crank", lid_crank, MECHANISM_COLOR))
 
     slider = mechanism.build_slider()
     slider.apply_translation([slider_x, 0.0, 0.0])
     items.append(("slider", slider, MECHANISM_COLOR))
+
+    drive_rotation = mechanism.drive_angle(theta)
+    pinion = mechanism.build_drive_pinion()
+    pinion.apply_transform(rot(drive_rotation, [0, 0, 1]))
+    pinion.apply_transform(rot(90.0, [1, 0, 0]))
+    pinion.apply_translation(mechanism.DRIVE_AXIS)
+    items.append(("drive-pinion", pinion, MECHANISM_COLOR))
+
+    knob_angle = mechanism.KNOB_STOW_ANGLE - drive_rotation
+    knob = build_drive_knob(shaft_d=mechanism.DRIVE_SHAFT_D)
+    knob.apply_transform(rot(90.0, [1, 0, 0]))
+    knob.apply_transform(rot(knob_angle, [0, 1, 0]))
+    knob.apply_translation(mechanism.DRIVE_AXIS + np.array([0.0, -17.0, 0.0]))
+    items.append(("drive-skull-knob", knob, ACCENT_COLOR))
+
+    lid_rack = mechanism.build_lid_rack()
+    lid_rack.apply_transform(rot(-90.0, [0, 1, 0]))
+    drive_rise = mechanism.RETRACTED_SLIDER_X - slider_x
+    lid_rack.apply_translation([
+        -mechanism.DRIVE_PITCH_R,
+        mechanism.DRIVE_AXIS[1],
+        mechanism.LID_LINK_PIN_Z - 40.0 + drive_rise,
+    ])
+    items.append(("lid-rack", lid_rack, MECHANISM_COLOR))
+
+    follower = mechanism.build_lid_follower_rack()
+    follower.apply_transform(rot(-90.0, [0, 1, 0]))
+    follower.apply_translation([
+        -mechanism.DRIVE_PITCH_R,
+        mechanism.LID_LINK_FRONT_Y,
+        mechanism.LID_LINK_PIN_Z + 20.0
+        + min(drive_rise, mechanism.LID_OPEN_TRAVEL),
+    ])
+    items.append(("lid-follower-rack", follower, MECHANISM_COLOR))
 
     arm = mechanism.build_scissor_arm()
     for i, y in enumerate((-SCISSOR_Y, SCISSOR_Y)):
@@ -143,46 +167,45 @@ def build_scene_at(theta: float):
     hinge = plat_origin + np.array([ARM_HINGE_X, 0.0, ARM_HINGE_Z])
     tilt = mechanism.forearm_angle(theta)
 
+    gear_start = np.array([
+        FLOOR_PIVOT[0], mechanism.FOREARM_GEAR_Y, FLOOR_PIVOT[1] + lift
+    ])
+    gear_end = hinge + np.array([0.0, mechanism.FOREARM_GEAR_Y, 0.0])
+    gear_vector = gear_end - gear_start
+    gear_distance = float(np.linalg.norm(gear_vector[[0, 2]]))
+    gear_unit = gear_vector / gear_distance
+    idler_centres = [
+        gear_start + gear_unit * (
+            mechanism.FOREARM_INPUT_R + mechanism.FOREARM_IDLER_R
+        ),
+        gear_end - gear_unit * (
+            mechanism.FOREARM_GEAR_R + mechanism.FOREARM_IDLER_R
+        ),
+    ]
+
+    input_gear = mechanism.build_scissor_drive_gear()
+    input_gear.apply_transform(rot(-theta, [0, 0, 1]))
+    input_gear.apply_transform(rot(90.0, [1, 0, 0]))
+    input_gear.apply_translation(gear_start)
+    items.append(("scissor-drive-gear", input_gear, MECHANISM_COLOR))
+
+    for index, centre in enumerate(idler_centres):
+        idler = mechanism.build_idler_gear()
+        idler.apply_transform(rot(
+            ((-1.0) ** index) * theta, [0, 0, 1]
+        ))
+        idler.apply_transform(rot(90.0, [1, 0, 0]))
+        idler.apply_translation(centre)
+        items.append((f"idler-gear-{index}", idler, MECHANISM_COLOR))
+
     forearm = mechanism.build_forearm()
     forearm.apply_translation([0.0, 0.0, -4.0])
     forearm.apply_transform(rot(tilt, [0, 1, 0]))
     forearm.apply_translation(hinge)
     items.append(("forearm", forearm, BONE_COLOR))
 
-    radians = np.deg2rad(tilt)
-    sector_point = hinge + np.array([
-        mechanism.FOREARM_SECTOR_R * np.cos(radians),
-        mechanism.FOREARM_CORD_Y,
-        -mechanism.FOREARM_SECTOR_R * np.sin(radians),
-    ])
-    cord_anchor = mechanism.FOREARM_CORD_ANCHOR.copy()
-    cord_guide = mechanism.forearm_cord_guide(theta)
-    items.append((
-        "forearm-control-cord-fixed",
-        tube_between(cord_anchor, cord_guide, 0.7),
-        "#dedede",
-    ))
-    if theta <= mechanism.FOREARM_ENGAGE_THETA:
-        slack = (cord_guide + sector_point) / 2.0 + np.array([-8.0, 0.0, 8.0])
-        items.append((
-            "forearm-control-cord-a",
-            tube_between(cord_guide, slack, 0.7),
-            "#dedede",
-        ))
-        items.append((
-            "forearm-control-cord-b",
-            tube_between(slack, sector_point, 0.7),
-            "#dedede",
-        ))
-    else:
-        items.append((
-            "forearm-control-cord",
-            tube_between(cord_guide, sector_point, 0.7),
-            "#dedede",
-        ))
-
-    # Stowed the tendon holds the fingers curled, which is also the
-    # most compact shape - the flat print pose would not fit the chest.
+    # The common finger flexures remain in their compact pre-curled pose.  The
+    # The rigid redesign changes the box drive, lid and forearm linkage only.
     hand = grip_hand()
     stack = trimesh.util.concatenate(list(hand.values()))
     wrist_y = stack.bounds[0][1]
@@ -196,86 +219,6 @@ def build_scene_at(theta: float):
         colour = FINGER_COLOR if name.startswith("hand-finger") else BONE_COLOR
         items.append((name, part, colour))
 
-    trigger = build_trigger()
-    trigger.apply_transform(rot(90.0, [1, 0, 0]))
-    trigger.apply_translation([0.0, -60.0 - 1.5, 46.0])
-    items.append(("trigger", trigger, ACCENT_COLOR))
-
-    latch = mechanism.build_latch()
-    release = min(max(
-        (mechanism.RETRACTED_SLIDER_X - slider_x) / 1.0, 0.0
-    ), 1.0)
-    latch_transform = trimesh.transformations.translation_matrix(
-        [0.0, 0.0, mechanism.LATCH_RELEASE_TRAVEL * release]
-    )
-    latch.apply_transform(latch_transform)
-    items.append(("latch", latch, MECHANISM_COLOR))
-    items.append(("latch-bracket", mechanism.build_latch_bracket(), MECHANISM_COLOR))
-    return_eye = trimesh.transform_points(
-        [[-4.0, mechanism.LATCH_RETURN_Y, 52.0]], latch_transform
-    )[0]
-    items.append((
-        "latch-return-band",
-        tube_between((-4.0, mechanism.LATCH_RETURN_Y, 34.0),
-                     return_eye, 0.9),
-        "#6f4a2d",
-    ))
-
-    lid_catch = trimesh.transform_points(
-        [[0.0, -45.0, LID_DROP + 7.0]], lid_transform
-    )[0]
-    if theta <= mechanism.THETA_MIN + 0.01:
-        items.append((
-            "lid-release-loop",
-            tube_between(
-                lid_catch,
-                trimesh.transform_points(
-                    [[0.0, mechanism.LATCH_RETURN_Y, 46.0]],
-                    latch_transform
-                )[0],
-                0.7,
-            ),
-            "#dedede",
-        ))
-    else:
-        items.append((
-            "lid-release-loop",
-            tube_between(lid_catch, lid_catch + [0.0, 0.0, -28.0], 0.7),
-            "#dedede",
-        ))
-
-    anchor = mechanism.build_band_anchor()
-    anchor.apply_translation([-76.0, 0.0, 4.5])
-    items.append(("band-anchor", anchor, MECHANISM_COLOR))
-
-    for sy in (-1.0, 1.0):
-        items.append((
-            f"drive-band-{int(sy):+d}",
-            tube_between(
-                (-76.0, sy * 50.0, 20.0),
-                (slider_x + 8.0, sy * 50.0, mechanism.RAIL_Z + 12.0),
-                1.2,
-            ),
-            "#6f4a2d",
-        ))
-
-    for name, builder in (
-        ("crank-spool", mechanism.build_crank_spool),
-        ("crank-key", mechanism.build_crank_key),
-    ):
-        crank = builder()
-        crank.apply_transform(rot(90.0, [0, 1, 0]))
-        crank.apply_translation([100.0, 0.0, 30.0])
-        items.append((name, crank, MECHANISM_COLOR))
-    items.append((
-        "reset-cord",
-        tube_between(
-            (slider_x + 20.0, 0.0, mechanism.RAIL_Z + 6.0),
-            (mechanism.CRANK_SPOOL_X, 0.0, 30.0),
-            0.7,
-        ),
-        "#dedede",
-    ))
     return items
 
 

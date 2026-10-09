@@ -92,6 +92,14 @@ def skull_relief(scale: float = 1.0, depth: float = 5.0) -> trimesh.Trimesh:
     return clean(relief)
 
 
+def build_drive_knob(scale: float = 1.15, shaft_d: float = 8.0) -> trimesh.Trimesh:
+    """Large skull knob with a blind press-fit socket for the drive shaft."""
+    knob = build_trigger(scale=scale, stem_d=14.0, stem_len=9.0,
+                         flange_d=34.0)
+    socket = cylinder((shaft_d - 0.2) / 2.0, 10.0, (0.0, 0.0, -7.0))
+    return clean(difference(knob, [socket]))
+
+
 def build_trigger(scale: float = 1.0, stem_d: float = 4.0,
                   stem_len: float = 5.5,
                   flange_d: float = 30.0) -> trimesh.Trimesh:

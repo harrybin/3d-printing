@@ -276,23 +276,30 @@ def build_chest() -> trimesh.Trimesh:
     body = difference(body, [cavity, *cuts])
     body = union([body, *adds, *rivets])
 
-    # Collar around the skull trigger: the button flange drops into the ring.
+    # Decorative collar around the direct skull-drive shaft.
     collar = difference(
         cylinder(38.0 / 2.0, 6.0, (0.0, -CHEST_W / 2.0 - 1.5, 46.0),
                  (0.0, 1.0, 0.0)),
         [cylinder(31.0 / 2.0, 10.0, (0.0, -CHEST_W / 2.0 - 1.5, 46.0),
                   (0.0, 1.0, 0.0))])
-    body = union([body, collar])
+    bearing = cylinder(
+        8.0, 16.0,
+        (mechanism.DRIVE_AXIS[0], -56.0, mechanism.DRIVE_AXIS[2]),
+        (0.0, 1.0, 0.0),
+    )
+    body = union([body, collar, bearing])
 
-    # Function cuts: slider rails, the skull trigger bore and the crank bore.
+    # Function cuts: slider rails and the skull-knob/pinion bearing.
     service = [
         box((CHEST_L, RAIL_D * 2.0, RAIL_W),
             (0.0, -(CHEST_W / 2.0 - WALL), RAIL_Z + RAIL_W / 2.0)),
         box((CHEST_L, RAIL_D * 2.0, RAIL_W),
             (0.0, CHEST_W / 2.0 - WALL, RAIL_Z + RAIL_W / 2.0)),
-        cylinder(4.4 / 2.0, 40.0, (0.0, -CHEST_W / 2.0, 46.0), (0.0, 1.0, 0.0)),
-
-        cylinder(6.4 / 2.0, 40.0, (CHEST_L / 2.0, 0.0, 30.0), (1.0, 0.0, 0.0)),
+        cylinder(8.8 / 2.0, 44.0, mechanism.DRIVE_AXIS, (0.0, 1.0, 0.0)),
+        box(
+            (14.0, 12.0, 24.0),
+            (-mechanism.DRIVE_PITCH_R, 58.0, 75.0),
+        ),
     ]
     body = difference(body, service)
 
@@ -312,8 +319,7 @@ def build_chest() -> trimesh.Trimesh:
     ]
     body = union([body, *rail_covers])
 
-    # Fixed scissor pivots and the peg sockets for latch bracket and band
-    # anchor. The scissor pivot sits at x = 0 so the compact platform stays inside
+    # Fixed scissor pivots. The scissor pivot sits at x = 0 so the compact platform stays inside
     # the chest over the whole stroke (see docs, kinematics table).
     posts = []
     for sy in (-1.0, 1.0):
@@ -325,41 +331,11 @@ def build_chest() -> trimesh.Trimesh:
                                sy * mechanism.SCISSOR_Y, RAIL_Z),
                               (0.0, 1.0, 0.0)))
     body = union([body, *posts])
-    sockets = [cylinder(4.2 / 2.0, 6.0, (x, y, FLOOR), (0.0, 0.0, 1.0))
-               for x, y in ((-76.0, 44.0), (-76.0, -44.0))]
-    sockets.append(cylinder(3.2 / 2.0, 80.0,
-                            (mechanism.FLOOR_PIVOT_X, 0.0, RAIL_Z),
-                            (0.0, 1.0, 0.0)))
-    body = difference(body, sockets)
-
-    # High side-wall eye for the forearm control cord. Routing above the
-    # carriage keeps the entire cord clear of slider, arms and lifting yoke.
-    cord_boss = rounded_box(
-        (14.0, 12.0, 14.0), 2.0,
-        (mechanism.FOREARM_ANCHOR_X, 54.0, mechanism.FOREARM_ANCHOR_Z),
-    )
-    cord_eye = cylinder(
-        5.0, 8.0, mechanism.FOREARM_CORD_ANCHOR, (0.0, 1.0, 0.0)
-    )
-    cord_eye = difference(cord_eye, [
-        cylinder(2.0, 12.0, mechanism.FOREARM_CORD_ANCHOR,
+    body = difference(body, [
+        cylinder(3.2 / 2.0, 80.0,
+                 (mechanism.FLOOR_PIVOT_X, 0.0, RAIL_Z),
                  (0.0, 1.0, 0.0))
     ])
-    body = union([body, cord_boss, cord_eye])
-
-    # Two low rear eyes anchor rubber bands that bias the lid open.  The same
-    # latch rocker that holds the slider also retains the lid catch cord, so
-    # both motions start from one skull-button press.
-    lid_band_anchors = []
-    for x in (-70.0, 70.0):
-        boss = rounded_box((12.0, 12.0, 12.0), 2.0,
-                           (x, 55.0, 65.0))
-        eye = cylinder(5.0, 8.0, (x, 50.0, 65.0), (1.0, 0.0, 0.0))
-        eye = difference(eye, [
-            cylinder(2.0, 12.0, (x, 50.0, 65.0), (1.0, 0.0, 0.0))
-        ])
-        lid_band_anchors.extend([boss, eye])
-    body = union([body, *lid_band_anchors])
 
     # Hinge on the long rear edge.  Three chest knuckles alternate with four
     # lid knuckles; 1 mm axial gaps stop elephant-foot swelling from binding.
@@ -473,37 +449,20 @@ def build_lid() -> trimesh.Trimesh:
                                       (0.0, HINGE_Y, LID_H - 5.0),
                                       (1.0, 0.0, 0.0))])
 
-    # The opening-band eyes must sit on the front side of the hinge axis.
-    # Eyes behind the axis sweep down through the chest while the lid opens.
-    band_tabs = []
-    for x in (-70.0, 70.0):
-        band_tabs.append(box((12.0, 10.0, 10.0),
-                             (x, 55.0, LID_H - 5.0)))
-        tab = cylinder(5.0, 8.0, (x, 50.0, LID_H - 5.0),
-                       (1.0, 0.0, 0.0))
-        tab = difference(tab, [
-            cylinder(2.0, 12.0, (x, 50.0, LID_H - 5.0),
-                     (1.0, 0.0, 0.0))
-        ])
-        band_tabs.append(tab)
-
-    catch_y = -45.0
-    catch = rounded_box((12.0, 10.0, 12.0), 2.0,
-                        (0.0, catch_y, 7.0))
-    catch = difference(catch, [
-        cylinder(2.0, 18.0, (0.0, catch_y, 7.0),
-                 (1.0, 0.0, 0.0))
-    ])
-    body = union([body, *band_tabs, catch])
-
     # Rebuild only the rear seating region around frozen chest-side hardware.
     # Alternating pockets clear the three chest hinge supports; the small
-    # right-hand notch clears the existing forearm-cord boss below the rim.
+    # right-hand notch remains as assembly clearance below the rim.
     clearance_pockets = [
         box((30.0, 12.0, 18.0), (x, HINGE_Y, 16.5))
         for x in (-66.0, 0.0, 66.0)
     ]
     clearance_pockets.append(box((16.0, 9.0, 9.0), (70.0, 54.5, 4.0)))
+    # Narrow service channel for the rigid lid rack and hinge sector.  It
+    # replaces a slice of one lid knuckle without weakening the other three.
+    clearance_pockets.append(box(
+        (14.0, 20.0, 26.0),
+        (-mechanism.DRIVE_PITCH_R, mechanism.LID_RACK_Y, 13.0),
+    ))
     return clean(difference(body, clearance_pockets))
 
 

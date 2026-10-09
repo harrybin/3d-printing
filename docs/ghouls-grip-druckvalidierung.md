@@ -1,124 +1,79 @@
 # The Ghoul's Grip – OrcaSlicer-Druckvalidierung
 
 Status: **VERIFIED**
+
 Validiert: 2026-10-09
+
 OrcaSlicer: **2.4.2**
 
-![Übersicht der geslicten G-Code-Pfade](images/ghouls-grip-slice-overview.png)
+![Übersicht](images/ghouls-grip-slice-overview.png)
 
-## Fester Profilvertrag
+## Profilvertrag
 
 - Drucker: `Anycubic Kobra S1 0.4 nozzle`
-- Düse: 0,4 mm
+- Düse/Schicht: 0,4 mm / 0,20 mm
 - Prozess: `0.20mm Standard @Anycubic Kobra S1 0.4 nozzle`
 - Filament: `Anycubic PLA @Anycubic Kobra S1 0.4 nozzle`
-- Druckbett: `Textured PEI Plate`
-- Schichthöhe: 0,20 mm
-- Starttemperaturen: Bett 55 °C, Düse 215 °C
-- Stützen: nur vom Druckbett; Baumstützen für organische/äußere Formen,
-  objektbezogene `normal(auto)`/`snug`-Stützen in den Mechanikplatten
-- Prime Tower: aus, da jede Druckplatte nur eine PLA-Spule nutzt
+- Bett: `Textured PEI Plate`
+- Starttemperaturen: 55/215 °C
+- Eine reale Spule/Farbe je Projekt, kein Prime Tower
+- Farben: Schwarz `#202124`, Knochenbeige `#D8C6A5`, Naturweiß `#F1EBDD`, Grau `#777777`
 
-## Materialfarben
+Alle sechs Platten wurden nacheinander mit der OrcaSlicer-CLI aus den gelieferten 3MF-Projekten gesliced. Es gibt keine Floating-region-, Out-of-bed-, Empty-layer- oder Invalid-toolpath-Warnung. Die gemessenen Gesamtwerte sind außerdem als `status=verified` in `Metadata/ghouls_grip_print_metadata.xml` der jeweiligen 3MF gespeichert.
 
-Jedes Druckprojekt speichert seine Farbe in Orcas
-`filament_colour`, `extruder_colour` und `default_filament_colour` sowie in
-`Metadata/ghouls_grip_print_metadata.xml`. Der Canvas verwendet denselben Wert
-als Darstellungsfarbe, wenn Orcas Komponentenmodell keine Standard-3MF-Palette
-enthält.
+## Ergebnisse
 
-| Materialgruppe | Farbe | Hex |
-| --- | --- | --- |
-| Schatulle und Deckel | Anthrazit/Schwarz | `#202124` |
-| Hand, Unterarm, Sehnenführung und Finger | Knochenbeige | `#D8C6A5` |
-| Mechanik | Naturweiß | `#F1EBDD` |
-| Totenkopf-Auslöser | Grau | `#777777` |
+| Projekt / Platte | Inhalt | Schichten | Filament | Zeit | Vorschau |
+| --- | --- | ---: | ---: | ---: | --- |
+| Schwarz, Platte 1 | Schatulle | 490 | 281,73 g | 10 h 15 min 37 s | [PNG](images/ghouls-grip-slice-black-plate-1.png) |
+| Schwarz, Platte 2 | Deckel | 137 | 174,59 g | 8 h 47 min 16 s | [PNG](images/ghouls-grip-slice-black-plate-2.png) |
+| Knochenbeige | Unterarm, Handführung, Handfläche, fünf Finger | 284 | 65,65 g | 4 h 57 min 27 s | [PNG](images/ghouls-grip-slice-bone.png) |
+| Mechanik, Platte 1 | 4 Arme, Schlitten, Folgejoch, Hubjoch, Ritzel, Deckeltrieb, Scherenrad | 344 | 128,45 g | 6 h 12 min 57 s | [PNG](images/ghouls-grip-slice-mechanism-plate-1.png) |
+| Mechanik, Platte 2 | 2 Zwischenräder, 10 kleine und 4 große Pins | 170 | 9,76 g | 52 min 26 s | [PNG](images/ghouls-grip-slice-mechanism-plate-2.png) |
+| Grau | Direkter Totenkopf-Drehknopf | 135 | 22,02 g | 1 h 17 min 03 s | [PNG](images/ghouls-grip-slice-accent.png) |
+| **Gesamt** | **38 Druckobjekte** | – | **682,20 g** | **32 h 22 min 46 s** | – |
 
-Die offizielle OrcaSlicer-CLI wurde mit dem exakten gelieferten 3MF jeder
-Platte aufgerufen. Jeder Slice erzeugte eine vollständige G-Code-Datei. Die
-Logs enthalten keine verbleibende Floating-region-, Floating-cantilever-,
-Toolpath-conflict-, Out-of-bed-, Empty-layer- oder Invalid-toolpath-Warnung.
+Projektmetadaten:
 
-Jedes Ghoul's-Grip-3MF enthält zusätzlich
-`Metadata/ghouls_grip_print_metadata.xml`. Dort stehen Drucker, Düse,
-Schichthöhe, Filament, Bett, Wände, Infill, Support und Plattenzahl sowie
-standardisierte Felder für Druckzeit und Filamentverbrauch. Für Exporte ohne
-erfolgreichen Slice bleiben die Verbrauchswerte bewusst `unknown` und der
-Status lautet `not-verified`; die STL-Canvas-App zeigt diese Werte an.
+| Projekt | Zeit | Masse | Länge | Volumen | Platten |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Schwarz | 68.573 s | 456,32 g | 152.995,37 mm | 367.990 mm³ | 2 |
+| Knochenbeige | 17.847 s | 65,65 g | 22.012,91 mm | 52.950 mm³ | 1 |
+| Mechanik | 25.523 s | 138,21 g | 46.339,59 mm | 111.460 mm³ | 2 |
+| Grau | 4.623 s | 22,02 g | 7.381,35 mm | 17.750 mm³ | 1 |
 
-## Platten und Ergebnisse
+Das schwarze Projekt benötigt 456,32 g statt der ursprünglichen 629,66 g. Einsparung: **173,34 g / 27,5 %**. Die sichtbare Außenseite bleibt geschlossen; die Schlittenführung erzeugt keinen äußeren Schlitz.
 
-| Druckprojekt / Platte | Enthaltene Objekte | Schichten | PLA | Zeit | Stützen | Vorschau |
-| --- | --- | ---: | ---: | ---: | --- | --- |
-| `ghouls-grip-print-black-pla.3mf`, Platte 1 | Erleichterte, außen geschlossene Schatulle | 490 | 282,25 g | 10 h 19 min 36 s | Baum, nur kritische Bereiche | [PNG](images/ghouls-grip-slices/ghouls-grip-print-black-pla-plate_1.png) |
-| `ghouls-grip-print-black-pla.3mf`, Platte 2 | Gerippter Deckel mit kollisionsfreier U-Führung | 137 | 175,91 g | 8 h 49 min 44 s | Baum, nur kritische Bereiche | [PNG](images/ghouls-grip-slices/ghouls-grip-print-black-pla-plate_2.png) |
-| `ghouls-grip-print-bone-pla.3mf`, Platte 1 | Unterarm, Handfläche, Sehnenführung und fünf Finger | 284 | 64,15 g | 4 h 48 min 13 s | Baum | [PNG](images/ghouls-grip-slices/ghouls-grip-print-bone-pla.png) |
-| `ghouls-grip-print-mechanism-pla.3mf`, Platte 1 | 4 Scherenarme, Schlitten, Hubjoch, Rastschieber und Führung | 467 | 120,44 g | 5 h 04 min 16 s | objektbezogen normal/keine | [PNG](images/ghouls-grip-slices/ghouls-grip-print-mechanism-pla-plate_1.png) |
-| `ghouls-grip-print-mechanism-pla.3mf`, Platte 2 | Spule, Schlüssel, Bandanker, 8 kleine und 4 große Pins | 206 | 22,25 g | 1 h 24 min 21 s | objektbezogen normal/keine | [PNG](images/ghouls-grip-slices/ghouls-grip-print-mechanism-pla-plate_2.png) |
-| `ghouls-grip-print-accent-pla.3mf` | Flacher Totenkopf-Auslöser mit kurzem Stößel | 107 | 14,21 g | 50 min 49 s | Baum | [PNG](images/ghouls-grip-slices/ghouls-grip-print-accent-pla.png) |
-| **Gesamt** | 34 physische Druckobjekte | - | **679,21 g** | **31 h 16 min 59 s** | - | - |
+## Stützen und Objekt-Overrides
 
-Gegenüber den vom Benutzer gemessenen Ausgangswerten für Schatulle und Deckel
-(400,39 g + 229,27 g = 629,66 g) benötigt das schwarze Projekt jetzt
-**458,16 g**. Das spart **171,50 g beziehungsweise 27,2 %**. Die kombinierte
-Druckzeit fällt von 27 h 58 min auf 19 h 09 min.
+- Schatulle/Deckel: 3 Wände, 10 % Gyroid, Baumstützen nur an kritischen Regionen.
+- Mechanik: 5 Wände, 40–100 % Infill; Arme, Zahnräder und Pins verstärkt; Stützen objektbezogen.
+- Hand/Knochen: 4 Wände, 25 %; organische Überhänge mit bettgebundenen Baumstützen.
+- Finger: 2 Wände, 15 %, 30 mm/s Außenwand und reduzierte Beschleunigung für die 0,8-mm-PLA-Flexuren.
+- Totenkopfknopf: 5 Wände, 40 %, supportfrei in der gespeicherten Druckorientierung.
 
-Knochen und Finger wurden mit derselben Spule auf einer gemeinsamen Platte
-angeordnet und als acht vollständige G-Code-Objekte nachgewiesen. Die globalen
-3MF-Transformationen ergeben zwischen allen acht Objekten **0,000 mm³**
-Überlappung. Das STL/3MF-Canvas
-wertet die standardkonformen 3MF-Build- und Komponenten-Transformationen aus
-und zeigt deshalb dieselbe getrennte Anordnung wie OrcaSlicer. Bei
-Mehrplattenprojekten liest es außerdem Orcas `plater_id`-Zuordnung: Die
-Auswahl `Plate 1`/`Plate 2` zeigt jeweils nur die zugehörigen Objekte auf einem
-lokalen 250-mm-Druckbett, während `All plates` getrennte, beschriftete
-Druckbetten als Übersicht rendert.
+## Behobene Probleme
 
-Die G-Code-Pfad-Vorschauen werden von `scripts/render_gcode_preview.py` direkt
-aus den erfolgreichen OrcaSlicer-Ausgaben gerendert. Rosa markiert höhere,
-blau niedrigere Extrusionspfade; die Bilder sind kein Ersatz für die
-interaktive Layeransicht, belegen aber Platte, Bettlage und erzeugte Toolpaths.
-
-## Behobene Slice-Probleme
-
-1. Ohne Stützen meldete OrcaSlicer schwebende Bereiche an Fingern, Handteilen,
-   Totenkopf, Deckel und Gehäuse. Bettgebundene Stützen beseitigen diese
-   Warnungen. Für das erleichterte schwarze Projekt reduziert
-   `support_critical_regions_only=1` die Stützen auf tatsächlich kritische
-   Bereiche; beide Platten slicen ohne Floating-region-Warnung.
-2. Die ursprünglich 3 mm tiefe Führung traf auf eine ebenfalls 3 mm starke
-   Seitenwand und erschien dadurch von außen als horizontaler Schlitz. Eine
-   1,8-mm-Abdeckung setzt den unteren Sockel über der Führung fort. Der
-   Schlitten behält den vollständigen inneren Führungsraum; die Außenwand ist
-   geschlossen.
-3. Die Mechanik wird nicht mehr nach Stützbedarf auf mehrere Dateien verteilt.
-   Eine naturweiße 3MF enthält zwei explizite Orca-Platten. Platte 1 enthält
-   die großen Funktionsteile, Platte 2 Spule, Schlüssel, Bandanker und alle
-   zwölf Pins. Objekt-Overrides aktivieren Stützen nur dort, wo sie gebraucht
-   werden. Beide Platten slicen ohne Pfadkonflikt und enthalten zusammen alle
-   23 Mechanikobjekte.
+1. 3MF-Build- und Komponenten-Transformationen sowie Orcas `plater_id` werden vom Canvas berücksichtigt; Objekte liegen nicht mehr übereinander.
+2. Die interne Führung besitzt eine 1,8-mm-Außenabdeckung; außen bleibt die Kiste geschlossen.
+3. Die Mechanikplatte wurde kompakt in zwei vollständige 250-mm-Platten gepackt. Alle 27 naturweißen Mechanikobjekte sind genau einmal zugeordnet.
+4. Der frühere Hebel, Rastschieber, die Spule, Schlüssel, Bandanker, Seile, Gummibänder und Federn sind entfernt. Der graue Totenkopf dreht direkt die Ritzelwelle.
+5. `scripts/render_gcode_preview.py` akzeptiert Orcas führungslose Dezimalwerte wie `E.11915`, sodass auch die zweite Mechanikplatte korrekt gerendert wird.
 
 ## Dateibelege
 
-Alle Dateien wurden am 2026-10-09 gegen den hier beschriebenen Slice-Stand
-regeneriert. SHA-256:
-
 | Datei | SHA-256 |
 | --- | --- |
-| `ghouls-grip-master.3mf` | `69EE336B8E09F18AB3158BB4BA8EC885F6C6628C20ABF6F33CD6C1537440370C` |
-| `ghouls-grip-master-retracted.3mf` | `0937FFC771A9A685C6A12456EA5E36CF94A34997482FB3D4133EA22A37FA8017` |
-| `ghouls-grip-print-black-pla.3mf` | `13F80840F46D24C3D4CC30FAEDAC50C01CF7F25F79FC03E169C700AB8BFC26DF` |
-| `ghouls-grip-print-bone-pla.3mf` | `505E65712D3EC2A8A431DC9612D4061440D99FC7C47B79FE50CCAD6967F20059` |
-| `ghouls-grip-print-mechanism-pla.3mf` | `8ABC4EB13B83A97E69C29A4049FDC891FA2CD897897741CDCCA652E894FD1951` |
-| `ghouls-grip-print-accent-pla.3mf` | `475329DBE016BF010B73B0E4A6E8D6A62078C70063D0EBDCE5DE274B8E16E3C0` |
+| `ghouls-grip-master.3mf` | `3CAC167C7DFEF2111CE30787AA96F7E815A2518E4C276E1683593BF42C53616A` |
+| `ghouls-grip-master-retracted.3mf` | `390BA45EED92D471E6C1504089B7F530A9CB9E628C3CDA3B007214365E171115` |
+| `ghouls-grip-print-black-pla.3mf` | `E73DDD1083EE963DAC398CC8A8510150647E551EE9D20693E330142B193A3A3E` |
+| `ghouls-grip-print-bone-pla.3mf` | `FAF0063578353C36C055A8A4A3322418150AE7A31BB717632A0F3B18B659A22E` |
+| `ghouls-grip-print-mechanism-pla.3mf` | `77444D4071715E6D109120D7F0E90E8F07CDAAB12539A22DDDB4CDD16DA9627C` |
+| `ghouls-grip-print-accent-pla.3mf` | `4A4AC2BC1EC6337A4DB29E8AEEA1F815DA52EF4A136980D5166A892FEE274FD2` |
 
-## Verbleibende physische Risiken
+## Physische Restrisiken
 
-- Ein erfolgreicher Slice beweist keine reale Lebensdauer der 0,8-mm-PLA-
-  Filmscharniere.
-- Gummibandvorspannung, Seilspiel und Rastkraft müssen mit einem niedrigen
-  Vorspannungs-Testaufbau abgestimmt werden.
-- Gedruckte Pivot-Pins bleiben Verschleißteile; M3-Schrauben sind für die vier
-  hoch belasteten Scherengelenke vorzuziehen.
-- Vor dem Komplettdruck bleiben Arm-/Pin-/Passungscoupon und ein einzelner
-  Finger-Testdruck verpflichtend.
+- Der direkte Totenkopf hat weniger mechanische Hebelwirkung als der verworfene lange Hebel. Passungen und Zahnflanken vor der Endmontage entgraten.
+- Erfolgreiches Slicen und die kollisionsfreie Simulation ersetzen keinen realen Dauerlauf.
+- Gedruckte Pins sowie PLA-Flexuren verschleißen. Hoch belastete Scherengelenke vorzugsweise mit M3×16-Schrauben sichern.
+- Vor dem Komplettdruck bleiben Arm-/Pin-/Zahnrad-Passungscoupon und ein einzelner Finger-Testdruck empfohlen.

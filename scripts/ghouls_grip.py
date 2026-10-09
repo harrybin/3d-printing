@@ -4,15 +4,17 @@ The geometry lives in four focused modules and this file only assembles them,
 validates every part and writes the deliverables:
 
     gothic_chest.py   chest and lid with real gothic relief
-    mechanism.py      scissor, slider, platform, latch, crank, forearm
+    mechanism.py      gears, racks, scissors and forearm
     skeleton_hand.py  anatomical hand rebuilt from the NIH 3D bone scan
     skull.py          skull relief and the skull push button
 
 The hand derives from "Wrist Bones Full Hand_Human Skeleton" by My Segmenter,
 NIH 3D Print Exchange 3DPX-016815, licensed CC BY 4.0.
 
-The mechanism is force limited on purpose: rubber bands drive the lift and the
-fingers close on a cord, so the hand cradles sweets instead of snapping shut.
+The complete box drive is rigid and manually reversible: one skull-handled
+skull knob turns the rack-and-pinion slider, the scissor lift, the captured lid
+crank and the four-gear forearm train.  There are no cords, rubber bands,
+springs or winding spools.
 
 All dimensions are millimetres. Parts are exported in print orientation as
 validated in memory and delivered through settings-bearing material 3MF projects.
@@ -37,7 +39,7 @@ import mechanism
 from gothic_chest import build_chest, build_lid
 from mesh_kit import clean, orient_for_print
 from skeleton_hand import FLAT_POSE, RAYS, assemble, load_skeleton
-from skull import build_trigger
+from skull import build_drive_knob
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT_3MF = ROOT / "models" / "ghouls-grip-master.3mf"
@@ -215,16 +217,18 @@ def place(mesh: trimesh.Trimesh, translation, rotations=()) -> trimesh.Trimesh:
 PART_MATERIAL = {
     "chest": BLACK, "lid": BLACK,
     "scissor-arm": MECH, "slider": MECH, "platform": MECH,
-    "latch-slider": MECH, "latch-bracket": MECH,
-    "crank-spool": MECH, "crank-key": MECH, "band-anchor": MECH,
+    "drive-pinion": MECH, "lid-rack": MECH,
+    "lid-follower-rack": MECH, "lid-crank": MECH,
+    "scissor-drive-gear": MECH, "idler-gear": MECH,
     "pivot-pin-3": MECH, "pivot-pin-4": MECH,
-    "skull-trigger": ACCENT,
+    "drive-skull-knob": ACCENT,
     "forearm": BONE, "hand-palm": BONE, "hand-tendon-guide": BONE,
 }
 
 PRINT_QUANTITIES = {
     "scissor-arm": 4,
-    "pivot-pin-3": 8,
+    "idler-gear": 2,
+    "pivot-pin-3": 10,
     "pivot-pin-4": 4,
 }
 
@@ -235,7 +239,8 @@ def build_parts() -> dict:
         parts[name] = fn()
     parts["pivot-pin-3"] = mechanism.build_pin(3.0, 26.0)
     parts["pivot-pin-4"] = mechanism.build_pin(4.0, 34.0)
-    parts["skull-trigger"] = build_trigger()
+    parts["drive-skull-knob"] = build_drive_knob(
+        shaft_d=mechanism.DRIVE_SHAFT_D)
     skeleton = load_skeleton()
     parts.update(assemble(skeleton, FLAT_POSE))
     return {k: orient_for_print(v) for k, v in parts.items()}
@@ -269,7 +274,7 @@ def assembly_material(name: str) -> Material:
         return FLEX
     if name in {"chest", "lid"}:
         return BLACK
-    if name == "trigger":
+    if name == "drive-skull-knob":
         return ACCENT
     if name in {"forearm", "hand-palm", "hand-tendon-guide"}:
         return BONE

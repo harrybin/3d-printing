@@ -56,9 +56,11 @@ MATERIAL_PROJECTS = {
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "5", "infill": "40%", "speed": "mechanism",
         "filament_type": "PLA", "object_overrides": True, "support": "normal",
-        "manual_gap": 24.0,
+        "manual_gap": 10.0,
         "bed_margin": 10.0,
-        "plate_row_pitch": 265.0,
+        # Compact packing keeps the complete mechanism BOM on two plates.
+        # The 240 mm split preserves a 10 mm edge margin on both plates.
+        "plate_row_pitch": 240.0,
         "plate_x_pitch": 300.0,
     },
     "accent-pla": {
@@ -85,25 +87,29 @@ OBJECT_OVERRIDES = {
         "wall_loops": "5", "sparse_infill_density": "40%",
         "enable_support": "1",
     },
-    "latch-slider": {
+    "drive-pinion": {
         "wall_loops": "5", "sparse_infill_density": "50%",
-        "enable_support": "1",
+        "enable_support": "0",
     },
-    "latch-bracket": {
+    "lid-rack": {
         "wall_loops": "5", "sparse_infill_density": "50%",
-        "enable_support": "1",
+        "enable_support": "0",
     },
-    "crank-spool": {
+    "lid-follower-rack": {
         "wall_loops": "5", "sparse_infill_density": "50%",
-        "enable_support": "1",
+        "enable_support": "0",
     },
-    "crank-key": {
-        "wall_loops": "5", "sparse_infill_density": "50%",
-        "enable_support": "1",
+    "lid-crank": {
+        "wall_loops": "5", "sparse_infill_density": "100%",
+        "enable_support": "0",
     },
-    "band-anchor": {
+    "scissor-drive-gear": {
+        "wall_loops": "5", "sparse_infill_density": "100%",
+        "enable_support": "0",
+    },
+    "idler-gear": {
         "wall_loops": "5", "sparse_infill_density": "50%",
-        "enable_support": "1",
+        "enable_support": "0",
     },
     "pivot-pin-3": {
         "wall_loops": "6", "sparse_infill_density": "100%",
@@ -116,7 +122,10 @@ OBJECT_OVERRIDES = {
     "forearm": {"wall_loops": "4", "sparse_infill_density": "25%"},
     "hand-palm": {"wall_loops": "4", "sparse_infill_density": "25%"},
     "hand-tendon-guide": {"wall_loops": "4", "sparse_infill_density": "25%"},
-    "skull-trigger": {"wall_loops": "4", "sparse_infill_density": "25%"},
+    "drive-skull-knob": {
+        "wall_loops": "5", "sparse_infill_density": "40%",
+        "enable_support": "0",
+    },
     "hand-finger": {
         "wall_loops": "2", "sparse_infill_density": "15%",
         "outer_wall_speed": "30", "inner_wall_speed": "40",

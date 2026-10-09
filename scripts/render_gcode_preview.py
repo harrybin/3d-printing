@@ -8,7 +8,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-MOVE_RE = re.compile(r"([XYZE])(-?\d+(?:\.\d+)?)")
+MOVE_RE = re.compile(r"([XYZE])(-?(?:\d+(?:\.\d*)?|\.\d+))")
 
 
 def extrusion_segments(path: Path):

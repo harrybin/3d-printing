@@ -1,18 +1,17 @@
 """Working mechanism for the Ghoul's Grip automaton box.
 
-Single stage scissor, rubber band drive, rocker latch, winding crank and the
-skeletal forearm that carries the hand.  All numbers come from the kinematic
-chain documented in docs/ghouls-grip-masse-und-bauanleitung.md:
+A manually reversible skull knob turns one pinion.  The pinion drives a
+horizontal rack on the proven scissor slider and a rigid lost-motion linkage
+that opens and closes the lid.  A four-gear train carried by the platform
+positively unfolds the forearm; reverse knob rotation folds it again.
+
+There are no cords, rubber bands, springs or winding spools.  All numbers come
+from the kinematic chain documented in docs/ghouls-grip-masse-und-bauanleitung.md:
 
     arm length           L = 72 mm (pivot to pivot)
     retracted            theta = 18 deg  ->  h =  22.2 mm
     deployed             theta = 78 deg  ->  h =  70.4 mm
     slider travel        x = +40.5 -> -13.0 mm  (53.5 mm)
-
-The lid has its own opening bands and is released by the same rocker as the
-slider.  A control cord with deliberate slack keeps the hand folded during the
-first part of the lift; once taut, it unwraps from a sector drum on the
-forearm hinge and rotates the hand into its presentation angle.
 
 Every part is modelled in its print orientation: flat parts lie in XY with
 their thickness along Z, so nothing needs support.
@@ -53,15 +52,34 @@ STOW_ANGLE = -105.0
 DEPLOYED_FOREARM_ANGLE = -45.0
 HAND_PALM_ROLL = -75.0
 
-FOREARM_ENGAGE_THETA = 45.0
-FOREARM_CORD_Y = 34.0
-FOREARM_ANCHOR_X = 70.0
-FOREARM_ANCHOR_Y = 52.0
-FOREARM_ANCHOR_Z = 72.0
-FOREARM_CORD_ANCHOR = np.array([
-    FOREARM_ANCHOR_X, FOREARM_ANCHOR_Y, FOREARM_ANCHOR_Z,
-])
-FOREARM_GUIDE_LOCAL = np.array([25.0, 48.0, 10.0])
+FOREARM_ENGAGE_THETA = THETA_MIN
+FOREARM_GEAR_Y = 40.0
+FOREARM_INPUT_R = 12.0
+FOREARM_GEAR_R = 12.0
+GEAR_TRAIN_DISTANCE = float(np.hypot(
+    ARM_HINGE_X - PLATFORM_PIN_X, ARM_HINGE_Z - (-8.0)
+))
+FOREARM_IDLER_R = (
+    GEAR_TRAIN_DISTANCE - FOREARM_INPUT_R - FOREARM_GEAR_R
+) / 4.0
+GEAR_PITCH = 4.0
+GEAR_TOOTH_H = 2.2
+DRIVE_PITCH_R = 27.0
+DRIVE_ROOT_R = DRIVE_PITCH_R - 1.5
+DRIVE_OUTER_R = DRIVE_PITCH_R + GEAR_TOOTH_H
+DRIVE_TEETH = 42
+DRIVE_AXIS = np.array([0.0, -50.0, 46.0])
+DRIVE_SHAFT_D = 8.0
+KNOB_STOW_ANGLE = 32.0
+LID_OPEN_ANGLE = 108.0
+LID_OPEN_TRAVEL = 7.0
+LID_HINGE_Y = 61.0
+LID_HINGE_Z = 93.0
+LID_LINK_PIN_Z = 70.0
+LID_SECTOR_R = LID_OPEN_TRAVEL / np.deg2rad(LID_OPEN_ANGLE)
+LID_RACK_Y = LID_HINGE_Y - LID_SECTOR_R
+LID_LINK_FRONT_Y = -38.0
+LID_YOKE_SPAN = LID_RACK_Y - LID_LINK_FRONT_Y
 
 FIT = 0.4               # running clearance on printed sliding fits
 
@@ -85,44 +103,65 @@ def forearm_hinge(theta: float) -> np.ndarray:
     )
 
 
-def forearm_cord_guide(theta: float) -> np.ndarray:
-    return platform_origin(theta) + FOREARM_GUIDE_LOCAL
-
-
-def forearm_cord_distance(theta: float) -> float:
-    return float(np.linalg.norm(
-        forearm_cord_guide(theta) - FOREARM_CORD_ANCHOR
-    ))
-
-
-FOREARM_CORD_TRAVEL = (
-    forearm_cord_distance(THETA_MAX)
-    - forearm_cord_distance(FOREARM_ENGAGE_THETA)
-)
-FOREARM_SECTOR_R = FOREARM_CORD_TRAVEL / np.deg2rad(
-    DEPLOYED_FOREARM_ANGLE - STOW_ANGLE
-)
-FOREARM_CORD_X = float(forearm_hinge(THETA_MIN)[0] + FOREARM_SECTOR_R)
+SLIDER_TRAVEL = slider_x(THETA_MIN) - slider_x(THETA_MAX)
 RETRACTED_SLIDER_X = slider_x(THETA_MIN)
-LATCH_SUPPORT_XS = (-8.0, RETRACTED_SLIDER_X + 8.0)
-LATCH_AXIS_Y = -50.0
-LATCH_AXIS_Z = 24.0
-LATCH_TRIGGER_Y = -53.0
-LATCH_RETURN_Y = -49.0
-LATCH_RELEASE_TRAVEL = 12.0
-CRANK_SPOOL_X = 82.0
 
 
 def forearm_angle(theta: float) -> float:
-    """Angle produced when the taut control cord unwraps from its sector."""
-    if theta <= FOREARM_ENGAGE_THETA:
-        return STOW_ANGLE
-    used = forearm_cord_distance(theta) - forearm_cord_distance(
-        FOREARM_ENGAGE_THETA
+    """Angle imposed by the continuous three-mesh scissor gear train."""
+    input_rotation = np.clip(
+        theta - FOREARM_ENGAGE_THETA,
+        0.0, THETA_MAX - FOREARM_ENGAGE_THETA,
     )
-    return float(min(DEPLOYED_FOREARM_ANGLE, STOW_ANGLE + np.rad2deg(
-        used / FOREARM_SECTOR_R
-    )))
+    return float(STOW_ANGLE + input_rotation * (
+        FOREARM_INPUT_R / FOREARM_GEAR_R
+    ))
+
+
+def drive_angle(theta: float) -> float:
+    """Clockwise pinion travel from the retracted skull-knob stop."""
+    return np.rad2deg(
+        (RETRACTED_SLIDER_X - slider_x(theta)) / DRIVE_PITCH_R
+    )
+
+
+def lid_angle_from_travel(rise: float) -> float:
+    """Lid sector angle after the lost-motion rack has taken up."""
+    used = np.clip(rise, 0.0, LID_OPEN_TRAVEL)
+    return -float(np.rad2deg(used / LID_SECTOR_R))
+
+
+def lid_angle(theta: float) -> float:
+    """Fast cam opening followed by a captured vertical dwell."""
+    rise = min(RETRACTED_SLIDER_X - slider_x(theta), SLIDER_TRAVEL)
+    return lid_angle_from_travel(rise)
+
+
+def _spur_gear(root_r: float, tooth_h: float, teeth: int,
+               width: float) -> trimesh.Trimesh:
+    """Printable coarse spur gear with rectangular FDM-safe teeth."""
+    parts = [cylinder(root_r, width, (0.0, 0.0, width / 2.0))]
+    tooth_w = 0.52 * 2.0 * np.pi * (root_r + tooth_h / 2.0) / teeth
+    tooth_l = tooth_h + 2.0
+    for index in range(teeth):
+        angle = 2.0 * np.pi * index / teeth
+        tooth = box(
+            (tooth_l, tooth_w, width),
+            (root_r + tooth_h / 2.0, 0.0, width / 2.0),
+        )
+        tooth.apply_transform(trimesh.transformations.rotation_matrix(
+            angle, (0.0, 0.0, 1.0)
+        ))
+        parts.append(tooth)
+    return clean(union(parts))
+
+
+def _rack_teeth(x_positions, y: float, z0: float,
+                tooth_w: float = 2.1) -> list[trimesh.Trimesh]:
+    return [
+        box((tooth_w, 7.0, GEAR_TOOTH_H), (x, y, z0 + GEAR_TOOTH_H / 2.0))
+        for x in x_positions
+    ]
 
 
 def _lug(hole_d: float, height: float, thickness: float,
@@ -149,12 +188,16 @@ def build_scissor_arm() -> trimesh.Trimesh:
     body = union([shaft, *ends])
     bores = [cylinder(PIVOT_D / 2.0, ARM_T + 4.0, (x, 0.0, ARM_T / 2.0))
              for x in (-ARM_L / 2.0, 0.0, ARM_L / 2.0)]
+    bores += [
+        cylinder(3.2 / 2.0, ARM_T + 4.0, (x, 0.0, ARM_T / 2.0))
+        for x in (-ARM_L / 2.0 + 8.0, ARM_L / 2.0 - 8.0)
+    ]
     body = difference(body, bores)
     return clean(body)
 
 
 def build_slider() -> trimesh.Trimesh:
-    """Rubber band driven carriage running in the 4 x 3 mm wall grooves."""
+    """Rack-driven carriage running in the 4 x 3 mm wall grooves."""
     inner = CHEST_W / 2.0 - WALL           # 57.0
     span = 2.0 * inner - FIT               # between the walls
     # The carriage is asymmetric around its pivot. Its short rear overhang and
@@ -170,20 +213,15 @@ def build_slider() -> trimesh.Trimesh:
                  (0.0, sy * SCISSOR_Y, RAIL_Z + 8.0 + 8.0))
             for sy in (-1.0, 1.0)]
 
-    hooks = []
-    for sy in (-1.0, 1.0):
-        hooks.append(box((8.0, 8.0, 12.0), (8.0, sy * 50.0, RAIL_Z + 4.0)))
-        hooks.append(cylinder(4.0, 8.0, (8.0, sy * 50.0, RAIL_Z + 12.0),
-                              (0.0, 1.0, 0.0)))
+    rack_bar = box((80.0, 8.0, 5.0), (-32.0, -50.0, 15.5))
+    rack_teeth = _rack_teeth(
+        np.arange(-70.0, 8.1, GEAR_PITCH), -50.0, 18.0
+    )
 
-    body = union([body, *tongues, *lugs, *hooks])
-    # The pawl enters this notch only at the fully retracted slider position.
-    # The axial bore is the reset-cord tie point for the right-wall crank.
+    body = union([body, *tongues, *lugs, rack_bar, *rack_teeth])
     body = difference(body, [
-        box((10.0, 22.0, 24.0), (0.0, -50.0, 17.0)),
         cylinder(4.0 / 2.0, 12.0, (8.0, 40.0, RAIL_Z + 12.0), (0.0, 1.0, 0.0)),
         cylinder(4.0 / 2.0, 12.0, (8.0, -40.0, RAIL_Z + 12.0), (0.0, 1.0, 0.0)),
-        cylinder(2.2 / 2.0, 60.0, (20.0, 0.0, RAIL_Z + 6.0), (1.0, 0.0, 0.0)),
     ])
     return clean(body)
 
@@ -228,129 +266,112 @@ def build_platform() -> trimesh.Trimesh:
                      (ARM_HINGE_X, sy * 11.0, ARM_HINGE_Z))
                 for sy in (-1.0, 1.0)]
 
-    # The finger tendon bundle terminates at the rear eye.
-    eyes = []
-    for x, y in ((ARM_HINGE_X - 14.0, 36.0),):
-        post = cylinder(4.0, 10.0, (x, y, PLATFORM_T + 5.0))
-        post = difference(post, [cylinder(1.5, 12.0,
-                                          (x, y, PLATFORM_T + 6.0),
-                                          (0.0, 1.0, 0.0))])
-        eyes.append(post)
+    gear_start = np.array([PLATFORM_PIN_X, FOREARM_GEAR_Y, -8.0])
+    gear_end = np.array([ARM_HINGE_X, FOREARM_GEAR_Y, ARM_HINGE_Z])
+    gear_vector = gear_end - gear_start
+    gear_distance = float(np.linalg.norm(gear_vector[[0, 2]]))
+    gear_unit = gear_vector / gear_distance
+    gear_rail = box(
+        (gear_distance + 4.0, 6.0, 6.0),
+        (0.0, 0.0, 0.0),
+    )
+    gear_rail.apply_transform(trimesh.transformations.rotation_matrix(
+        -np.arctan2(gear_vector[2], gear_vector[0]),
+        (0.0, 1.0, 0.0),
+    ))
+    gear_rail.apply_translation((gear_start + gear_end) / 2.0)
+    idler_centres = [
+        gear_start + gear_unit * (FOREARM_INPUT_R + FOREARM_IDLER_R),
+        gear_end - gear_unit * (FOREARM_GEAR_R + FOREARM_IDLER_R),
+    ]
+    idler_posts = [
+        cylinder(1.4, 8.0, centre, (0.0, 1.0, 0.0))
+        for centre in idler_centres
+    ]
 
     hinge_gussets = [
         box((18.0, 8.0, ARM_HINGE_Z - 13.0),
             (ARM_HINGE_X, sy * 11.0, (ARM_HINGE_Z - 13.0) / 2.0))
         for sy in (-1.0, 1.0)
     ]
-    eye_gusset = box((8.0, 12.0, PLATFORM_T),
-                     (ARM_HINGE_X - 14.0, 40.0, PLATFORM_T / 2.0))
-    cord_guide_support = box((10.0, 8.0, 10.0), (25.0, 47.0, 5.0))
-    cord_guide = cylinder(4.0, 14.0, FOREARM_GUIDE_LOCAL,
-                          (0.0, 0.0, 1.0))
     return clean(union([*side_rails, *pivot_links, hinge_bridge,
-                        *pins, *slots, *arm_ears, *eyes,
-                        *hinge_gussets, eye_gusset,
-                        cord_guide_support, cord_guide]))
+                        *pins, *slots, *arm_ears, *idler_posts,
+                        gear_rail, *hinge_gussets]))
 
-def build_latch() -> trimesh.Trimesh:
-    """Vertical internal latch raised by the skull plunger's cam face.
 
-    The overhead bridge and pawl translate together.  Twelve millimetres of
-    lift clears the complete slider envelope without any rocker arm crossing
-    the carriage path.
-    """
-    bridge = rounded_box(
-        (80.0, 6.0, 6.0), 2.0, (34.0, -49.0, 46.0)
+def build_drive_pinion() -> trimesh.Trimesh:
+    """Main pinion with an integral bearing shaft through the front wall."""
+    gear = _spur_gear(DRIVE_ROOT_R, GEAR_TOOTH_H, DRIVE_TEETH, 8.0)
+    shaft = cylinder(DRIVE_SHAFT_D / 2.0, 24.0, (0.0, 0.0, 12.0))
+    collar = cylinder(7.0, 3.0, (0.0, 0.0, 9.5))
+    return clean(union([gear, shaft, collar]))
+
+
+def build_lid_rack() -> trimesh.Trimesh:
+    """Main vertical rack with a downward lost-motion slot for the lid."""
+    spine = box((67.0, 8.0, 5.0), (6.5, 0.0, 0.0))
+    teeth = [
+        box((2.1, 7.0, GEAR_TOOTH_H),
+            (x, 0.0, -(5.0 + GEAR_TOOTH_H) / 2.0))
+        for x in np.arange(-24.0, 38.1, GEAR_PITCH)
+    ]
+    dwell = SLIDER_TRAVEL - LID_OPEN_TRAVEL
+    flange = box(
+        (dwell + 12.0, 18.0, 8.0),
+        (40.0 - dwell / 2.0, 9.0, 0.0),
     )
-    pawl_drop = rounded_box(
-        (6.0, 4.0, 34.0), 1.5,
-        (RETRACTED_SLIDER_X, -51.0, 31.0)
+    lost_slot = rounded_box(
+        (dwell + 8.0, 7.2, 12.0), 3.0,
+        (40.0 - dwell / 2.0, 12.0, 0.0),
     )
-    pawl_tab = rounded_box(
-        (4.0, 6.0, 4.0), 1.0,
-        (RETRACTED_SLIDER_X, -51.0, 15.0)
+    return clean(difference(union([spine, flange, *teeth]), [lost_slot]))
+
+
+def build_lid_follower_rack() -> trimesh.Trimesh:
+    """Seven-millimetre yoke linking the front lost slot to the lid gear."""
+    rear_spine = box((18.0, 5.0, 6.0), (0.0, LID_YOKE_SPAN, 0.0))
+    teeth = [
+        box((2.0, GEAR_TOOTH_H, 6.0),
+            (x, LID_YOKE_SPAN + (5.0 + GEAR_TOOTH_H) / 2.0, 0.0))
+        for x in np.arange(-6.0, 6.1, GEAR_PITCH)
+    ]
+    connector = box(
+        (6.0, LID_YOKE_SPAN + 5.0, 6.0),
+        (-20.0, LID_YOKE_SPAN / 2.0, 0.0),
     )
-    cam_points = np.array([
-        [-53.0, 38.0],
-        [-51.0, 50.0],
-        [-43.0, 50.0],
-        [-39.0, 38.0],
-    ])
-    cam_yz = np.column_stack([
-        np.zeros(len(cam_points)),
-        cam_points[:, 0],
-        cam_points[:, 1],
-    ])
-    cam = trimesh.Trimesh(
-        vertices=np.vstack([
-            cam_yz - [4.0, 0.0, 0.0],
-            cam_yz + [4.0, 0.0, 0.0],
-        ])
-    ).convex_hull
-    return_eye = cylinder(5.0, 6.0, (-4.0, LATCH_RETURN_Y, 52.0),
-                          (1.0, 0.0, 0.0))
-    body = union([bridge, pawl_drop, pawl_tab, cam, return_eye])
-    return clean(difference(body, [
-        cylinder(2.0, 10.0, (-4.0, LATCH_RETURN_Y, 52.0),
-                 (1.0, 0.0, 0.0)),
+    rear_link = box((24.0, 5.0, 6.0), (-10.0, LID_YOKE_SPAN, 0.0))
+    pin = cylinder(3.0, 14.0, (-20.0, 0.0, 0.0))
+    return clean(union([rear_spine, connector, rear_link, pin, *teeth]))
+
+
+def build_lid_crank() -> trimesh.Trimesh:
+    """Small hinge sector gear driven by the secondary lid rack."""
+    teeth = max(6, int(round(2.0 * np.pi * LID_SECTOR_R / GEAR_PITCH)))
+    gear = _spur_gear(max(2.8, LID_SECTOR_R - 1.2), GEAR_TOOTH_H,
+                      teeth, 8.0)
+    coupling = box((18.0, 5.0, 5.0), (7.0, 0.0, 2.5))
+    return clean(difference(union([gear, coupling]), [
+        cylinder(2.0 / 2.0, 12.0, (0.0, 0.0, 4.0))
     ]))
 
 
-def build_latch_bracket() -> trimesh.Trimesh:
-    """Internal guide cage for the vertically sliding latch."""
-    x_mid = sum(LATCH_SUPPORT_XS) / 2.0
-    span = LATCH_SUPPORT_XS[1] - LATCH_SUPPORT_XS[0]
-    # The frame clears the inward-projecting front scrollwork. Two local pads
-    # leave a 0.1 mm adhesive gap to the plain inner wall outside that relief.
-    outer = box((span + 18.0, 22.1, 34.0), (x_mid, -45.05, 51.0))
-    channel = box((span + 10.0, 19.0, 38.0), (x_mid, -45.0, 51.0))
-    frame = difference(outer, [channel])
-    mounting_pads = [
-        box((8.0, 1.8, 20.0), (x, -56.0, 51.0))
-        for x in (-12.0, 80.0)
-    ]
-    return clean(union([frame, *mounting_pads]))
+def build_scissor_drive_gear() -> trimesh.Trimesh:
+    """Continuous input gear positively keyed to one scissor arm."""
+    teeth = max(8, int(round(2.0 * np.pi * FOREARM_INPUT_R / GEAR_PITCH)))
+    gear = _spur_gear(FOREARM_INPUT_R - 1.5, GEAR_TOOTH_H, teeth, 6.0)
+    key_peg = cylinder(1.4, 10.0, (8.0, 0.0, 5.0))
+    return clean(difference(union([gear, key_peg]), [
+        cylinder(PIVOT_D / 2.0, 10.0, (0.0, 0.0, 3.0))
+    ]))
 
 
-def build_crank_spool() -> trimesh.Trimesh:
-    """Internal reset spool with a keyed shaft through the right wall."""
-    shaft = cylinder(6.0 / 2.0 - 0.2, 25.0, (0.0, 0.0, -11.5))
-    spool = difference(cylinder(12.0, 10.0, (0.0, 0.0, -18.0)),
-                       [difference(cylinder(12.1, 6.0, (0.0, 0.0, -18.0)),
-                                   [cylinder(9.0, 7.0, (0.0, 0.0, -18.0))])])
-    collar = cylinder(6.0, 3.0, (0.0, 0.0, -1.5))
-    key_tongue = rounded_box((4.0, 4.0, 4.0), 0.8, (0.0, 0.0, 3.0))
-    body = union([shaft, spool, collar, key_tongue])
-    body = difference(body, [cylinder(1.3, 20.0, (0.0, 0.0, -18.0),
-                                      (1.0, 0.0, 0.0))])
-    return clean(body)
-
-
-def build_crank_key() -> trimesh.Trimesh:
-    """Removable low-profile bone key for the reset-spool square drive."""
-    collar = cylinder(7.0, 4.0, (0.0, 0.0, 5.0))
-    handle = segment_mesh(
-        [*bone((-13.0, 0.0, 6.2), (13.0, 0.0, 6.2), 2.3, 3.2),
-         sdf_sphere((0.0, 0.0, 6.2), 3.4)], pitch=0.5, blend=1.1)
-    body = union([collar, handle])
-    socket = rounded_box((4.5, 4.5, 7.0), 0.9, (0.0, 0.0, 4.5))
-    return clean(difference(body, [socket]))
-
-
-def build_band_anchor() -> trimesh.Trimesh:
-    """Two band hooks that peg into the chest floor behind the slider."""
-    base = box((14.0, 108.0, 5.0), (0.0, 0.0, 2.5))
-    posts, hooks = [], []
-    for sy in (-1.0, 1.0):
-        posts.append(box((10.0, 10.0, 18.0), (0.0, sy * 50.0, 9.0)))
-        hooks.append(cylinder(4.0, 10.0, (0.0, sy * 50.0, 17.0),
-                              (0.0, 1.0, 0.0)))
-    pegs = [cylinder(4.0 / 2.0 - 0.15, 5.0, (0.0, sy * 44.0, -2.0))
-            for sy in (-1.0, 1.0)]
-    body = union([base, *posts, *hooks, *pegs])
-    body = difference(body, [cylinder(2.0, 14.0, (0.0, sy * 50.0, 17.0),
-                                      (0.0, 1.0, 0.0)) for sy in (-1.0, 1.0)])
-    return clean(body)
+def build_idler_gear() -> trimesh.Trimesh:
+    """One of two equal intermediate gears reversing the input rotation."""
+    teeth = max(8, int(round(2.0 * np.pi * FOREARM_IDLER_R / GEAR_PITCH)))
+    gear = _spur_gear(FOREARM_IDLER_R - 1.5, GEAR_TOOTH_H, teeth, 6.0)
+    return clean(difference(gear, [
+        cylinder(3.2 / 2.0, 10.0, (0.0, 0.0, 3.0))
+    ]))
 
 
 def build_forearm(length: float = 34.0) -> trimesh.Trimesh:
@@ -365,17 +386,20 @@ def build_forearm(length: float = 34.0) -> trimesh.Trimesh:
 
     spigot = cylinder(12.0 / 2.0 - 0.2, 18.0, (0.0, 0.0, length + 4.0))
     ear = box((22.0, 6.0, 14.0), (0.0, 0.0, 4.0))
-    control_shaft = cylinder(
-        4.0, FOREARM_CORD_Y + 4.0,
-        (0.0, (FOREARM_CORD_Y + 4.0) / 2.0, 4.0),
+    gear_shaft = cylinder(
+        4.0, FOREARM_GEAR_Y + 4.0,
+        (0.0, (FOREARM_GEAR_Y + 4.0) / 2.0, 4.0),
         (0.0, 1.0, 0.0),
     )
-    sector = cylinder(
-        FOREARM_SECTOR_R + 2.5, 6.0,
-        (0.0, FOREARM_CORD_Y, 4.0),
-        (0.0, 1.0, 0.0),
+    gear = _spur_gear(
+        FOREARM_GEAR_R - 1.5, GEAR_TOOTH_H,
+        max(8, int(round(2.0 * np.pi * FOREARM_GEAR_R / GEAR_PITCH))), 6.0,
     )
-    body = union([body, spigot, ear, control_shaft, sector])
+    gear.apply_transform(trimesh.transformations.rotation_matrix(
+        np.pi / 2.0, (1.0, 0.0, 0.0)
+    ))
+    gear.apply_translation((0.0, FOREARM_GEAR_Y, 4.0))
+    body = union([body, spigot, ear, gear_shaft, gear])
     wrist_pin_angle = HAND_PALM_ROLL + 0.5
     wrist_pin_axis = (
         np.cos(np.deg2rad(wrist_pin_angle)),
@@ -399,12 +423,14 @@ def build_pin(diameter: float, length: float) -> trimesh.Trimesh:
 PARTS = {
     "scissor-arm": build_scissor_arm,
     "slider": build_slider,
+    # Pack the tall follower beside the slider, not in the final plate row.
+    "lid-follower-rack": build_lid_follower_rack,
     "platform": build_platform,
-    "latch-slider": build_latch,
-    "latch-bracket": build_latch_bracket,
-    "crank-spool": build_crank_spool,
-    "crank-key": build_crank_key,
-    "band-anchor": build_band_anchor,
+    "drive-pinion": build_drive_pinion,
+    "lid-rack": build_lid_rack,
+    "lid-crank": build_lid_crank,
+    "scissor-drive-gear": build_scissor_drive_gear,
+    "idler-gear": build_idler_gear,
     "forearm": build_forearm,
 }
 
