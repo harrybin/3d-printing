@@ -214,13 +214,14 @@ Breite, nicht funktionale Wandfelder der Schatulle sind von innen auf eine
 früher weitgehend massiven Mittelblock; Außenrahmen, Rippen, Scharnier, Fangband-
 und Sitzflächen bleiben massiv. Die kurzen Kanaldecken sind als Brücken
 ausgelegt, während OrcaSlicer nur Scharnier, Fangband und andere kritische
-Überhänge stützt.
+Überhänge stützt. Die 3-mm-tiefen inneren Schlittenführungen erhalten außen
+eine 1,8-mm-Sockelabdeckung, damit kein horizontaler Durchbruch sichtbar ist.
 
 Mit OrcaSlicer 2.4.2 erfolgreich geslicte Werte:
 
 | Projekt/Platte | Schichten | Filament | Druckzeit | Stützen |
 | --- | ---: | ---: | ---: | --- |
-| Schwarz PLA, Platte 1 (Schatulle) | 490 | 281,28 g | 10 h 18 min | Baum, nur kritisch |
+| Schwarz PLA, Platte 1 (Schatulle) | 490 | 282,25 g | 10 h 20 min | Baum, nur kritisch |
 | Schwarz PLA, Platte 2 (Deckel) | 137 | 175,91 g | 8 h 50 min | Baum, nur kritisch |
 | Knochen PLA | 284 | 53,21 g | 3 h 34 min | Baum |
 | Mechanik PLA, supportfrei | 170 | 50,10 g | 2 h 31 min | nein |
@@ -231,7 +232,7 @@ Mit OrcaSlicer 2.4.2 erfolgreich geslicte Werte:
 | Bandanker PLA | 143 | 12,25 g | 40 min | normal/snug |
 | Akzent PLA | 107 | 14,32 g | 51 min | Baum |
 | Finger PLA | 57 | 12,01 g | 1 h 23 min | Baum |
-| **Gesamt** | - | **693,12 g** | **31 h 13 min** | - |
+| **Gesamt** | - | **694,09 g** | **31 h 14 min** | - |
 
 Alle Projekte starten mit **55/215 °C** (PLA). Das Fingerprojekt fährt die
 Außenwände bewusst mit 30 mm/s und reduzierter Beschleunigung, damit der

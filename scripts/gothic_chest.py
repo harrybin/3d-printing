@@ -296,6 +296,22 @@ def build_chest() -> trimesh.Trimesh:
     ]
     body = difference(body, service)
 
+    # The specified 3 mm rail depth equals the nominal wall thickness. Keep
+    # the full internal groove for the slider tongues, but close its exterior
+    # with a thin continuation of the lower plinth. The cover starts on the
+    # existing plinth, remains outside the tongue envelope, and prevents the
+    # mechanism from being visible through a horizontal wall opening.
+    rail_cover_t = 1.8
+    rail_cover_y = CHEST_W / 2.0 + rail_cover_t / 2.0 - 0.2
+    rail_covers = [
+        box(
+            (CHEST_L, rail_cover_t, RAIL_W),
+            (0.0, sign * rail_cover_y, RAIL_Z + RAIL_W / 2.0),
+        )
+        for sign in (-1.0, 1.0)
+    ]
+    body = union([body, *rail_covers])
+
     # Fixed scissor pivots and the peg sockets for latch bracket and band
     # anchor. The scissor pivot sits at x = 0 so the compact platform stays inside
     # the chest over the whole stroke (see docs, kinematics table).
