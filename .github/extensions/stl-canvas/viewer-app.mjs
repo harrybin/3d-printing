@@ -9,11 +9,15 @@ export const APP_HTML = `
     <select id="plateChooser"><option value="all">All</option></select>
   </div>
   <div class="field">
-  <button type="button" id="reloadBtn" title="Reload current model">Reload</button>
-</div>
-<label class="field"><input id="autoReload" type="checkbox"> Auto reload</label>
-<div class="field">
-  <label for="zoom">Zoom</label>
+    <button type="button" id="reloadBtn" title="Reload current model">Reload</button>
+  </div>
+  <div class="field" id="orcaField" hidden>
+    <button type="button" id="openInOrcaBtn" title="Open the current 3MF project in OrcaSlicer">Open in OrcaSlicer</button>
+    <span id="orcaStatus" class="action-status" role="status" aria-live="polite" hidden></span>
+  </div>
+  <label class="field"><input id="autoReload" type="checkbox"> Auto reload</label>
+  <div class="field">
+    <label for="zoom">Zoom</label>
     <input id="zoom" type="range" min="0.1" max="30" step="0.1" value="1.7">
   </div>
   <div class="field">
@@ -70,6 +74,17 @@ export const APP_HTML = `
 <div id="meta">Loading model…</div>
 
 `
+
+export function createOrcaSlicerOpenUrl(file, accessibleUrl, baseUrl = globalThis.location?.href) {
+  if (!/\.3mf$/i.test(String(file || '').trim()) || !accessibleUrl || !baseUrl) return ''
+  try {
+    const url = new URL(accessibleUrl, baseUrl)
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return ''
+    return `orcaslicer://open/?file=${encodeURIComponent(url.href)}`
+  } catch {
+    return ''
+  }
+}
 
 export function transform3mfPoint(point, transform) {
   if (!transform) return point
@@ -130,6 +145,7 @@ const modelsIndexUrl = options.modelsIndexUrl || `${modelsBasePath}/models.json`
 const viewApiUrl = options.viewApiUrl || '/api/view'
 const modelsApiUrl = options.modelsApiUrl || '/api/models'
 const modelApiUrl = options.modelApiUrl || '/api/model'
+const modelDownloadApiUrl = options.modelDownloadApiUrl || '/api/model-file'
 const pollIntervalMs = Number.isFinite(options.pollIntervalMs) ? options.pollIntervalMs : 1500
 const maxPixelRatio = Number.isFinite(options.maxPixelRatio) ? Math.max(0.5, options.maxPixelRatio) : Number.POSITIVE_INFINITY
 const repository = options.repository && typeof options.repository === 'object' ? options.repository : {}
@@ -801,6 +817,20 @@ const fileChooser = document.getElementById('fileChooser');
 const plateField = document.getElementById('plateField');
 const plateChooser = document.getElementById('plateChooser');
 const reloadBtn = document.getElementById('reloadBtn');
+const orcaField = document.getElementById('orcaField');
+const openInOrcaBtn = document.getElementById('openInOrcaBtn');
+const orcaStatus = document.getElementById('orcaStatus');
+let orcaStatusTimer = null;
+function updateOrcaAction(file = '') {
+  const source = file ? modelSource(file) : null
+  const openUrl = createOrcaSlicerOpenUrl(file, source?.downloadUrl || '', window.location.href)
+  orcaField.hidden = !openUrl
+  openInOrcaBtn.disabled = !openUrl
+  openInOrcaBtn.dataset.openUrl = openUrl
+  clearTimeout(orcaStatusTimer)
+  orcaStatus.hidden = true
+  orcaStatus.textContent = ''
+}
 function emitModelChange(file = fileChooser.value || currentFile || '') {
   const source = file ? modelSource(file) : null
   root.dispatchEvent(new CustomEvent('stl-canvas:model-change', { detail: { file, url: source?.downloadUrl || '' } }))
@@ -1179,6 +1209,10 @@ function modelUrl(file) {
 
 function modelSource(file) {
   if (remoteEntry && file === remoteRequestedFile) return remoteEntry
+  if (runtimeMode === 'extension') {
+    const localUrl = `${modelDownloadApiUrl}?file=${encodeURIComponent(file)}`
+    return { file, fetchUrl: localUrl, downloadUrl: localUrl, cacheBust: false, sourceLabel: '' }
+  }
   const localUrl = modelUrl(file)
   return { file, fetchUrl: localUrl, downloadUrl: localUrl, cacheBust: true, sourceLabel: '' }
 }
@@ -1251,6 +1285,7 @@ async function fetchModelData(file) {
 
 function loadModel(file, preserveView) {
   const meta = document.getElementById('meta')
+  updateOrcaAction()
   return fetchModelData(file)
     .then((data) => {
       if (data.error) { meta.textContent = data.error; return false }
@@ -1304,6 +1339,7 @@ function loadModel(file, preserveView) {
       currentMtime = data.mtime || ''
       if (!preserveView) applySavedOrFit()
       draw()
+      updateOrcaAction(file)
       emitModelChange(file)
       return true
     })
@@ -1965,6 +2001,23 @@ plateChooser.addEventListener('change', () => {
 reloadBtn.addEventListener('click', () => {
   const selected = fileChooser.value || currentFile
   if (selected) loadModel(selected, false)
+})
+openInOrcaBtn.addEventListener('click', () => {
+  const openUrl = openInOrcaBtn.dataset.openUrl || ''
+  if (!openUrl) return
+  openInOrcaBtn.disabled = true
+  orcaStatus.textContent = 'Opening OrcaSlicer…'
+  orcaStatus.hidden = false
+  try {
+    window.location.assign(openUrl)
+  } catch {
+    orcaStatus.textContent = 'Could not launch OrcaSlicer. Download the 3MF and open it manually.'
+  }
+  clearTimeout(orcaStatusTimer)
+  orcaStatusTimer = setTimeout(() => {
+    openInOrcaBtn.disabled = false
+    orcaStatus.textContent = 'If nothing opened, install OrcaSlicer or register the orcaslicer:// protocol.'
+  }, 1500)
 })
 autoReloadInput.addEventListener('change', () => {
   if (autoReloadInput.checked) {

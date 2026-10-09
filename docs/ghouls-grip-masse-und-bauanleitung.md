@@ -192,7 +192,7 @@ M3×16-Schrauben mit selbstsichernden Muttern besser als die gedruckten Stifte.
 
 | Teil | Material | Wände/Infill |
 | --- | --- | --- |
-| Gehäuse/Deckel | PLA schwarz | 4 Wände, 20 % Gyroid |
+| Gehäuse/Deckel | PLA schwarz | 3 Wände, 10 % Gyroid |
 | Schere/Schlitten/Klinke/Hubjoch | PLA naturweiß | 5 Wände, 40 % Gyroid |
 | Scherenarme | PLA naturweiß | 5 Wände, 100 % |
 | Gedruckte Pins | PLA naturweiß | 6 Wände, 100 % |
@@ -204,16 +204,24 @@ Schichthöhe 0,20 mm, 0,4-mm-Düse, Textured PEI Plate.
 Elefantenfuß-Kompensation 0,15 mm sind in den Materialprojekten gespeichert.
 Reliefs und Nieten der Schatulle sind 2,6-3,0 mm erhaben. OrcaSlicer 2.4.2
 meldete bei Gehäuse, Deckel, organischen Knochenformen und fünf komplexen
-Mechanikteilen dennoch schwebende Regionen; diese Platten verwenden deshalb
-nur vom Druckbett ausgehende Stützen. Die supportfreie Mechanikplatte enthält
+Mechanikteilen dennoch schwebende Regionen. Gehäuse und Deckel verwenden
+deshalb Baumstützen nur für kritische Bereiche; die organischen Teile nutzen
+vollständige bettgebundene Baumstützen. Die supportfreie Mechanikplatte enthält
 Arme, Schlitten und Pins.
+
+Breite, nicht funktionale Wandfelder der Schatulle sind von innen auf eine
+1,6-mm-Außenhaut erleichtert. Am Deckel ersetzen zwölf 10 mm breite Kanäle den
+früher weitgehend massiven Mittelblock; Außenrahmen, Rippen, Scharnier, Fangband-
+und Sitzflächen bleiben massiv. Die kurzen Kanaldecken sind als Brücken
+ausgelegt, während OrcaSlicer nur Scharnier, Fangband und andere kritische
+Überhänge stützt.
 
 Mit OrcaSlicer 2.4.2 erfolgreich geslicte Werte:
 
 | Projekt/Platte | Schichten | Filament | Druckzeit | Stützen |
 | --- | ---: | ---: | ---: | --- |
-| Schwarz PLA, Platte 1 | 137 | 229,27 g | 12 h 24 min | Baum |
-| Schwarz PLA, Platte 2 | 490 | 386,16 g | 15 h 07 min | Baum |
+| Schwarz PLA, Platte 1 (Schatulle) | 490 | 281,28 g | 10 h 18 min | Baum, nur kritisch |
+| Schwarz PLA, Platte 2 (Deckel) | 137 | 175,91 g | 8 h 50 min | Baum, nur kritisch |
 | Knochen PLA | 284 | 53,21 g | 3 h 34 min | Baum |
 | Mechanik PLA, supportfrei | 170 | 50,10 g | 2 h 31 min | nein |
 | Hubjoch PLA | 344 | 46,21 g | 1 h 59 min | normal/snug |
@@ -223,7 +231,7 @@ Mit OrcaSlicer 2.4.2 erfolgreich geslicte Werte:
 | Bandanker PLA | 143 | 12,25 g | 40 min | normal/snug |
 | Akzent PLA | 107 | 14,32 g | 51 min | Baum |
 | Finger PLA | 57 | 12,01 g | 1 h 23 min | Baum |
-| **Gesamt** | - | **851,36 g** | **40 h 26 min** | - |
+| **Gesamt** | - | **693,12 g** | **31 h 13 min** | - |
 
 Alle Projekte starten mit **55/215 °C** (PLA). Das Fingerprojekt fährt die
 Außenwände bewusst mit 30 mm/s und reduzierter Beschleunigung, damit der

@@ -39,6 +39,7 @@ MATERIAL_PROJECTS = {
         "wall_loops": "3", "infill": "10%", "speed": "standard",
         "filament_type": "PLA", "support": "tree",
         "support_threshold_angle": "45",
+        "support_critical_regions_only": True,
     },
     "bone-pla": {
         "match": "Knochen - beiges PLA",
@@ -166,6 +167,8 @@ def _process_settings(spec: dict) -> dict:
             "support_on_build_plate_only": "1",
             "support_threshold_angle": "30",
         })
+    if spec.get("support_critical_regions_only"):
+        data["support_critical_regions_only"] = "1"
     if spec["speed"] == "mechanism":
         data.update({
             "outer_wall_speed": "120", "inner_wall_speed": "180",
@@ -265,6 +268,8 @@ def _write_project_metadata(path: Path, spec: dict, checks: dict) -> None:
         "wallLoops": spec["wall_loops"],
         "infillDensity": spec["infill"],
         "supportPolicy": spec.get("support", "none"),
+        "supportCriticalRegionsOnly": str(
+            bool(spec.get("support_critical_regions_only"))).lower(),
         "supportThresholdAngleDeg": spec.get("support_threshold_angle", "unknown"),
         "plateCount": str(checks["plates"]),
     }

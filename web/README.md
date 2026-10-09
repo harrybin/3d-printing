@@ -63,6 +63,11 @@ Die Pages-App bietet:
   `?repo=harrybin/3d-printing&ref=<branch>&model=<datei.stl>` oder
   `?url=<oeffentliche-datei-url>&label=<anzeige-name>`
 - Download der aktuell gewählten Datei
+- Direktes Öffnen der aktuell gewählten 3MF-Datei über das registrierte
+  `orcaslicer://open/?file=<percent-kodierte URL>`-Protokoll; OrcaSlicer dekodiert
+  den vollständigen `file`-Wert einmal vor dem Download. Browser können das
+  Vorhandensein des Protokoll-Handlers nicht zuverlässig erkennen, daher zeigt die
+  Oberfläche nach dem Startversuch einen manuellen Hinweis an
 - Link zurück zum Repository
 - Link zum Issue-Template `.github/ISSUE_TEMPLATE/model-request.yml`
 

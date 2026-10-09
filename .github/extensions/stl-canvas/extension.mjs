@@ -456,6 +456,7 @@ function renderHtml(title, defaultFile) {
         viewApiUrl: "/api/view",
         modelsApiUrl: "/api/models",
         modelApiUrl: "/api/model",
+        modelDownloadApiUrl: "/api/model-file",
     }));
     return `<!doctype html>
 <html>
@@ -527,6 +528,23 @@ async function startServer(modelPath) {
             res.setHeader("Content-Type", "application/json; charset=utf-8");
             res.setHeader("Cache-Control", "no-store");
             res.end(JSON.stringify({ files: listWorkspaceStlFiles(), mtimes: listWorkspaceModelVersions() }));
+            return;
+        }
+        if (url.pathname === "/api/model-file") {
+            try {
+                const requested = (url.searchParams.get("file") || instanceDefaultFile).split(/[\\/]/).pop();
+                const resolved = modelLabelToPath(requested);
+                if (!existsSync(resolved)) throw new Error(`Model file not found: models/${requested}`);
+                const extension = requested.toLowerCase().endsWith(".3mf") ? "model/3mf" : "model/stl";
+                res.setHeader("Content-Type", extension);
+                res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(requested)}`);
+                res.setHeader("Cache-Control", "no-store");
+                res.end(readFileSync(resolved));
+            } catch (err) {
+                res.statusCode = 404;
+                res.setHeader("Content-Type", "text/plain; charset=utf-8");
+                res.end(String(err));
+            }
             return;
         }
         if (req.url && req.url.startsWith("/api/model")) {

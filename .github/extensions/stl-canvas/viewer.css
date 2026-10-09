@@ -13,6 +13,9 @@ input[type="range"] { flex: 1 1 80px; min-width: 70px; }
 button { font: inherit; font-size: 12px; padding: 4px 8px; border: 1px solid var(--border-color-default, #d1d9e0); border-radius: 6px; background: var(--background-color-default, #ffffff); color: var(--text-color-default, #1f2328); cursor: pointer; }
 button:hover { border-color: var(--border-color-emphasis, #8c959f); }
 button:active { transform: translateY(1px); }
+button:focus-visible { outline: 2px solid var(--color-focus-outline, #0969da); outline-offset: 2px; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+.action-status { max-width: 32ch; color: var(--text-color-muted, #57606a); white-space: normal; overflow-wrap: anywhere; }
 .viewer-container { flex: 1; min-height: 0; padding: 10px 12px; position: relative; }
 #info { position: absolute; top: 18px; left: 20px; padding: 8px 10px; border-radius: 6px; background: rgba(13, 17, 23, 0.78); color: #e6edf3; font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace); font-size: 11px; line-height: 1.5; pointer-events: none; white-space: pre; }
 #info[hidden] { display: none; }

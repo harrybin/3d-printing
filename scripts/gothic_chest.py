@@ -33,6 +33,7 @@ PROUD = 3.0            # how far plinth, cornice and pilasters stand out
 PILASTER = 19.0
 PANEL_DEPTH = 2.5
 RELIEF = 2.6
+ECONOMY_SKIN = 1.6    # visual shell retained behind internal lightening pockets
 
 RAIL_W = 4.0           # slider rail groove, as specified in the brief
 RAIL_D = 3.0
@@ -192,6 +193,42 @@ def _wall_decoration(length: float, x_sign: float, y_sign: float,
     return [], adds
 
 
+def _wall_lightening_pockets() -> list[trimesh.Trimesh]:
+    """Thin broad non-functional wall fields from the inside.
+
+    The exterior relief, corner pilasters, lower rail zone and upper hinge/
+    anchor zone stay untouched.  Opening the pockets into the main cavity avoids
+    enclosed support traps while retaining a 1.6 mm outer skin.
+    """
+    pocket_z0 = 18.0
+    pocket_z1 = 70.0
+    pocket_h = pocket_z1 - pocket_z0
+    overlap = 0.2
+    depth = WALL - ECONOMY_SKIN + overlap
+    wall_offset = WALL - depth / 2.0 + overlap
+    pockets = []
+
+    # Front is split around the skull trigger; the rear can use one broad bay.
+    for x in (-50.0, 50.0):
+        pockets.append(box(
+            (56.0, depth, pocket_h),
+            (x, -CHEST_W / 2.0 + wall_offset, (pocket_z0 + pocket_z1) / 2.0),
+        ))
+    pockets.append(box(
+        (164.0, depth, pocket_h),
+        (0.0, CHEST_W / 2.0 - wall_offset, (pocket_z0 + pocket_z1) / 2.0),
+    ))
+
+    # Side pockets stop well before the corner pilasters.
+    for sign in (-1.0, 1.0):
+        pockets.append(box(
+            (depth, 84.0, pocket_h),
+            (sign * (CHEST_L / 2.0 - wall_offset), 0.0,
+             (pocket_z0 + pocket_z1) / 2.0),
+        ))
+    return pockets
+
+
 def build_chest() -> trimesh.Trimesh:
     """Open-topped gothic chest with internal rails and control bores."""
     shell = box((CHEST_L, CHEST_W, BODY_H), (0.0, 0.0, BODY_H / 2.0))
@@ -211,7 +248,7 @@ def build_chest() -> trimesh.Trimesh:
                 pilasters.append(box((PILASTER + 3.0, PILASTER + 3.0, 6.0),
                                      (cx, cy, z)))
 
-    cuts, adds = [], []
+    cuts, adds = _wall_lightening_pockets(), []
     for normal_x, sign, length, count, skip in ((False, -1.0, CHEST_L, 3, True),
                                                 (False, 1.0, CHEST_L, 3, False),
                                                 (True, -1.0, CHEST_W, 2, False),
@@ -347,6 +384,24 @@ def build_lid() -> trimesh.Trimesh:
     ])
 
     body = union([top, frame, step, spigot])
+
+    # Narrow underside channels replace the former mostly solid 12 mm slab with
+    # a 2.0 mm face skin, a wide perimeter and a rib grid.  Each ceiling bridges
+    # only 10 mm, matching the repository's support-free bridge limit.  The
+    # seating guide, hinge, catch and opening-band interfaces are added outside
+    # these channels and retain their original dimensions.
+    pocket_z0 = 11.0
+    pocket_z1 = 19.5
+    lid_pockets = [
+        rounded_box(
+            (80.0, 10.0, pocket_z1 - pocket_z0),
+            2.0,
+            (x, y, (pocket_z0 + pocket_z1) / 2.0),
+        )
+        for x in (-50.0, 50.0)
+        for y in (-39.0, -25.0, -11.0, 11.0, 25.0, 39.0)
+    ]
+    body = difference(body, lid_pockets)
 
     # Sunken field on the lid face.
     floor_z = LID_H - PANEL_DEPTH
