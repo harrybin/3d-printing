@@ -5,6 +5,7 @@ import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { inflateRawSync } from "node:zlib";
 import { joinSession, createCanvas, CanvasError } from "@github/copilot-sdk/extension";
+import { compose3mfTransforms, transform3mfPoint as apply3mfTransform } from "./viewer-app.mjs";
 
 const extensionDir = dirname(fileURLToPath(import.meta.url));
 const viewerAppPath = join(extensionDir, "viewer-app.mjs");
@@ -281,14 +282,17 @@ function readZipEntry(buffer, entryName) {
 
 function transform3mfPoint(point, transform) {
     if (!transform) return point;
-    const values = transform.trim().split(/\s+/).map(Number);
-    if (values.length !== 12 || values.some((value) => !Number.isFinite(value))) return point;
-    const [x, y, z] = point;
-    return [
-        values[0] * x + values[3] * y + values[6] * z + values[9],
-        values[1] * x + values[4] * y + values[7] * z + values[10],
-        values[2] * x + values[5] * y + values[8] * z + values[11],
-    ];
+    return apply3mfTransform(point, transform);
+}
+
+function parse3mfTransform(raw) {
+    if (!raw) return null;
+    const values = raw.trim().split(/[,\s]+/).map(Number);
+    return values.length === 12 && values.every(Number.isFinite) ? values : null;
+}
+
+function xmlAttribute(tag, name) {
+    return tag.match(new RegExp(`(?:^|\\s)(?:[\\w.-]+:)?${name}="([^"]*)"`))?.[1] || "";
 }
 
 function parse3mfDocument(xml, transform, triangles, triangleColors) {
@@ -311,21 +315,84 @@ function parse3mfDocument(xml, transform, triangles, triangleColors) {
     }
 }
 
+function parse3mfPlateAssignments(buffer) {
+    let xml;
+    try {
+        xml = readZipEntry(buffer, "Metadata/model_settings.config").toString("utf8");
+    } catch {
+        return new Map();
+    }
+    const assignments = new Map();
+    for (const plateMatch of xml.matchAll(/<plate>([\s\S]*?)<\/plate>/g)) {
+        const plateXml = plateMatch[1];
+        const plateId = [...plateXml.matchAll(/<metadata\b[^>]*\/?>/g)]
+            .map((match) => match[0])
+            .find((tag) => xmlAttribute(tag, "key") === "plater_id");
+        const id = plateId ? xmlAttribute(plateId, "value") : "";
+        if (!id) continue;
+        for (const instanceMatch of plateXml.matchAll(/<model_instance>([\s\S]*?)<\/model_instance>/g)) {
+            const objectTag = [...instanceMatch[1].matchAll(/<metadata\b[^>]*\/?>/g)]
+                .map((match) => match[0])
+                .find((tag) => xmlAttribute(tag, "key") === "object_id");
+            const objectId = objectTag ? xmlAttribute(objectTag, "value") : "";
+            if (objectId) assignments.set(objectId, id);
+        }
+    }
+    return assignments;
+}
+
 function parse3mfBuffer(buffer) {
     const rootXml = readZipEntry(buffer, "3D/3dmodel.model").toString("utf8");
     const triangles = [];
     const triangleColors = [];
     parse3mfDocument(rootXml, null, triangles, triangleColors);
+    const plateAssignments = parse3mfPlateAssignments(buffer);
+    const plateGroups = new Map();
 
-    const buildTransform = rootXml.match(/<item\b[^>]*\btransform="([^"]+)"/)?.[1];
-    const externalDocuments = new Set(
-        [...rootXml.matchAll(/<component\b[^>]*\bp:path="\/([^"]+)"/g)].map((match) => match[1]),
-    );
-    for (const entryName of externalDocuments) {
-        const xml = readZipEntry(buffer, entryName).toString("utf8");
-        parse3mfDocument(xml, buildTransform, triangles, triangleColors);
+    const componentsByObject = new Map();
+    for (const objectMatch of rootXml.matchAll(/<object\b([^>]*)>([\s\S]*?)<\/object>/g)) {
+        const objectId = xmlAttribute(objectMatch[1], "id");
+        const componentTag = objectMatch[2].match(/<component\b[^>]*\/?>/)?.[0];
+        if (!objectId || !componentTag) continue;
+        const path = xmlAttribute(componentTag, "path").replace(/^\/+/, "");
+        if (!path) continue;
+        componentsByObject.set(objectId, {
+            path,
+            transform: parse3mfTransform(xmlAttribute(componentTag, "transform")),
+        });
     }
-    return { ...meshStats(triangles, "3mf"), triangles, triangleColors };
+    for (const itemMatch of rootXml.matchAll(/<item\b[^>]*\/?>/g)) {
+        const itemTag = itemMatch[0];
+        const objectId = xmlAttribute(itemTag, "objectid");
+        const component = componentsByObject.get(objectId);
+        if (!component) continue;
+        const transform = compose3mfTransforms(
+            parse3mfTransform(xmlAttribute(itemTag, "transform")),
+            component.transform,
+        );
+        const xml = readZipEntry(buffer, component.path).toString("utf8");
+        const itemTriangles = [];
+        const itemColors = [];
+        parse3mfDocument(xml, transform, itemTriangles, itemColors);
+        triangles.push(...itemTriangles);
+        triangleColors.push(...itemColors);
+        const plateId = plateAssignments.get(objectId) || "1";
+        const plate = plateGroups.get(plateId) || {
+            id: plateId,
+            triangles: [],
+            triangleColors: [],
+        };
+        plate.triangles.push(...itemTriangles);
+        plate.triangleColors.push(...itemColors);
+        plateGroups.set(plateId, plate);
+    }
+    const plates = [...plateGroups.values()]
+        .sort((left, right) => Number(left.id) - Number(right.id))
+        .map((plate) => ({
+            ...plate,
+            stats: meshStats(plate.triangles, "3mf"),
+        }));
+    return { ...meshStats(triangles, "3mf"), triangles, triangleColors, plates };
 }
 
 function parseModelBuffer(modelPath, buffer) {
@@ -387,6 +454,7 @@ function renderHtml(title, defaultFile) {
 }
 
 async function startServer(modelPath) {
+    const instanceDefaultFile = modelPath.split(/[\\/]/).pop();
     const server = createServer((req, res) => {
         const url = new URL(req.url || '/', 'http://127.0.0.1');
         if (url.pathname === '/viewer-app.mjs') {
@@ -442,7 +510,7 @@ async function startServer(modelPath) {
         if (req.url && req.url.startsWith("/api/model")) {
             try {
                 const url = new URL(req.url, "http://127.0.0.1");
-                const requested = (url.searchParams.get("file") || defaultModelFile).split(/[\\/]/).pop();
+                const requested = (url.searchParams.get("file") || instanceDefaultFile).split(/[\\/]/).pop();
                 const resolved = modelLabelToPath(requested);
                 if (!existsSync(resolved)) throw new Error(`Model file not found: models/${requested}`);
                 const raw = readFileSync(resolved);
@@ -452,9 +520,15 @@ async function startServer(modelPath) {
                 res.setHeader("Cache-Control", "no-store");
                 res.end(JSON.stringify({
                     path: requested,
-                    stats: { ...parsed, triangles: undefined },
+                    stats: {
+                        ...parsed,
+                        triangles: undefined,
+                        triangleColors: undefined,
+                        plates: undefined,
+                    },
                     triangles: parsed.triangles || [],
                     triangleColors: parsed.triangleColors || [],
+                    plates: parsed.plates || [],
                     content,
                     mtime: fileVersion(requested),
                 }));
@@ -467,7 +541,7 @@ async function startServer(modelPath) {
             }
         }
         res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.end(renderHtml("STL Canvas", defaultModelFile));
+        res.end(renderHtml("STL Canvas", instanceDefaultFile));
     });
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
@@ -528,7 +602,15 @@ await joinSession({
                         if (!existsSync(modelPath)) throw new CanvasError("stl_not_found", `Model file not found: ${requested}`);
                         const raw = readFileSync(modelPath);
                         const parsed = parseModelBuffer(modelPath, raw);
-                        return { ...parsed, triangles: undefined, triangleColors: undefined };
+                        return {
+                            ...parsed,
+                            triangles: undefined,
+                            triangleColors: undefined,
+                            plates: (parsed.plates || []).map((plate) => ({
+                                id: plate.id,
+                                stats: plate.stats,
+                            })),
+                        };
                     },
                 },
             ],

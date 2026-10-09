@@ -4,6 +4,10 @@ export const APP_HTML = `
     <label for="fileChooser">File</label>
     <select id="fileChooser"><option value="">Loading…</option></select>
   </div>
+  <div class="field" id="plateField" hidden>
+    <label for="plateChooser">Plate</label>
+    <select id="plateChooser"><option value="all">All</option></select>
+  </div>
   <div class="field">
   <button type="button" id="reloadBtn" title="Reload current model">Reload</button>
 </div>
@@ -66,6 +70,53 @@ export const APP_HTML = `
 <div id="meta">Loading model…</div>
 
 `
+
+export function transform3mfPoint(point, transform) {
+  if (!transform) return point
+  const [x, y, z] = point
+  return [
+    transform[0] * x + transform[3] * y + transform[6] * z + transform[9],
+    transform[1] * x + transform[4] * y + transform[7] * z + transform[10],
+    transform[2] * x + transform[5] * y + transform[8] * z + transform[11],
+  ]
+}
+
+function scaleTransformTranslation(transform, unitScale = 1) {
+  if (!transform || unitScale === 1) return transform
+  const scaled = transform.slice()
+  scaled[9] *= unitScale
+  scaled[10] *= unitScale
+  scaled[11] *= unitScale
+  return scaled
+}
+
+export function compose3mfTransforms(parent, child, childUnitScale = 1) {
+  const normalizedChild = scaleTransformTranslation(child, childUnitScale)
+  if (!parent) return normalizedChild
+  if (!normalizedChild) return parent
+  const toMatrix = (transform) => [
+    [transform[0], transform[1], transform[2], 0],
+    [transform[3], transform[4], transform[5], 0],
+    [transform[6], transform[7], transform[8], 0],
+    [transform[9], transform[10], transform[11], 1],
+  ]
+  const childMatrix = toMatrix(normalizedChild)
+  const parentMatrix = toMatrix(parent)
+  const combined = Array.from({ length: 4 }, (_, row) => (
+    Array.from({ length: 4 }, (_, column) => (
+      childMatrix[row].reduce(
+        (sum, value, index) => sum + value * parentMatrix[index][column],
+        0,
+      )
+    ))
+  ))
+  return [
+    combined[0][0], combined[0][1], combined[0][2],
+    combined[1][0], combined[1][1], combined[1][2],
+    combined[2][0], combined[2][1], combined[2][2],
+    combined[3][0], combined[3][1], combined[3][2],
+  ]
+}
 
 export function initStlCanvas(options = {}) {
 const root = options.root || document.querySelector('#app') || document.body
@@ -333,43 +384,8 @@ function parseTransformString(transform, context) {
   return values
 }
 
-function transform3mfPoint(point, transform) {
-  if (!transform) return point
-  const [x, y, z] = point
-  return [
-    transform[0] * x + transform[1] * y + transform[2] * z + transform[3],
-    transform[4] * x + transform[5] * y + transform[6] * z + transform[7],
-    transform[8] * x + transform[9] * y + transform[10] * z + transform[11],
-  ]
-}
-
-function scaleTransformTranslation(transform, unitScale = 1) {
-  if (!transform || unitScale === 1) return transform
-  const scaled = transform.slice()
-  scaled[3] *= unitScale
-  scaled[7] *= unitScale
-  scaled[11] *= unitScale
-  return scaled
-}
-
 function composeTransforms(parent, child, childUnitScale = 1) {
-  const normalizedChild = scaleTransformTranslation(child, childUnitScale)
-  if (!parent) return normalizedChild
-  if (!normalizedChild) return parent
-  return [
-    parent[0] * normalizedChild[0] + parent[1] * normalizedChild[4] + parent[2] * normalizedChild[8],
-    parent[0] * normalizedChild[1] + parent[1] * normalizedChild[5] + parent[2] * normalizedChild[9],
-    parent[0] * normalizedChild[2] + parent[1] * normalizedChild[6] + parent[2] * normalizedChild[10],
-    parent[0] * normalizedChild[3] + parent[1] * normalizedChild[7] + parent[2] * normalizedChild[11] + parent[3],
-    parent[4] * normalizedChild[0] + parent[5] * normalizedChild[4] + parent[6] * normalizedChild[8],
-    parent[4] * normalizedChild[1] + parent[5] * normalizedChild[5] + parent[6] * normalizedChild[9],
-    parent[4] * normalizedChild[2] + parent[5] * normalizedChild[6] + parent[6] * normalizedChild[10],
-    parent[4] * normalizedChild[3] + parent[5] * normalizedChild[7] + parent[6] * normalizedChild[11] + parent[7],
-    parent[8] * normalizedChild[0] + parent[9] * normalizedChild[4] + parent[10] * normalizedChild[8],
-    parent[8] * normalizedChild[1] + parent[9] * normalizedChild[5] + parent[10] * normalizedChild[9],
-    parent[8] * normalizedChild[2] + parent[9] * normalizedChild[6] + parent[10] * normalizedChild[10],
-    parent[8] * normalizedChild[3] + parent[9] * normalizedChild[7] + parent[10] * normalizedChild[11] + parent[11],
-  ]
+  return compose3mfTransforms(parent, child, childUnitScale)
 }
 
 async function readZipEntry(buffer, entryName) {
@@ -627,38 +643,7 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
   }
 }
 
-async function parse3mfBuffer(buffer) {
-  const documents = new Map()
-  const resourceCache = new Map()
-  const objectCache = new Map()
-  const unitCache = new Map()
-  const rootPath = await read3mfStartPath(buffer)
-  const rootDoc = await load3mfDocument(buffer, rootPath, documents)
-  const rootUnitScale = documentUnitScale(rootDoc, rootPath)
-  const triangles = []
-  const triangleColors = []
-  const stats = create3mfStats()
-  const build = firstChildByLocalName(rootDoc.documentElement, 'build')
-  if (!build) throw new Error(`3MF start model document is missing <build>: ${rootPath}`)
-
-  for (const item of childrenByLocalName(build, 'item')) {
-    await collect3mfObject(
-      buffer,
-      documents,
-      rootPath,
-      item.getAttribute('objectid'),
-      composeTransforms(null, parseTransformString(item.getAttribute('transform'), `${rootPath} build`), rootUnitScale),
-      null,
-      triangles,
-      triangleColors,
-      resourceCache,
-      objectCache,
-      unitCache,
-      stats,
-      new Set(),
-    )
-  }
-
+function finalize3mfStats(stats) {
   return {
     facets: stats.facets,
     vertices: stats.vertices,
@@ -671,8 +656,97 @@ async function parse3mfBuffer(buffer) {
       }
       : null,
     format: '3mf',
+  }
+}
+
+async function read3mfPlateAssignments(buffer) {
+  let xml
+  try {
+    xml = new TextDecoder().decode(await readZipEntry(buffer, 'Metadata/model_settings.config'))
+  } catch {
+    return new Map()
+  }
+  const doc = parseXmlDocument(xml, 'Metadata/model_settings.config')
+  const assignments = new Map()
+  for (const plate of Array.from(doc.getElementsByTagName('plate'))) {
+    const plateId = childrenByLocalName(plate, 'metadata')
+      .find((entry) => entry.getAttribute('key') === 'plater_id')
+      ?.getAttribute('value')
+    if (!plateId) continue
+    for (const instance of childrenByLocalName(plate, 'model_instance')) {
+      const objectId = childrenByLocalName(instance, 'metadata')
+        .find((entry) => entry.getAttribute('key') === 'object_id')
+        ?.getAttribute('value')
+      if (objectId) assignments.set(objectId, plateId)
+    }
+  }
+  return assignments
+}
+
+async function parse3mfBuffer(buffer) {
+  const documents = new Map()
+  const resourceCache = new Map()
+  const objectCache = new Map()
+  const unitCache = new Map()
+  const rootPath = await read3mfStartPath(buffer)
+  const rootDoc = await load3mfDocument(buffer, rootPath, documents)
+  const rootUnitScale = documentUnitScale(rootDoc, rootPath)
+  const triangles = []
+  const triangleColors = []
+  const stats = create3mfStats()
+  const plateAssignments = await read3mfPlateAssignments(buffer)
+  const plateGroups = new Map()
+  const build = firstChildByLocalName(rootDoc.documentElement, 'build')
+  if (!build) throw new Error(`3MF start model document is missing <build>: ${rootPath}`)
+
+  for (const item of childrenByLocalName(build, 'item')) {
+    const objectId = item.getAttribute('objectid')
+    const itemTriangles = []
+    const itemColors = []
+    const itemStats = create3mfStats()
+    await collect3mfObject(
+      buffer,
+      documents,
+      rootPath,
+      objectId,
+      composeTransforms(null, parseTransformString(item.getAttribute('transform'), `${rootPath} build`), rootUnitScale),
+      null,
+      itemTriangles,
+      itemColors,
+      resourceCache,
+      objectCache,
+      unitCache,
+      itemStats,
+      new Set(),
+    )
+    triangles.push(...itemTriangles)
+    triangleColors.push(...itemColors)
+    for (const triangle of itemTriangles) add3mfTriangle(stats, triangle)
+    const plateId = plateAssignments.get(objectId) || '1'
+    const plate = plateGroups.get(plateId) || {
+      id: plateId,
+      triangles: [],
+      triangleColors: [],
+      stats: create3mfStats(),
+    }
+    plate.triangles.push(...itemTriangles)
+    plate.triangleColors.push(...itemColors)
+    for (const triangle of itemTriangles) add3mfTriangle(plate.stats, triangle)
+    plateGroups.set(plateId, plate)
+  }
+
+  return {
+    ...finalize3mfStats(stats),
     triangles,
     triangleColors,
+    plates: [...plateGroups.values()]
+      .sort((left, right) => Number(left.id) - Number(right.id))
+      .map((plate) => ({
+        id: plate.id,
+        triangles: plate.triangles,
+        triangleColors: plate.triangleColors,
+        stats: finalize3mfStats(plate.stats),
+      })),
   }
 }
 
@@ -706,6 +780,8 @@ let isDragging = false, isShiftDrag = false, isRightDrag = false, lastX = 0, las
 const canvas = document.getElementById('view');
 const ctx = canvas.getContext('2d');
 const fileChooser = document.getElementById('fileChooser');
+const plateField = document.getElementById('plateField');
+const plateChooser = document.getElementById('plateChooser');
 const reloadBtn = document.getElementById('reloadBtn');
 function emitModelChange(file = fileChooser.value || currentFile || '') {
   const source = file ? modelSource(file) : null
@@ -735,6 +811,10 @@ let rawTriangles = [];
 let triangles = [];
 let rawTriangleColors = [];
 let triangleColors = [];
+let loadedTriangles = [];
+let loadedTriangleColors = [];
+let loadedPlates = [];
+let loadedModelInfo = null;
 // Crease-aware per-corner normals, rebuilt whenever the geometry changes.
 let cornerNormals = null, faceNormals = null;
 // Measure gizmo state: welded points, crease edges, fitted circles.
@@ -786,6 +866,48 @@ function applyModelRotation() {
   triangleColors = [...rawTriangleColors];
   modelBounds = computeBounds(triangles) || modelBounds;
   computeCornerNormals();
+}
+
+function applyPlateSelection() {
+  const selected = plateChooser.value
+  const plate = selected === 'all'
+    ? null
+    : loadedPlates.find((candidate) => String(candidate.id) === selected)
+  const sourceTriangles = plate?.triangles || loadedTriangles
+  const sourceColors = plate?.triangleColors || loadedTriangleColors
+  rawTriangles = []
+  rawTriangleColors = []
+  for (let index = 0; index < sourceTriangles.length; index += 1) {
+    const tri = sourceTriangles[index]
+    if (!Array.isArray(tri) || tri.length !== 3) continue
+    rawTriangles.push(tri)
+    rawTriangleColors.push(
+      typeof sourceColors[index] === 'string'
+        ? sourceColors[index]
+        : '#d6d9de',
+    )
+  }
+  modelBounds = plate?.stats?.bounds || computeBounds(rawTriangles)
+  applyModelRotation()
+  renderModelMeta()
+}
+
+function renderModelMeta() {
+  if (!loadedModelInfo) return
+  const selected = plateChooser.value
+  const plate = selected === 'all'
+    ? null
+    : loadedPlates.find((candidate) => String(candidate.id) === selected)
+  const stats = plate?.stats || loadedModelInfo.stats
+  const bounds = stats?.bounds
+  const meta = document.getElementById('meta')
+  meta.innerHTML = '<span><strong>File:</strong> ' + escapeHtml(loadedModelInfo.path) + '</span>' +
+    (loadedModelInfo.source ? '<span><strong>Source:</strong> ' + escapeHtml(loadedModelInfo.source) + '</span>' : '') +
+    '<span><strong>Format:</strong> ' + (stats.format === 'binary' ? 'Binary STL' : stats.format === 'ascii' ? 'ASCII STL' : '3MF') + '</span>' +
+    (loadedPlates.length > 1 ? '<span><strong>Plate:</strong> ' + (plate ? escapeHtml(String(plate.id)) : 'All') + '</span>' : '') +
+    '<span><strong>Facets:</strong> ' + stats.facets + '</span>' +
+    '<span><strong>Vertices:</strong> ' + stats.vertices + '</span>' +
+    (bounds ? '<span><strong>Size (mm):</strong> ' + bounds.size.x.toFixed(1) + ' x ' + bounds.size.y.toFixed(1) + ' x ' + bounds.size.z.toFixed(1) + '</span>' : '')
 }
 // Average face normals per welded vertex, but fall back to the face
 // normal across creases so 90-degree corners stay crisp.
@@ -1083,9 +1205,15 @@ async function fetchModelData(file) {
     path: file,
     source: source.sourceLabel,
     downloadUrl: source.downloadUrl,
-    stats: { ...parsed, triangles: undefined, triangleColors: undefined },
+    stats: {
+      ...parsed,
+      triangles: undefined,
+      triangleColors: undefined,
+      plates: undefined,
+    },
     triangles: parsed.triangles || [],
     triangleColors: parsed.triangleColors || [],
+    plates: parsed.plates || [],
     mtime: await readModelVersion(file),
   }
 }
@@ -1099,6 +1227,7 @@ function loadModel(file, preserveView) {
       const b = s.bounds
       const trianglesData = Array.isArray(data.triangles) ? data.triangles : []
       const colorsData = Array.isArray(data.triangleColors) ? data.triangleColors : []
+      const platesData = Array.isArray(data.plates) ? data.plates : []
       if (s.format === '3mf') shadingInput.value = 'material'
       if (!s.facets || s.facets <= 0 || !trianglesData.length) {
         const msg = 'Failed to load model: no triangle data found. Check that the file is a valid STL or 3MF export.'
@@ -1106,31 +1235,39 @@ function loadModel(file, preserveView) {
         triangles = []
         rawTriangles = []
         rawTriangleColors = []
+        loadedTriangles = []
+        loadedTriangleColors = []
+        loadedPlates = []
+        loadedModelInfo = null
         triangleColors = []
         modelBounds = null
+        plateField.hidden = true
         currentFile = file
         currentMtime = runtimeMode === 'extension' ? '' : ''
         emitModelChange(file)
         return false
       }
-      const safeFile = escapeHtml(data.path || file)
-      meta.innerHTML = '<span><strong>File:</strong> ' + safeFile + '</span>' +
-        (data.source ? '<span><strong>Source:</strong> ' + escapeHtml(data.source) + '</span>' : '') +
-        '<span><strong>Format:</strong> ' + (s.format === 'binary' ? 'Binary STL' : s.format === 'ascii' ? 'ASCII STL' : '3MF') + '</span>' +
-        '<span><strong>Facets:</strong> ' + s.facets + '</span>' +
-        '<span><strong>Vertices:</strong> ' + s.vertices + '</span>' +
-        (b ? '<span><strong>Size (mm):</strong> ' + b.size.x.toFixed(1) + ' x ' + b.size.y.toFixed(1) + ' x ' + b.size.z.toFixed(1) + '</span>' : '')
+      loadedModelInfo = {
+        path: data.path || file,
+        source: data.source || '',
+        stats: s,
+      }
       triangles = []
-      rawTriangles = []
-      rawTriangleColors = []
+      loadedTriangles = []
+      loadedTriangleColors = []
       for (const tri of trianglesData) {
         if (Array.isArray(tri) && tri.length === 3) {
-          rawTriangles.push(tri)
-          rawTriangleColors.push(typeof colorsData[rawTriangles.length - 1] === 'string' ? colorsData[rawTriangles.length - 1] : '#d6d9de')
+          loadedTriangles.push(tri)
+          loadedTriangleColors.push(typeof colorsData[loadedTriangles.length - 1] === 'string' ? colorsData[loadedTriangles.length - 1] : '#d6d9de')
         }
       }
-      modelBounds = b || computeBounds(rawTriangles)
-      applyModelRotation()
+      loadedPlates = platesData.filter((plate) => Array.isArray(plate?.triangles) && plate.triangles.length)
+      plateChooser.innerHTML = '<option value="all">All plates</option>' +
+        loadedPlates.map((plate) => '<option value="' + escapeHtml(String(plate.id)) + '">Plate ' + escapeHtml(String(plate.id)) + '</option>').join('')
+      plateField.hidden = loadedPlates.length <= 1
+      plateChooser.value = loadedPlates.length > 1 ? String(loadedPlates[0].id) : 'all'
+      applyPlateSelection()
+      if (!modelBounds) modelBounds = b || computeBounds(rawTriangles)
       currentFile = file
       currentMtime = data.mtime || ''
       if (!preserveView) applySavedOrFit()
@@ -1180,22 +1317,23 @@ function resizeCanvas() { const rect = canvas.getBoundingClientRect(); const pix
 // Turntable camera: yaw around the model's Z (up) axis, then pitch, then screen roll.
 function rot(v, rx, ry, rz) { let [x, y, z] = v; const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(rx), sx = Math.sin(rx), cz = Math.cos(rz), sz = Math.sin(rz); let t = x * cy - y * sy; y = x * sy + y * cy; x = t; t = y * cx - z * sx; z = y * sx + z * cx; y = t; t = x * cz - y * sz; y = x * sz + y * cz; x = t; return [x, y, z]; }
 function projectPoint(v, rx, ry, rz, w, h, zoom) { const r = rot(v, rx, ry, rz); const x = r[0] + panX; const y = r[1] + panY; const z = r[2]; const f = 420 / (420 - z); return [w / 2 + x * f * MM_TO_PX * zoom, h / 2 - y * f * MM_TO_PX * zoom, z]; }
-function drawBuildPlate(w, h, rx, ry, rz, zoom) {
+function drawBuildPlate(w, h, rx, ry, rz, zoom, offsetX = 0, offsetY = 0, label = '') {
   const half = BED_SIZE_MM / 2;
   const bedY = 0;
   const thickness = 6;
+  const project = ([x, y, z]) => projectPoint([x + offsetX, y + offsetY, z], rx, ry, rz, w, h, zoom)
   const top = [
     [-half, -half, bedY],
     [half, -half, bedY],
     [half, half, bedY],
     [-half, half, bedY],
-  ].map((p) => projectPoint(p, rx, ry, rz, w, h, zoom));
+  ].map(project);
   const low = [
     [-half, -half, bedY - thickness],
     [half, -half, bedY - thickness],
     [half, half, bedY - thickness],
     [-half, half, bedY - thickness],
-  ].map((p) => projectPoint(p, rx, ry, rz, w, h, zoom));
+  ].map(project);
   ctx.fillStyle = '#1a1e22';
   ctx.beginPath();
   ctx.moveTo(low[0][0], low[0][1]);
@@ -1221,6 +1359,12 @@ function drawBuildPlate(w, h, rx, ry, rz, zoom) {
   ctx.lineTo(top[3][0], top[3][1]);
   ctx.closePath();
   ctx.stroke();
+  if (label) {
+    const labelPoint = project([-half + 8, -half + 8, 0.5])
+    ctx.fillStyle = '#d0d7de'
+    ctx.font = '600 12px system-ui, sans-serif'
+    ctx.fillText(label, labelPoint[0], labelPoint[1])
+  }
 }
 function drawGrid(w, h, rx, ry, rz, zoom) {
   const half = BED_SIZE_MM / 2;
@@ -1592,9 +1736,28 @@ function fitView() {
   const sizeX = Math.max(1, modelBounds.size.x);
   const sizeY = Math.max(1, modelBounds.size.y);
   const sizeZ = Math.max(1, modelBounds.size.z);
-  const maxSize = Math.max(sizeX, sizeY, sizeZ);
+  let maxSize = Math.max(sizeX, sizeY, sizeZ);
+  const plateOverview = plateChooser.value === 'all' && loadedPlates.length > 1
+  if (plateOverview) {
+    const centers = loadedPlates
+      .map((plate) => plate.stats?.bounds)
+      .filter(Boolean)
+      .map((bounds) => ({
+        x: (bounds.min.x + bounds.max.x) / 2,
+        y: (bounds.min.y + bounds.max.y) / 2,
+      }))
+    if (centers.length) {
+      const xs = centers.map((center) => center.x)
+      const ys = centers.map((center) => center.y)
+      maxSize = Math.max(
+        maxSize,
+        Math.max(...xs) - Math.min(...xs) + BED_SIZE_MM,
+        Math.max(...ys) - Math.min(...ys) + BED_SIZE_MM,
+      )
+    }
+  }
   // Zoom 1.0 shows the whole 250 mm plate; smaller models get zoomed in.
-  zoomInput.value = Math.max(0.6, Math.min(3, 110 / maxSize));
+  zoomInput.value = Math.max(plateOverview ? 0.18 : 0.6, Math.min(3, 110 / maxSize));
   panX = 0;
   panY = 0;
   objectX = 0;
@@ -1617,11 +1780,30 @@ function draw() {
   ctx.fillStyle = VIEW_BACKGROUND;
   ctx.fillRect(0, 0, w, h);
   const rx = rotX * Math.PI / 180, ry = rotY * Math.PI / 180, rz = rotZ * Math.PI / 180, zoom = parseFloat(zoomInput.value);
-  drawBuildPlate(w, h, rx, ry, rz, zoom);
-  if (showGridInput.checked) drawGrid(w, h, rx, ry, rz, zoom);
   const centerX = modelBounds ? (modelBounds.min.x + modelBounds.max.x) / 2 : 0;
   const centerY = modelBounds ? (modelBounds.min.y + modelBounds.max.y) / 2 : 0;
   const baseZ = modelBounds ? modelBounds.min.z : 0;
+  const plateOverview = plateChooser.value === 'all' && loadedPlates.length > 1
+  if (plateOverview) {
+    for (const plate of loadedPlates) {
+      const bounds = plate.stats?.bounds
+      if (!bounds) continue
+      drawBuildPlate(
+        w,
+        h,
+        rx,
+        ry,
+        rz,
+        zoom,
+        (bounds.min.x + bounds.max.x) / 2 - centerX,
+        (bounds.min.y + bounds.max.y) / 2 - centerY,
+        `Plate ${plate.id}`,
+      )
+    }
+  } else {
+    drawBuildPlate(w, h, rx, ry, rz, zoom)
+    if (showGridInput.checked) drawGrid(w, h, rx, ry, rz, zoom)
+  }
   if (showAxesInput.checked) drawAxes(w, h, rx, ry, rz, zoom);
   if (wireframeInput.checked) {
     const projected = triangles.map((t) => t.map((v) => projectPoint([v[0] - centerX + objectX, v[1] - centerY + objectY, v[2] - baseZ], rx, ry, rz, w, h, zoom)));
@@ -1741,6 +1923,13 @@ readViewDefaults().then((view) => {
   if (loaded !== false && pollTimer === null && pollIntervalMs > 0) pollTimer = setInterval(pollForChanges, pollIntervalMs)
 })
 fileChooser.addEventListener('change', () => { if (fileChooser.value) loadModel(fileChooser.value) })
+plateChooser.addEventListener('change', () => {
+  pickedFeatures = []
+  hoverFeature = null
+  applyPlateSelection()
+  fitView()
+  draw()
+})
 reloadBtn.addEventListener('click', () => {
   const selected = fileChooser.value || currentFile
   if (selected) loadModel(selected, false)

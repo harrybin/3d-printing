@@ -44,9 +44,13 @@ Toolpath-conflict-, Out-of-bed-, Empty-layer- oder Invalid-toolpath-Warnung.
 Nach der Deckelkorrektur wurden Deckel, Knochenplatte und Fingerplatte in
 dieser Reihenfolge erneut mit demselben Profil gesliced. Die globalen
 3MF-Transformationen ergeben zwischen allen drei Knochenobjekten sowie allen
-fünf Fingerobjekten jeweils **0,000 mm³** Überlappung. Das einfache STL/3MF-
-Canvas ignoriert diese Objekttransformationen und zeigt die Teile deshalb
-fälschlich übereinander; maßgeblich sind OrcaSlicer und die G-Code-Vorschauen.
+fünf Fingerobjekten jeweils **0,000 mm³** Überlappung. Das STL/3MF-Canvas
+wertet die standardkonformen 3MF-Build- und Komponenten-Transformationen aus
+und zeigt deshalb dieselbe getrennte Anordnung wie OrcaSlicer. Bei
+Mehrplattenprojekten liest es außerdem Orcas `plater_id`-Zuordnung: Die
+Auswahl `Plate 1`/`Plate 2` zeigt jeweils nur die zugehörigen Objekte auf einem
+lokalen 250-mm-Druckbett, während `All plates` getrennte, beschriftete
+Druckbetten als Übersicht rendert.
 
 Die G-Code-Pfad-Vorschauen werden von `scripts/render_gcode_preview.py` direkt
 aus den erfolgreichen OrcaSlicer-Ausgaben gerendert. Rosa markiert höhere,
