@@ -14,7 +14,7 @@ MODELS = ROOT / "models"
 SLICES = ROOT / "build" / "ghoul-final-slices"
 METADATA_ENTRY = "Metadata/ghouls_grip_print_metadata.xml"
 PROJECTS = {
-    "black-pla": ("black-p1", "black-p2"),
+    "black-pla": ("black-p1",),
     "bone-pla": ("bone-p1",),
     "mechanism-pla": ("mechanism-p1", "mechanism-p2"),
     "accent-pla": ("accent-p1",),
@@ -71,8 +71,12 @@ def _patch(project: Path, values: dict[str, str]) -> None:
     temporary = project.with_suffix(project.suffix + ".metadata-tmp")
     temporary.unlink(missing_ok=True)
     with ZipFile(temporary, "w") as archive:
+        written = set()
         for info in infos:
+            if info.filename in written:
+                continue
             archive.writestr(info, entries[info.filename])
+            written.add(info.filename)
     for attempt in range(10):
         try:
             os.replace(temporary, project)

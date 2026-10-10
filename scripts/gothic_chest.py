@@ -33,7 +33,7 @@ PROUD = 3.0            # how far plinth, cornice and pilasters stand out
 PILASTER = 19.0
 PANEL_DEPTH = 2.5
 RELIEF = 2.6
-ECONOMY_SKIN = 1.6    # visual shell retained behind internal lightening pockets
+ECONOMY_SKIN = 1.2    # three-line visual shell behind internal lightening pockets
 
 RAIL_W = 4.0           # slider rail groove, as specified in the brief
 RAIL_D = 3.0
@@ -70,20 +70,63 @@ def _rect_frustum(bottom: tuple[float, float], top: tuple[float, float],
                                  process=True))
 
 
-def _stepped_skirt(z0: float, height: float, flip: bool) -> trimesh.Trimesh:
-    """Plinth or cornice as two steps, so no face overhangs by the full 3 mm.
+def _extrude_yz_polygon(points: list[tuple[float, float]], length: float,
+                        x_centre: float = 0.0) -> trimesh.Trimesh:
+    """Extrude a convex YZ profile along X without optional polygon helpers."""
+    x0 = x_centre - length / 2.0
+    x1 = x_centre + length / 2.0
+    vertices = np.asarray(
+        [(x0, y, z) for y, z in points]
+        + [(x1, y, z) for y, z in points],
+        dtype=float,
+    )
+    count = len(points)
+    faces = []
+    for index in range(1, count - 1):
+        faces.append((0, index + 1, index))
+        faces.append((count, count + index, count + index + 1))
+    for index in range(count):
+        nxt = (index + 1) % count
+        faces.extend([
+            (index, nxt, count + nxt),
+            (index, count + nxt, count + index),
+        ])
+    return clean(trimesh.Trimesh(
+        vertices=vertices,
+        faces=np.asarray(faces, dtype=int),
+        process=True,
+    ))
 
-    ``flip`` builds the cornice, which grows downwards instead of upwards.
+
+def _stepped_skirt(z0: float, height: float, flip: bool) -> trimesh.Trimesh:
+    """Plinth or cornice with two 45-degree-safe tapered courses.
+
+    The former rectangular steps created continuous horizontal undersides around
+    the whole chest and made Orca grow a support forest. The same maximum
+    envelope is retained with printable sloped transitions.
     """
-    grows = [PROUD, PROUD * 0.5] if flip else [PROUD * 0.5, PROUD]
-    steps = []
-    lo = z0
-    for grow, frac in zip(grows, (0.5, 0.5)):
-        thick = height * frac
-        steps.append(box((CHEST_L + 2 * grow, CHEST_W + 2 * grow, thick),
-                         (0.0, 0.0, lo + thick / 2.0)))
-        lo += thick
-    return union(steps)
+    middle = (CHEST_L + PROUD, CHEST_W + PROUD)
+    body = (CHEST_L, CHEST_W)
+    outer = (CHEST_L + 2.0 * PROUD, CHEST_W + 2.0 * PROUD)
+    half = height / 2.0
+    if flip:
+        courses = (
+            _rect_frustum(body, middle, z0, z0 + half),
+            _rect_frustum(middle, outer, z0 + half, z0 + height),
+        )
+    else:
+        courses = (
+            _rect_frustum(outer, middle, z0, z0 + half),
+            _rect_frustum(middle, body, z0 + half, z0 + height),
+        )
+    skirt = union(courses)
+    cut_z0 = z0 - 0.2 if flip else z0 + FLOOR
+    cut_z1 = z0 + height + 0.2
+    cavity = box(
+        (CHEST_L - 2.0 * WALL, CHEST_W - 2.0 * WALL, cut_z1 - cut_z0),
+        (0.0, 0.0, (cut_z0 + cut_z1) / 2.0),
+    )
+    return difference(skirt, [cavity])
 
 
 def _lancet(width: float, height: float, depth: float,
@@ -448,10 +491,24 @@ def build_chest() -> trimesh.Trimesh:
             cy = sy * (CHEST_W / 2.0 - PILASTER / 2.0 + PROUD)
             pilasters.append(box((PILASTER, PILASTER, shaft_h),
                                  (cx, cy, PLINTH_H + shaft_h / 2.0)))
-            # Base and capital blocks, so the pilaster reads as a column.
-            for z in (PLINTH_H + 3.0, BODY_H - CORNICE_H - 3.0):
-                pilasters.append(box((PILASTER + 3.0, PILASTER + 3.0, 6.0),
-                                     (cx, cy, z)))
+            # Tapered base and capital preserve the column silhouette without
+            # horizontal 1.5 mm ledges that trigger full-height tree supports.
+            pilasters.extend([
+                _rect_frustum(
+                    (PILASTER + 3.0, PILASTER + 3.0),
+                    (PILASTER, PILASTER),
+                    PLINTH_H,
+                    PLINTH_H + 6.0,
+                    (cx, cy),
+                ),
+                _rect_frustum(
+                    (PILASTER, PILASTER),
+                    (PILASTER + 3.0, PILASTER + 3.0),
+                    BODY_H - CORNICE_H - 6.0,
+                    BODY_H - CORNICE_H,
+                    (cx, cy),
+                ),
+            ])
 
     cuts, adds = _wall_lightening_pockets(), []
     front_plaque = _front_scrollwork(40.0)[0]
@@ -469,17 +526,23 @@ def build_chest() -> trimesh.Trimesh:
     for sign in (-1.0, 1.0):
         for x in np.arange(-CHEST_L / 2.0 + 16.0, CHEST_L / 2.0 - 10.0, 24.0):
             for z in (PLINTH_H - 4.0, BODY_H - CORNICE_H + 4.0):
-                rivets.append(sphere(2.4, (x, sign * (CHEST_W / 2.0 + PROUD), z),
+                rivets.append(sphere(2.4, (x, sign * (CHEST_W / 2.0 + PROUD - 1.0), z),
                                      subdivisions=2))
 
-    body = union([shell,
-                  _stepped_skirt(0.0, PLINTH_H, flip=False),
-                  _stepped_skirt(BODY_H - CORNICE_H, CORNICE_H, flip=True),
-                  *pilasters,
-                  front_plaque])
+    # Keep the functional wall shell independent while cutting rails and
+    # bearings. The tapered plinth/cornice are fused only after those booleans,
+    # which avoids coplanar intersections in the lower rail band.
+    body = union([shell, *pilasters, front_plaque])
     body = difference(body, [cavity, *cuts])
-    for ornament in [*adds, *rivets]:
+    for index, ornament in enumerate(adds):
+        if not body.is_volume or not ornament.is_volume:
+            raise RuntimeError(
+                f"chest ornament {index} is invalid: "
+                f"body={body.is_volume}, ornament={ornament.is_volume}"
+            )
         body = union([body, ornament])
+        if not body.is_volume:
+            raise RuntimeError(f"chest ornament {index} broke the solid")
 
     # Decorative collar around the direct skull-drive shaft.
     collar = difference(
@@ -492,7 +555,10 @@ def build_chest() -> trimesh.Trimesh:
         (mechanism.DRIVE_AXIS[0], -56.0, mechanism.DRIVE_AXIS[2]),
         (0.0, 1.0, 0.0),
     )
-    body = union([body, collar, bearing])
+    for index, feature in enumerate((collar, bearing)):
+        body = union([body, feature])
+        if not body.is_volume:
+            raise RuntimeError(f"front bearing feature {index} broke the solid")
 
     # Function cuts: slider rails and the skull-knob/pinion bearing.
     service = [
@@ -508,13 +574,10 @@ def build_chest() -> trimesh.Trimesh:
     ]
     body = difference(body, service)
 
-    # The specified 3 mm rail depth equals the nominal wall thickness. Keep
-    # the full internal groove for the slider tongues, but close its exterior
-    # with a thin continuation of the lower plinth. The cover starts on the
-    # existing plinth, remains outside the tongue envelope, and prevents the
-    # mechanism from being visible through a horizontal wall opening.
+    # Close the full-depth internal rail grooves with a printable external
+    # skin, then add the support-free tapered plinth and cornice around it.
     rail_cover_t = 1.8
-    rail_cover_y = CHEST_W / 2.0 + rail_cover_t / 2.0 - 0.2
+    rail_cover_y = CHEST_W / 2.0 + rail_cover_t / 2.0 - 0.6
     rail_covers = [
         box(
             (CHEST_L, rail_cover_t, RAIL_W),
@@ -522,7 +585,26 @@ def build_chest() -> trimesh.Trimesh:
         )
         for sign in (-1.0, 1.0)
     ]
-    body = union([body, *rail_covers])
+    for cover in rail_covers:
+        if not body.is_volume or not cover.is_volume:
+            raise RuntimeError(
+                f"rail cover input invalid: body={body.is_volume}, "
+                f"cover={cover.is_volume}"
+            )
+        body = union([body, cover])
+    for skirt in (
+        _stepped_skirt(0.0, PLINTH_H, flip=False),
+        _stepped_skirt(BODY_H - CORNICE_H, CORNICE_H, flip=True),
+    ):
+        body = union([body, skirt])
+    for index, rivet in enumerate(rivets):
+        body = union([body, rivet])
+        if not body.is_volume:
+            raise RuntimeError(f"chest rivet {index} broke the solid")
+    # The decorative courses overlap the lower rail band and rear cornice.
+    # Re-open only those frozen functional envelopes after the partial rebuild;
+    # the outer rail cover begins at the nominal y=60 wall plane and remains.
+    body = difference(body, [service[0], service[1], service[3]])
 
     # Fixed scissor pivots. The scissor pivot sits at x = 0 so the compact platform stays inside
     # the chest over the whole stroke (see docs, kinematics table).
@@ -546,7 +628,17 @@ def build_chest() -> trimesh.Trimesh:
     # lid knuckles; 1 mm axial gaps stop elephant-foot swelling from binding.
     knuckles = []
     for x in (-66.0, 0.0, 66.0):
-        knuckles.append(box((28.0, 10.0, 10.0), (x, HINGE_Y, BODY_H + 2.0)))
+        knuckles.append(_extrude_yz_polygon(
+            [
+                (HINGE_Y - 5.0, BODY_H - 3.0),
+                (CHEST_W / 2.0, BODY_H - 3.0),
+                (HINGE_Y + 5.0, BODY_H + 3.0),
+                (HINGE_Y + 5.0, BODY_H + 7.0),
+                (HINGE_Y - 5.0, BODY_H + 7.0),
+            ],
+            28.0,
+            x,
+        ))
         knuckles.append(cylinder(5.0, 28.0, (x, HINGE_Y, HINGE_Z),
                                   (1.0, 0.0, 0.0)))
     body = union([body, *knuckles])

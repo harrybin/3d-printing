@@ -35,12 +35,14 @@ MATERIAL_PROJECTS = {
         "color": "#202124",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         # Economy shell: the 3 mm source walls still retain a durable
-        # 1.2 mm perimeter envelope, while lower infill and a 45-degree
-        # support threshold avoid filling broad, cosmetic overhangs.
+        # 1.2 mm perimeter envelope. Lower infill limits cosmetic mass; the
+        # rebuilt slopes and vertical lid orientation allow support to stay off.
         "wall_loops": "3", "infill": "10%", "speed": "standard",
-        "filament_type": "PLA", "support": "tree",
-        "support_threshold_angle": "45",
-        "support_critical_regions_only": True,
+        "filament_type": "PLA", "support": "none",
+        "manual_gap": 20.0,
+        "object_overrides": True,
+        "plate_row_pitch": 250.0,
+        "plate_x_pitch": 300.0,
     },
     "bone-pla": {
         "match": "Knochen - beiges PLA",
@@ -73,8 +75,14 @@ MATERIAL_PROJECTS = {
 }
 
 OBJECT_OVERRIDES = {
-    "chest": {"wall_loops": "4", "sparse_infill_density": "20%"},
-    "lid": {"wall_loops": "4", "sparse_infill_density": "20%"},
+    "chest": {
+        "wall_loops": "3", "sparse_infill_density": "10%",
+        "enable_support": "0",
+    },
+    "lid": {
+        "wall_loops": "3", "sparse_infill_density": "10%",
+        "enable_support": "0",
+    },
     "scissor-arm": {
         "wall_loops": "5", "sparse_infill_density": "100%",
         "enable_support": "0",
@@ -261,8 +269,6 @@ def _patch_project_settings(path: Path, spec: dict) -> dict:
 def _assign_row_plates(path: Path, spec: dict) -> None:
     """Convert vertically staged rows into explicit Orca multi-plate metadata."""
     row_pitch = spec.get("plate_row_pitch")
-    if row_pitch is None:
-        return
     x_pitch = spec.get("plate_x_pitch", 300.0)
     core = "http://schemas.microsoft.com/3dmanufacturing/core/2015/02"
     production = "http://schemas.microsoft.com/3dmanufacturing/production/2015/06"
@@ -286,10 +292,14 @@ def _assign_row_plates(path: Path, spec: dict) -> None:
         values = [float(value) for value in item.get("transform", "").split()]
         if object_id is None or len(values) != 12:
             raise RuntimeError(f"{path.name}: invalid build transform")
-        plate_index = max(0, int(values[10] // row_pitch))
-        values[9] += plate_index * x_pitch
-        values[10] -= plate_index * row_pitch
-        item.set("transform", " ".join(f"{value:.9g}" for value in values))
+        plate_index = (
+            max(0, int(values[10] // row_pitch))
+            if row_pitch is not None else 0
+        )
+        if row_pitch is not None:
+            values[9] += plate_index * x_pitch
+            values[10] -= plate_index * row_pitch
+            item.set("transform", " ".join(f"{value:.9g}" for value in values))
         plate_objects.setdefault(plate_index, []).append(object_id)
         adjusted_positions[object_id] = (values[9], values[10])
     entries[model_key] = ET.tostring(
@@ -367,9 +377,12 @@ def _write_project_metadata(path: Path, spec: dict, checks: dict) -> None:
         "bedType": checks["bed"],
         "wallLoops": spec["wall_loops"],
         "infillDensity": spec["infill"],
-        "supportPolicy": spec.get("support", "none"),
+        "supportPolicy": spec.get(
+            "metadata_support_policy", spec.get("support", "none")),
         "supportCriticalRegionsOnly": str(
-            bool(spec.get("support_critical_regions_only"))).lower(),
+            bool(spec.get(
+                "metadata_support_critical",
+                spec.get("support_critical_regions_only")))).lower(),
         "supportThresholdAngleDeg": spec.get("support_threshold_angle", "unknown"),
         "plateCount": str(checks["plates"]),
     }
@@ -379,9 +392,14 @@ def _write_project_metadata(path: Path, spec: dict, checks: dict) -> None:
     entries[METADATA_ENTRY] = ET.tostring(
         root, encoding="utf-8", xml_declaration=True)
     with ZipFile(path, "w") as archive:
+        written = set()
         for info in infos:
+            if info.filename in written:
+                continue
             archive.writestr(info, entries[info.filename])
-        archive.writestr(METADATA_ENTRY, entries[METADATA_ENTRY])
+            written.add(info.filename)
+        if METADATA_ENTRY not in written:
+            archive.writestr(METADATA_ENTRY, entries[METADATA_ENTRY])
 
 
 def _verify_project(path: Path, expected_objects: int) -> dict:
@@ -423,12 +441,11 @@ def _verify_project(path: Path, expected_objects: int) -> dict:
             f"{path.name}: wrong filament color: {checks['color']}")
     if len(objects) != expected_objects or not plates:
         raise RuntimeError(f"{path.name}: object/plate count mismatch {checks}")
-    if len(plates) > 1:
-        expected_ids = sorted(obj.get("id") for obj in objects)
-        if (sorted(assigned_object_ids) != expected_ids
-                or len(assigned_object_ids) != len(set(assigned_object_ids))):
-            raise RuntimeError(
-                f"{path.name}: incomplete or duplicate plate assignments")
+    expected_ids = sorted(obj.get("id") for obj in objects)
+    if (sorted(assigned_object_ids) != expected_ids
+            or len(assigned_object_ids) != len(set(assigned_object_ids))):
+        raise RuntimeError(
+            f"{path.name}: incomplete or duplicate plate assignments")
     return checks
 
 

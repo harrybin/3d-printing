@@ -116,7 +116,7 @@ erhalten, weil sie die einzelnen Knochen druckbar verbinden.
 - `models/ghouls-grip-master.3mf` – ausgefahrene Montageansicht.
 - `models/ghouls-grip-master-retracted.3mf` – geschlossene Einbaukontrolle.
 - `models/ghouls-grip-preview.stl` – Canvas-Vorschau.
-- `models/ghouls-grip-print-black-pla.3mf` – Schatulle und Deckel, zwei Platten.
+- `models/ghouls-grip-print-black-pla.3mf` – Schatulle stehend und Deckel hochkant, gemeinsam auf einer stützfreien Platte.
 - `models/ghouls-grip-print-bone-pla.3mf` – Unterarm, Hand und Finger, eine Platte.
 - `models/ghouls-grip-print-mechanism-pla.3mf` – starre Mechanik, zwei Platten.
 - `models/ghouls-grip-print-accent-pla.3mf` – Totenkopf-Drehknopf, eine Platte.

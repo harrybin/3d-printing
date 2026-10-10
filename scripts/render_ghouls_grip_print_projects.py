@@ -19,8 +19,7 @@ PROJECTS = {
     "black": (
         MODELS / "ghouls-grip-print-black-pla.3mf",
         "#202124",
-        ("ghouls-grip-slice-black-plate-1.png",
-         "ghouls-grip-slice-black-plate-2.png"),
+        ("ghouls-grip-slice-black-plate-1.png",),
     ),
     "bone": (
         MODELS / "ghouls-grip-print-bone-pla.3mf",
@@ -54,12 +53,13 @@ def _plate_meshes(path: Path) -> dict[int, list[trimesh.Trimesh]]:
 
 def _render_plate(meshes: list[trimesh.Trimesh], color: str,
                   output: Path) -> None:
+    is_black = color.upper() == "#202124"
     bed = vedo.Box(
         pos=(BED / 2.0, BED / 2.0, -0.6),
         length=BED,
         width=BED,
         height=1.0,
-    ).color("#343840").alpha(1.0)
+    ).color("#555b66" if is_black else "#343840").alpha(1.0)
     actors = [bed]
     actors.extend(
         vedo.Mesh(mesh).color(color).lighting("plastic")
@@ -68,14 +68,14 @@ def _render_plate(meshes: list[trimesh.Trimesh], color: str,
     plotter = vedo.Plotter(
         offscreen=True,
         size=(900, 900),
-        bg="#17191f",
+        bg="#aeb3bc" if is_black else "#17191f",
     )
     plotter.show(
         *actors,
         axes=0,
         camera={
-            "pos": (BED / 2.0, -190.0, 330.0),
-            "focal_point": (BED / 2.0, BED / 2.0, 12.0),
+            "pos": (BED / 2.0, -310.0, 400.0),
+            "focal_point": (BED / 2.0, BED / 2.0, 45.0),
             "viewup": (0.0, 0.0, 1.0),
         },
     )

@@ -276,10 +276,21 @@ def expand_print_parts(parts: dict) -> dict:
     """Expand repeated hardware so print projects contain the full BOM."""
     expanded = {}
     for name, mesh in parts.items():
+        printable = mesh.copy()
+        if name == "lid":
+            # The assembled datum leaves the broad inner roof horizontal and
+            # previously consumed almost as much tree support as model
+            # material.  Stand the lid on its straight front edge instead:
+            # the hinge axis and main loads stay in XY layers, while the large
+            # roof becomes vertical and no longer needs a support forest.
+            printable.apply_transform(trimesh.transformations.rotation_matrix(
+                np.pi / 2.0, (1.0, 0.0, 0.0)))
+            printable.apply_translation(
+                [0.0, 0.0, -printable.bounds[0, 2]])
         quantity = PRINT_QUANTITIES.get(name, 1)
         for index in range(quantity):
             instance = name if quantity == 1 else f"{name}-{index + 1:02d}"
-            expanded[instance] = mesh.copy()
+            expanded[instance] = printable.copy()
     return expanded
 
 
