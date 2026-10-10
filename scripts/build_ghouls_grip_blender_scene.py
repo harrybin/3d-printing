@@ -28,7 +28,6 @@ NS = {"m": CORE}
 ORGANIC_PREFIXES = (
     "forearm",
     "hand-palm",
-    "hand-tendon-guide",
     "hand-finger",
     "trigger",
 )

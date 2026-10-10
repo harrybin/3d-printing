@@ -11,13 +11,13 @@ from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 MODELS = ROOT / "models"
-SLICES = ROOT / "build" / "ghoul-slices"
+SLICES = ROOT / "build" / "ghoul-final-slices"
 METADATA_ENTRY = "Metadata/ghouls_grip_print_metadata.xml"
 PROJECTS = {
-    "black-pla": "black",
-    "bone-pla": "bone",
-    "mechanism-pla": "mechanism",
-    "accent-pla": "accent",
+    "black-pla": ("black-p1", "black-p2"),
+    "bone-pla": ("bone-p1",),
+    "mechanism-pla": ("mechanism-p1", "mechanism-p2"),
+    "accent-pla": ("accent-p1",),
 }
 
 
@@ -84,8 +84,12 @@ def _patch(project: Path, values: dict[str, str]) -> None:
 
 
 def main() -> None:
-    for slug, directory in PROJECTS.items():
-        paths = sorted((SLICES / directory).glob("plate_*.gcode"))
+    for slug, directories in PROJECTS.items():
+        paths = [
+            path
+            for directory in directories
+            for path in sorted((SLICES / directory).glob("plate_*.gcode"))
+        ]
         if not paths:
             raise RuntimeError(f"No G-code found for {slug}")
         values = _stats(paths)

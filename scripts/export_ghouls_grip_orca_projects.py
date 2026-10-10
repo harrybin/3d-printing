@@ -81,7 +81,7 @@ OBJECT_OVERRIDES = {
     },
     "slider": {
         "wall_loops": "5", "sparse_infill_density": "40%",
-        "enable_support": "0",
+        "enable_support": "1",
     },
     "platform": {
         "wall_loops": "5", "sparse_infill_density": "40%",
@@ -93,11 +93,11 @@ OBJECT_OVERRIDES = {
     },
     "lid-rack": {
         "wall_loops": "5", "sparse_infill_density": "50%",
-        "enable_support": "0",
+        "enable_support": "1",
     },
     "lid-follower-rack": {
         "wall_loops": "5", "sparse_infill_density": "50%",
-        "enable_support": "0",
+        "enable_support": "1",
     },
     "lid-crank": {
         "wall_loops": "5", "sparse_infill_density": "100%",
@@ -111,6 +111,10 @@ OBJECT_OVERRIDES = {
         "wall_loops": "5", "sparse_infill_density": "50%",
         "enable_support": "0",
     },
+    "forearm-output-gear": {
+        "wall_loops": "6", "sparse_infill_density": "100%",
+        "enable_support": "1",
+    },
     "pivot-pin-3": {
         "wall_loops": "6", "sparse_infill_density": "100%",
         "enable_support": "0",
@@ -121,7 +125,6 @@ OBJECT_OVERRIDES = {
     },
     "forearm": {"wall_loops": "4", "sparse_infill_density": "25%"},
     "hand-palm": {"wall_loops": "4", "sparse_infill_density": "25%"},
-    "hand-tendon-guide": {"wall_loops": "4", "sparse_infill_density": "25%"},
     "drive-skull-knob": {
         "wall_loops": "5", "sparse_infill_density": "40%",
         "enable_support": "0",

@@ -90,7 +90,15 @@ def _lancet(width: float, height: float, depth: float,
         arch.apply_transform(trimesh.transformations.rotation_matrix(
             np.pi / 2.0, [0.0, 0.0, 1.0]))
     arch.apply_translation(np.asarray(centre, dtype=float))
-    return [arch]
+    inlay_centre = np.asarray(centre, dtype=float).copy()
+    axis = 0 if normal_x else 1
+    inlay_centre[axis] -= np.sign(inlay_centre[axis]) * 0.35
+    if normal_x:
+        return [arch]
+    return [union([
+        arch,
+        _lancet_inlay(width, height, depth, inlay_centre, normal_x),
+    ])]
 
 
 def _frame(size, centre, normal_x: bool, proud: float,
@@ -123,30 +131,137 @@ def _leaf(length: float, width: float, depth: float,
     return clean(leaf)
 
 
-def _scroll_pair(depth: float) -> trimesh.Trimesh:
-    """Symmetrical acanthus curls in the local XY plane, extruded in Z."""
-    parts = []
-    for side in (-1.0, 1.0):
-        group = [
-            arc_band(19.0, 3.2, depth, np.deg2rad(-105),
-                     np.deg2rad(145), (38.0, 0.0, 0.0)),
-            arc_band(10.5, 2.6, depth, np.deg2rad(35),
-                     np.deg2rad(305), (34.0, 3.0, 0.0)),
-            _leaf(17.0, 7.0, depth, (17.0, 7.0, 0.0),
-                  np.deg2rad(22.0)),
-            _leaf(14.0, 6.0, depth, (52.0, -12.0, 0.0),
-                  np.deg2rad(-35.0)),
-            _leaf(11.0, 5.0, depth, (61.0, 10.0, 0.0),
-                  np.deg2rad(58.0)),
-        ]
-        if side < 0:
-            for part in group:
-                part.apply_scale([-1.0, 1.0, 1.0])
-        parts.extend(group)
-    parts.append(_leaf(18.0, 8.0, depth, (0.0, 15.0, 0.0), np.pi / 2.0))
+def _rounded_stroke(points, radius: float, depth: float) -> trimesh.Trimesh:
+    """Flat-backed vine or rib with a rounded printable outline."""
+    points = [np.asarray(point, dtype=float) for point in points]
+    parts = [
+        cylinder(radius, depth, (point[0], point[1], 0.0))
+        for point in points
+    ]
+    for start, end in zip(points[:-1], points[1:]):
+        vector = end - start
+        length = float(np.linalg.norm(vector))
+        angle = float(np.arctan2(vector[1], vector[0]))
+        midpoint = (start + end) / 2.0
+        parts.append(box(
+            (length, 2.0 * radius, depth),
+            (midpoint[0], midpoint[1], 0.0),
+            (angle, (0.0, 0.0, 1.0)),
+        ))
     return union(parts)
 
-def _front_scrollwork(z: float) -> trimesh.Trimesh:
+
+def _bezier_points(p0, p1, p2, p3, count: int = 8):
+    """Sample a cubic curve for smooth, reproducible relief vines."""
+    control = [np.asarray(point, dtype=float) for point in (p0, p1, p2, p3)]
+    points = []
+    for t in np.linspace(0.0, 1.0, count):
+        u = 1.0 - t
+        points.append(
+            u ** 3 * control[0]
+            + 3.0 * u ** 2 * t * control[1]
+            + 3.0 * u * t ** 2 * control[2]
+            + t ** 3 * control[3]
+        )
+    return points
+
+
+def _quatrefoil(radius: float, depth: float, centre) -> trimesh.Trimesh:
+    """Four rounded leaves around a small central boss."""
+    cx, cy, cz = centre
+    petals = [
+        _leaf(radius * 1.65, radius * 0.82, depth,
+              (cx + np.cos(angle) * radius * 0.72,
+               cy + np.sin(angle) * radius * 0.72, cz), angle)
+        for angle in (0.0, np.pi / 2.0, np.pi, 3.0 * np.pi / 2.0)
+    ]
+    petals.append(cylinder(radius * 0.34, depth, centre))
+    return union(petals)
+
+
+def _fleuron(depth: float, centre=(0.0, 0.0, 0.0),
+             scale: float = 1.0) -> trimesh.Trimesh:
+    """Pointed leaf crown used as a Gothic finial."""
+    cx, cy, cz = centre
+    parts = [
+        _leaf(18.0 * scale, 6.8 * scale, depth,
+              (cx, cy + 5.0 * scale, cz), np.pi / 2.0),
+        _leaf(14.0 * scale, 5.8 * scale, depth,
+              (cx - 5.5 * scale, cy, cz), np.deg2rad(132.0)),
+        _leaf(14.0 * scale, 5.8 * scale, depth,
+              (cx + 5.5 * scale, cy, cz), np.deg2rad(48.0)),
+        _rounded_stroke(
+            [(cx, cy - 8.0 * scale), (cx, cy + 4.0 * scale)],
+            1.4 * scale, depth,
+        ),
+    ]
+    return union(parts)
+
+
+def _place_planar_relief(mesh: trimesh.Trimesh, centre,
+                         normal_x: bool) -> trimesh.Trimesh:
+    """Map local XY ornament coordinates onto a chest wall."""
+    result = mesh.copy()
+    result.apply_translation([0.0, 0.0, -result.extents[2] / 2.0])
+    result.apply_transform(trimesh.transformations.rotation_matrix(
+        np.pi / 2.0, [1.0, 0.0, 0.0]))
+    if normal_x:
+        result.apply_transform(trimesh.transformations.rotation_matrix(
+            np.pi / 2.0, [0.0, 0.0, 1.0]))
+    result.apply_translation(np.asarray(centre, dtype=float))
+    return clean(result)
+
+
+def _scroll_pair(depth: float) -> trimesh.Trimesh:
+    """Layered thorn-and-acanthus curls in the local XY plane."""
+    parts = []
+    for side in (-1.0, 1.0):
+        def mirror(points):
+            return [(side * x, y) for x, y in points]
+
+        lower_vine = _bezier_points(
+            (24.0, -12.0), (37.0, -24.0),
+            (63.0, -18.0), (57.0, 8.0),
+        )
+        upper_vine = _bezier_points(
+            (26.0, -8.0), (30.0, 10.0),
+            (51.0, 7.0), (50.0, 28.0),
+        )
+        curl = [
+            *_bezier_points(
+                (34.0, 5.0), (49.0, 13.0),
+                (45.0, 31.0), (31.0, 23.0),
+                8,
+            ),
+            *_bezier_points(
+                (31.0, 23.0), (27.0, 20.0),
+                (28.0, 16.0), (33.0, 15.0),
+                5,
+            )[1:],
+        ]
+        parts.extend([
+            _rounded_stroke(mirror(lower_vine), 2.3, depth),
+            _rounded_stroke(mirror(upper_vine), 2.0, depth),
+            _rounded_stroke(mirror(curl), 1.65, depth),
+            _leaf(17.0, 7.0, depth, (side * 18.0, 4.0, 0.0),
+                  np.deg2rad(25.0 if side > 0 else 155.0)),
+            _leaf(15.0, 6.2, depth, (side * 47.0, -16.0, 0.0),
+                  np.deg2rad(-28.0 if side > 0 else 208.0)),
+            _leaf(13.0, 5.4, depth, (side * 57.0, 14.0, 0.0),
+                  np.deg2rad(58.0 if side > 0 else 122.0)),
+            _leaf(10.0, 4.2, depth, (side * 40.0, 22.0, 0.0),
+                  np.deg2rad(128.0 if side > 0 else 52.0)),
+            _leaf(8.5, 3.6, depth, (side * 59.0, 1.0, 0.0),
+                  np.deg2rad(18.0 if side > 0 else 162.0)),
+        ])
+    parts.extend([
+        _fleuron(depth, (0.0, 22.0, 0.0), 0.9),
+        _quatrefoil(4.8, depth, (0.0, -15.0, 0.0)),
+    ])
+    return union(parts)
+
+
+def _front_scrollwork(z: float) -> list[trimesh.Trimesh]:
     depth = RELIEF + 1.5
     motif = _scroll_pair(depth)
     # Local Y becomes world Z and local Z becomes -world Y.
@@ -155,6 +270,69 @@ def _front_scrollwork(z: float) -> trimesh.Trimesh:
     motif.apply_translation([0.0,
                              -CHEST_W / 2.0 - (RELIEF - 1.5) / 2.0,
                              z])
+    # A shallow plaque gives every thorn and leaf a robust common root instead
+    # of relying on coincident contacts between many small relief islands.
+    backing = box(
+        (142.0, 3.0, 56.0),
+        (0.0, -CHEST_W / 2.0 + 0.2, 46.0),
+    )
+    return [union([backing, motif])]
+
+
+def _lancet_inlay(width: float, height: float, depth: float,
+                   centre, normal_x: bool) -> trimesh.Trimesh:
+    """Trefoil, dagger and thorn details nested inside a lancet bay."""
+    local = [
+        _rounded_stroke(
+            [(0.0, 7.0), (0.0, height * 0.48)],
+            1.45, depth,
+        ),
+        _quatrefoil(min(4.3, width * 0.14), depth,
+                    (0.0, height * 0.61, 0.0)),
+        _fleuron(depth, (0.0, height * 0.78, 0.0),
+                 min(0.55, width / 58.0)),
+    ]
+    for side in (-1.0, 1.0):
+        local.extend([
+            _rounded_stroke([
+                (0.0, height * 0.33),
+                (side * width * 0.18, height * 0.42),
+                (side * width * 0.27, height * 0.53),
+            ], 1.15, depth),
+            _leaf(width * 0.22, min(4.2, width * 0.13), depth,
+                  (side * width * 0.24, height * 0.48, 0.0),
+                  np.deg2rad(58.0 if side > 0 else 122.0)),
+        ])
+    return _place_planar_relief(union(local), centre, normal_x)
+
+
+def _lid_bat_wings(depth: float, z: float) -> trimesh.Trimesh:
+    """Open ribbed bat wings framing the lid skull cartouche."""
+    parts = []
+    for side in (-1.0, 1.0):
+        def mirror(points):
+            return [(side * x, y) for x, y in points]
+
+        shoulder = (side * 25.0, -2.0)
+        outline = mirror([
+            (25.0, -2.0), (43.0, 18.0), (78.0, 24.0),
+            (67.0, 8.0), (85.0, -2.0), (64.0, -7.0),
+            (75.0, -24.0), (42.0, -17.0),
+        ])
+        parts.append(_rounded_stroke(outline, 2.0, depth))
+        for target in mirror([
+            (78.0, 24.0), (67.0, 8.0), (85.0, -2.0),
+            (64.0, -7.0), (75.0, -24.0),
+        ]):
+            parts.append(_rounded_stroke([shoulder, target], 1.35, depth))
+        parts.extend([
+            _leaf(12.0, 4.4, depth, (side * 79.0, 23.0, 0.0),
+                  np.deg2rad(20.0 if side > 0 else 160.0)),
+            _leaf(11.0, 4.2, depth, (side * 76.0, -23.0, 0.0),
+                  np.deg2rad(-20.0 if side > 0 else 200.0)),
+        ])
+    motif = union(parts)
+    motif.apply_translation([0.0, 0.0, z])
     return clean(motif)
 
 
@@ -249,8 +427,8 @@ def build_chest() -> trimesh.Trimesh:
                                      (cx, cy, z)))
 
     cuts, adds = _wall_lightening_pockets(), []
-    for normal_x, sign, length, count, skip in ((False, -1.0, CHEST_L, 3, True),
-                                                (False, 1.0, CHEST_L, 3, False),
+    front_plaque = _front_scrollwork(40.0)[0]
+    for normal_x, sign, length, count, skip in ((False, 1.0, CHEST_L, 3, False),
                                                 (True, -1.0, CHEST_W, 2, False),
                                                 (True, 1.0, CHEST_W, 2, False)):
         c, a = _wall_decoration(length, sign, sign, normal_x, count, skip)
@@ -260,8 +438,6 @@ def build_chest() -> trimesh.Trimesh:
     # The concept art is dominated by raised acanthus scrolls.  Lancet arches
     # alone read as plain architecture, so a deep paired curl frames the skull
     # trigger on the front while preserving the 3 mm structural wall.
-    adds.append(_front_scrollwork(48.0))
-
     rivets = []
     for sign in (-1.0, 1.0):
         for x in np.arange(-CHEST_L / 2.0 + 16.0, CHEST_L / 2.0 - 10.0, 24.0):
@@ -272,9 +448,11 @@ def build_chest() -> trimesh.Trimesh:
     body = union([shell,
                   _stepped_skirt(0.0, PLINTH_H, flip=False),
                   _stepped_skirt(BODY_H - CORNICE_H, CORNICE_H, flip=True),
-                  *pilasters])
+                  *pilasters,
+                  front_plaque])
     body = difference(body, [cavity, *cuts])
-    body = union([body, *adds, *rivets])
+    for ornament in [*adds, *rivets]:
+        body = union([body, ornament])
 
     # Decorative collar around the direct skull-drive shaft.
     collar = difference(
@@ -417,20 +595,34 @@ def build_lid() -> trimesh.Trimesh:
             beads.append(sphere(5.0, (sx * (CHEST_L / 2.0 - 11.0),
                                       sy * (CHEST_W / 2.0 - 11.0),
                                       LID_H - 1.5), subdivisions=3))
-    # Raised bands flanking the cartouche.
-    wings = [box((10.0, CHEST_W - 46.0, RELIEF + 1.5),
-                 (sx * 62.0, 0.0, floor_z + (RELIEF - 1.5) / 2.0))
-             for sx in (-1.0, 1.0)]
-    wings += [box((6.0, CHEST_W - 46.0, RELIEF + 1.5),
-                  (sx * 74.0, 0.0, floor_z + (RELIEF - 1.5) / 2.0))
-              for sx in (-1.0, 1.0)]
+    bat_wings = _lid_bat_wings(
+        RELIEF + 1.5,
+        floor_z + (RELIEF - 1.5) / 2.0,
+    )
+    corner_foils = []
+    for sx in (-1.0, 1.0):
+        for sy in (-1.0, 1.0):
+            corner_foils.append(_quatrefoil(
+                4.3,
+                RELIEF + 1.5,
+                (
+                    sx * (CHEST_L / 2.0 - 22.0),
+                    sy * (CHEST_W / 2.0 - 22.0),
+                    floor_z + (RELIEF - 1.5) / 2.0,
+                ),
+            ))
 
-    lid_scrolls = _scroll_pair(RELIEF + 1.5)
-    lid_scrolls.apply_scale([0.92, 0.72, 1.0])
-    lid_scrolls.apply_translation([0.0, -8.0,
-                                   floor_z + (RELIEF - 1.5) / 2.0])
-
-    body = union([body, cartouche, bead, lid_scrolls, *beads, *wings])
+    lid_ornaments = [
+        cartouche,
+        bead,
+        *bat_wings.split(only_watertight=False),
+        *beads,
+        *corner_foils,
+    ]
+    for index, ornament in enumerate(lid_ornaments):
+        body = union([body, ornament])
+        if not body.is_volume:
+            raise RuntimeError(f"lid ornament {index} produced an invalid solid")
 
     # The decorative rear frame stops at the hinge axis. Material extending
     # behind that axis would dip into the chest rim during the first degrees

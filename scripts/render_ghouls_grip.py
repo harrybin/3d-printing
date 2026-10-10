@@ -167,36 +167,31 @@ def build_scene_at(theta: float):
     hinge = plat_origin + np.array([ARM_HINGE_X, 0.0, ARM_HINGE_Z])
     tilt = mechanism.forearm_angle(theta)
 
-    gear_start = np.array([
-        FLOOR_PIVOT[0], mechanism.FOREARM_GEAR_Y, FLOOR_PIVOT[1] + lift
-    ])
-    gear_end = hinge + np.array([0.0, mechanism.FOREARM_GEAR_Y, 0.0])
-    gear_vector = gear_end - gear_start
-    gear_distance = float(np.linalg.norm(gear_vector[[0, 2]]))
-    gear_unit = gear_vector / gear_distance
-    idler_centres = [
-        gear_start + gear_unit * (
-            mechanism.FOREARM_INPUT_R + mechanism.FOREARM_IDLER_R
-        ),
-        gear_end - gear_unit * (
-            mechanism.FOREARM_GEAR_R + mechanism.FOREARM_IDLER_R
-        ),
-    ]
+    gear_start_local, idler_local, gear_end_local = (
+        mechanism.forearm_gear_centres()
+    )
+    gear_start = plat_origin + gear_start_local
+    idler_centres = [plat_origin + centre for centre in idler_local]
+    gear_end = plat_origin + gear_end_local
 
     input_gear = mechanism.build_scissor_drive_gear()
     input_gear.apply_transform(rot(-theta, [0, 0, 1]))
     input_gear.apply_transform(rot(90.0, [1, 0, 0]))
-    input_gear.apply_translation(gear_start)
+    input_gear.apply_translation(gear_start + np.array([0.0, 3.0, 0.0]))
     items.append(("scissor-drive-gear", input_gear, MECHANISM_COLOR))
 
-    for index, centre in enumerate(idler_centres):
+    for index, (centre, angle) in enumerate(zip(
+            idler_centres, mechanism.forearm_idler_angles(theta))):
         idler = mechanism.build_idler_gear()
-        idler.apply_transform(rot(
-            ((-1.0) ** index) * theta, [0, 0, 1]
-        ))
+        idler.apply_transform(rot(angle, [0, 0, 1]))
         idler.apply_transform(rot(90.0, [1, 0, 0]))
-        idler.apply_translation(centre)
+        idler.apply_translation(centre + np.array([0.0, 3.0, 0.0]))
         items.append((f"idler-gear-{index}", idler, MECHANISM_COLOR))
+
+    output_gear = mechanism.build_forearm_output_gear()
+    output_gear.apply_transform(rot(tilt, [0, 1, 0]))
+    output_gear.apply_translation(hinge)
+    items.append(("forearm-output-gear", output_gear, MECHANISM_COLOR))
 
     forearm = mechanism.build_forearm()
     forearm.apply_translation([0.0, 0.0, -4.0])

@@ -30,22 +30,10 @@ def volume_intersection(a: trimesh.Trimesh, b: trimesh.Trimesh) -> float:
 
 
 def gear_centres(theta: float) -> list[np.ndarray]:
-    lift = mechanism.ARM_L * np.sin(np.deg2rad(theta))
-    start = np.array([
-        mechanism.FLOOR_PIVOT_X,
-        mechanism.FOREARM_GEAR_Y,
-        mechanism.RAIL_Z + lift,
-    ])
-    end = mechanism.forearm_hinge(theta) + np.array([
-        0.0, mechanism.FOREARM_GEAR_Y, 0.0
-    ])
-    vector = end - start
-    distance = float(np.linalg.norm(vector[[0, 2]]))
-    unit = vector / distance
-    input_offset = mechanism.FOREARM_INPUT_R + mechanism.FOREARM_IDLER_R
-    output_offset = mechanism.FOREARM_GEAR_R + mechanism.FOREARM_IDLER_R
-    return [start, start + unit * input_offset,
-            end - unit * output_offset, end]
+    start, idlers, end = mechanism.forearm_gear_centres()
+    origin = mechanism.platform_origin(theta)
+    return [origin + start, *(origin + centre for centre in idlers),
+            origin + end]
 
 
 def lid_link_pin(theta: float) -> np.ndarray:
@@ -128,6 +116,7 @@ def check() -> dict:
     expected = [
         mechanism.FOREARM_INPUT_R + mechanism.FOREARM_IDLER_R,
         2.0 * mechanism.FOREARM_IDLER_R,
+        2.0 * mechanism.FOREARM_IDLER_R,
         mechanism.FOREARM_IDLER_R + mechanism.FOREARM_GEAR_R,
     ]
     max_gear_mesh_error = max(
@@ -178,6 +167,44 @@ def check() -> dict:
     if mechanism.drive_angle(mechanism.THETA_MAX) > 130.0:
         failures.append("Totenkopf-Drehweg überschreitet 130 Grad")
 
+    platform_local = mechanism.build_platform()
+    forearm_local = mechanism.build_forearm()
+    forearm_local.apply_translation([0.0, 0.0, -4.0])
+    hinge_local = np.array([
+        mechanism.ARM_HINGE_X, 0.0, mechanism.ARM_HINGE_Z
+    ])
+    forearm_insertion_overlap = 0.0
+    for dz in np.linspace(80.0, 0.0, 17):
+        candidate = forearm_local.copy()
+        candidate.apply_translation(hinge_local + [0.0, 0.0, dz])
+        forearm_insertion_overlap = max(
+            forearm_insertion_overlap,
+            volume_intersection(candidate, platform_local),
+        )
+    if forearm_insertion_overlap > 0.05:
+        failures.append(
+            "Unterarm kann nicht von oben zwischen die Lagerohren eingesetzt "
+            f"werden: {forearm_insertion_overlap:.3f} mm3"
+        )
+
+    installed_forearm = forearm_local.copy()
+    installed_forearm.apply_translation(hinge_local)
+    output_gear_local = mechanism.build_forearm_output_gear()
+    output_shaft_insertion_overlap = 0.0
+    for dy in np.linspace(70.0, 0.0, 15):
+        candidate = output_gear_local.copy()
+        candidate.apply_translation(hinge_local + [0.0, dy, 0.0])
+        output_shaft_insertion_overlap = max(
+            output_shaft_insertion_overlap,
+            volume_intersection(candidate, platform_local),
+            volume_intersection(candidate, installed_forearm),
+        )
+    if output_shaft_insertion_overlap > 0.05:
+        failures.append(
+            "Ausgangszahnrad-D-Welle kann nicht axial montiert werden: "
+            f"{output_shaft_insertion_overlap:.3f} mm3"
+        )
+
     part_builders = {
         **mechanism.PARTS,
         "chest": assembly.build_chest,
@@ -196,6 +223,17 @@ def check() -> dict:
         "hand_lid": 0.0,
         "hand_platform": 0.0,
         "hand_scissor": 0.0,
+        "forearm_platform": 0.0,
+        "input_gear_platform": 0.0,
+        "idler_gear_0_platform": 0.0,
+        "idler_gear_1_platform": 0.0,
+        "idler_gear_2_platform": 0.0,
+        "output_gear_platform": 0.0,
+        "output_gear_forearm": 0.0,
+        "gear_mesh_0_1": 0.0,
+        "gear_mesh_1_2": 0.0,
+        "gear_mesh_2_3": 0.0,
+        "gear_mesh_3_4": 0.0,
         "slider_chest": 0.0,
         "lid_chest": 0.0,
         "lid_rack_lid": 0.0,
@@ -217,6 +255,13 @@ def check() -> dict:
         arms = trimesh.util.concatenate([
             mesh for name, mesh in named.items() if name.startswith("arm-")
         ])
+        gears = [
+            named["scissor-drive-gear"],
+            named["idler-gear-0"],
+            named["idler-gear-1"],
+            named["idler-gear-2"],
+            named["forearm-output-gear"],
+        ]
         values = {
             "hand_chest": volume_intersection(hand, named["chest"]),
             "hand_lid": volume_intersection(hand, named["lid"]),
@@ -225,6 +270,33 @@ def check() -> dict:
                 for name in hand_names if name != "forearm"
             ),
             "hand_scissor": volume_intersection(hand, arms),
+            "forearm_platform": volume_intersection(
+                named["forearm"], named["platform"]
+            ),
+            "input_gear_platform": volume_intersection(
+                named["scissor-drive-gear"], named["platform"]
+            ),
+            "idler_gear_0_platform": volume_intersection(
+                named["idler-gear-0"], named["platform"]
+            ),
+            "idler_gear_1_platform": volume_intersection(
+                named["idler-gear-1"], named["platform"]
+            ),
+            "idler_gear_2_platform": volume_intersection(
+                named["idler-gear-2"], named["platform"]
+            ),
+            "output_gear_platform": volume_intersection(
+                named["forearm-output-gear"], named["platform"]
+            ),
+            "output_gear_forearm": volume_intersection(
+                named["forearm-output-gear"], named["forearm"]
+            ),
+            **{
+                f"gear_mesh_{index}_{index + 1}": volume_intersection(
+                    gears[index], gears[index + 1]
+                )
+                for index in range(len(gears) - 1)
+            },
             "slider_chest": volume_intersection(
                 named["slider"], named["chest"]
             ),
@@ -267,6 +339,8 @@ def check() -> dict:
         "gear_circular_pitches_mm": gear_pitches,
         "max_gear_pitch_error_mm": max_pitch_error,
         "idler_pin_clearance_mm": idler_pin_clearance,
+        "forearm_insertion_overlap_mm3": forearm_insertion_overlap,
+        "output_shaft_insertion_overlap_mm3": output_shaft_insertion_overlap,
         "knob_rotation_deg": mechanism.drive_angle(mechanism.THETA_MAX),
         "body_counts": body_counts,
         "max_sweep_collisions_mm3": collision_max,
@@ -286,8 +360,9 @@ def write_report(result: dict) -> None:
         "Geprüft wird die starre, manuell reversible Kraftkette: "
         "Drehbarer Totenkopf -> Antriebsritzel -> Schlittenzahnstange -> "
         "Doppelschere sowie Antriebsritzel -> Deckelzahnstange -> "
-        "gefangener Deckelkurbelzapfen. Ein mitfahrendes Vier-Zahnrad-Getriebe "
-        "überträgt die Scherenarmdrehung auf den Unterarm. Es gibt keine Seile, "
+        "gefangener Deckelkurbelzapfen. Ein mitfahrendes Fünf-Zahnrad-Getriebe "
+        "mit drei Zwischenrädern überträgt die Scherenarmdrehung auf den "
+        "Unterarm. Es gibt keine Seile, "
         "Gummibänder, Federn oder Wickelspulen.",
         "",
         "| Nachweis | Ergebnis |",
@@ -300,6 +375,8 @@ def write_report(result: dict) -> None:
         f"| Max. Zahnrad-Mittenfehler | {result['max_gear_mesh_error_mm']:.6f} mm |",
         f"| Max. Zahnrad-Teilungsfehler | {result['max_gear_pitch_error_mm']:.3f} mm |",
         f"| Zwischenrad-Pinspiel | {result['idler_pin_clearance_mm']:.3f} mm |",
+        f"| Unterarm-Einsetzsweep | {result['forearm_insertion_overlap_mm3']:.3f} mm³ |",
+        f"| D-Wellen-Einsetzsweep | {result['output_shaft_insertion_overlap_mm3']:.3f} mm³ |",
         f"| Totenkopf-Drehweg | {result['knob_rotation_deg']:.2f}° |",
         f"| Einzelkörper je Druckteil | {result['body_counts']} |",
         f"| Laufzeit | {result['duration_seconds']:.1f} s |",
@@ -320,6 +397,13 @@ def write_report(result: dict) -> None:
             f"{sample['lid_angle']:.1f}° | {sample['forearm_angle']:.1f}° |"
         )
     lines.extend([
+        "",
+        "Der knochenfarbene Unterarm wird ohne Zahnrad von oben zwischen die "
+        "beiden Lagerohren gesetzt. Anschließend wird das naturweiße "
+        "Ausgangszahnrad mit seiner D-Welle von der Zahnradseite axial durch "
+        "beide Rundlager und die passende D-Nabe des Unterarms geschoben. Ein "
+        "1,75-mm-Filamentstift im äußeren Querloch sichert die Welle gegen "
+        "Herausrutschen; erst danach werden die Zwischenräder aufgesteckt.",
         "",
         "Die Finger bleiben als druckbare, vorgekrümmte PLA-Flexuren in der "
         "kompakten Greifpose. Die neue starre Kraftkette betätigt Deckel, "

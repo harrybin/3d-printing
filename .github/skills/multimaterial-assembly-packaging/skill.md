@@ -68,6 +68,26 @@ joint controls an expensive print.
 
 Do not use glue as an undocumented substitute for missing alignment geometry.
 
+Material/color separation is not complete until the separated bodies can be
+physically assembled in the real mechanism. For every interface between print
+projects:
+
+- define an unobstructed insertion direction and a feasible assembly order;
+- keep fasteners, pins, keys, retaining clips and tool access reachable after the
+  surrounding parts are installed;
+- prove the insertion sweep against already-installed bodies, not only the final
+  static pose;
+- verify zero unintended intersection between the assembled bodies; gear contact,
+  coaxial bearings and press fits must be represented by explicit clearances rather
+  than overlapping solids;
+- split an integral cross-material shaft/gear into a keyed coupling when the
+  integral part cannot pass through its bearings or enclosure;
+- document which material project contains every half of the joint and how it is
+  retained against axial withdrawal.
+
+A render showing parts in the right final location is not assembly proof. Reject a
+design when a part can reach its final pose only by passing through another solid.
+
 ## Packaging checks
 
 - Names and transforms are stable across master and print files.
@@ -79,6 +99,9 @@ Do not use glue as an undocumented substitute for missing alignment geometry.
 - Material and color assignments match the documentation.
 - Every body passes mesh validation independently.
 - Mating pairs preserve their measured clearance after export.
+- Every cross-project joint has a collision-free insertion path, reachable
+  retention feature and documented assembly sequence.
+- The final assembly has no unintended material/material intersections.
 - A bill of parts maps master objects to print plates and optional STL files.
 
 ## OrcaSlicer handoff

@@ -2,7 +2,7 @@
 
 Status: **VERIFIED**
 
-Validiert: 2026-10-09
+Validiert: 2026-10-10
 
 OrcaSlicer: **2.4.2**
 
@@ -21,33 +21,36 @@ OrcaSlicer: **2.4.2**
 
 Alle sechs Platten wurden nacheinander mit der OrcaSlicer-CLI aus den gelieferten 3MF-Projekten gesliced. Es gibt keine Floating-region-, Out-of-bed-, Empty-layer- oder Invalid-toolpath-Warnung. Die gemessenen Gesamtwerte sind außerdem als `status=verified` in `Metadata/ghouls_grip_print_metadata.xml` der jeweiligen 3MF gespeichert.
 
+Orca meldet ausschließlich den nicht blockierenden Profilhinweis, dass
+`precise wall` bei der gespeicherten Wandreihenfolge ignoriert wird.
+
 ## Ergebnisse
 
 | Projekt / Platte | Inhalt | Schichten | Filament | Zeit | Vorschau |
 | --- | --- | ---: | ---: | ---: | --- |
-| Schwarz, Platte 1 | Schatulle | 490 | 281,73 g | 10 h 15 min 37 s | [PNG](images/ghouls-grip-slice-black-plate-1.png) |
-| Schwarz, Platte 2 | Deckel | 137 | 174,59 g | 8 h 47 min 16 s | [PNG](images/ghouls-grip-slice-black-plate-2.png) |
-| Knochenbeige | Unterarm, Handführung, Handfläche, fünf Finger | 284 | 65,65 g | 4 h 57 min 27 s | [PNG](images/ghouls-grip-slice-bone.png) |
-| Mechanik, Platte 1 | 4 Arme, Schlitten, Folgejoch, Hubjoch, Ritzel, Deckeltrieb, Scherenrad | 344 | 128,45 g | 6 h 12 min 57 s | [PNG](images/ghouls-grip-slice-mechanism-plate-1.png) |
-| Mechanik, Platte 2 | 2 Zwischenräder, 10 kleine und 4 große Pins | 170 | 9,76 g | 52 min 26 s | [PNG](images/ghouls-grip-slice-mechanism-plate-2.png) |
-| Grau | Direkter Totenkopf-Drehknopf | 135 | 22,02 g | 1 h 17 min 03 s | [PNG](images/ghouls-grip-slice-accent.png) |
-| **Gesamt** | **38 Druckobjekte** | – | **682,20 g** | **32 h 22 min 46 s** | – |
+| Schwarz, Platte 1 | Schatulle mit Dornenranken und Maßwerk | 490 | 282,33 g | 10 h 01 min 52 s | [PNG](images/ghouls-grip-slice-black-plate-1.png) |
+| Schwarz, Platte 2 | Deckel mit Totenkopfkartusche und Fledermausflügeln | 137 | 173,63 g | 8 h 48 min 08 s | [PNG](images/ghouls-grip-slice-black-plate-2.png) |
+| Knochenbeige | Unterarm, Handfläche, fünf Finger | 250 | 45,72 g | 3 h 27 min 40 s | [PNG](images/ghouls-grip-slice-bone.png) |
+| Mechanik, Platte 1 | 4 Arme, Schlitten, Folgejoch, Hubjoch, Ritzel, Deckeltrieb, Scherenrad | 455 | 130,12 g | 6 h 20 min 47 s | [PNG](images/ghouls-grip-slice-mechanism-plate-1.png) |
+| Mechanik, Platte 2 | 3 Zwischenräder, Ausgangszahnrad/D-Welle, 10 kleine und 4 große Pins | 215 | 13,56 g | 59 min 25 s | [PNG](images/ghouls-grip-slice-mechanism-plate-2.png) |
+| Grau | Anatomischer Totenkopf-Drehknopf | 135 | 23,14 g | 1 h 22 min 13 s | [PNG](images/ghouls-grip-slice-accent.png) |
+| **Gesamt** | **39 Druckobjekte** | – | **668,50 g** | **31 h 00 min 05 s** | – |
 
 Projektmetadaten:
 
 | Projekt | Zeit | Masse | Länge | Volumen | Platten |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Schwarz | 68.573 s | 456,32 g | 152.995,37 mm | 367.990 mm³ | 2 |
-| Knochenbeige | 17.847 s | 65,65 g | 22.012,91 mm | 52.950 mm³ | 1 |
-| Mechanik | 25.523 s | 138,21 g | 46.339,59 mm | 111.460 mm³ | 2 |
-| Grau | 4.623 s | 22,02 g | 7.381,35 mm | 17.750 mm³ | 1 |
+| Schwarz | 67.800 s | 455,96 g | 152.877,63 mm | 367.720 mm³ | 2 |
+| Knochenbeige | 12.460 s | 45,72 g | 15.329,80 mm | 36.870 mm³ | 1 |
+| Mechanik | 26.412 s | 143,68 g | 48.171,67 mm | 115.860 mm³ | 2 |
+| Grau | 4.933 s | 23,14 g | 7.759,25 mm | 18.660 mm³ | 1 |
 
-Das schwarze Projekt benötigt 456,32 g statt der ursprünglichen 629,66 g. Einsparung: **173,34 g / 27,5 %**. Die sichtbare Außenseite bleibt geschlossen; die Schlittenführung erzeugt keinen äußeren Schlitz.
+Das schwarze Projekt benötigt 455,96 g statt der ursprünglichen 629,66 g. Einsparung: **173,70 g / 27,6 %**. Die sichtbare Außenseite bleibt geschlossen; die Schlittenführung erzeugt keinen äußeren Schlitz.
 
 ## Stützen und Objekt-Overrides
 
 - Schatulle/Deckel: 3 Wände, 10 % Gyroid, Baumstützen nur an kritischen Regionen.
-- Mechanik: 5 Wände, 40–100 % Infill; Arme, Zahnräder und Pins verstärkt; Stützen objektbezogen.
+- Mechanik: 5–6 Wände, 40–100 % Infill; Arme, Zahnräder und Pins verstärkt. Normale Stützen sind nur für Plattform, Schlitten, beide Deckelzahnstangen und das lange Ausgangszahnrad/D-Wellen-Teil aktiviert.
 - Hand/Knochen: 4 Wände, 25 %; organische Überhänge mit bettgebundenen Baumstützen.
 - Finger: 2 Wände, 15 %, 30 mm/s Außenwand und reduzierte Beschleunigung für die 0,8-mm-PLA-Flexuren.
 - Totenkopfknopf: 5 Wände, 40 %, supportfrei in der gespeicherten Druckorientierung.
@@ -56,20 +59,23 @@ Das schwarze Projekt benötigt 456,32 g statt der ursprünglichen 629,66 g. Eins
 
 1. 3MF-Build- und Komponenten-Transformationen sowie Orcas `plater_id` werden vom Canvas berücksichtigt; Objekte liegen nicht mehr übereinander.
 2. Die interne Führung besitzt eine 1,8-mm-Außenabdeckung; außen bleibt die Kiste geschlossen.
-3. Die Mechanikplatte wurde kompakt in zwei vollständige 250-mm-Platten gepackt. Alle 27 naturweißen Mechanikobjekte sind genau einmal zugeordnet.
+3. Die Mechanikplatte wurde kompakt in zwei vollständige 250-mm-Platten gepackt. Alle 29 naturweißen Mechanikobjekte sind genau einmal zugeordnet.
 4. Der frühere Hebel, Rastschieber, die Spule, Schlüssel, Bandanker, Seile, Gummibänder und Federn sind entfernt. Der graue Totenkopf dreht direkt die Ritzelwelle.
-5. `scripts/render_gcode_preview.py` akzeptiert Orcas führungslose Dezimalwerte wie `E.11915`, sodass auch die zweite Mechanikplatte korrekt gerendert wird.
+5. `scripts/render_ghouls_grip_print_projects.py` rendert die sechs
+   farbcodierten Plattenvorschauen direkt aus den ausgelieferten 3MF-Szenen.
+   Der im Export verwendete Plattenabstand von 300 mm wird dabei wieder in
+   einzelne Druckplatten aufgelöst.
 
 ## Dateibelege
 
 | Datei | SHA-256 |
 | --- | --- |
-| `ghouls-grip-master.3mf` | `3CAC167C7DFEF2111CE30787AA96F7E815A2518E4C276E1683593BF42C53616A` |
-| `ghouls-grip-master-retracted.3mf` | `390BA45EED92D471E6C1504089B7F530A9CB9E628C3CDA3B007214365E171115` |
-| `ghouls-grip-print-black-pla.3mf` | `E73DDD1083EE963DAC398CC8A8510150647E551EE9D20693E330142B193A3A3E` |
-| `ghouls-grip-print-bone-pla.3mf` | `FAF0063578353C36C055A8A4A3322418150AE7A31BB717632A0F3B18B659A22E` |
-| `ghouls-grip-print-mechanism-pla.3mf` | `77444D4071715E6D109120D7F0E90E8F07CDAAB12539A22DDDB4CDD16DA9627C` |
-| `ghouls-grip-print-accent-pla.3mf` | `4A4AC2BC1EC6337A4DB29E8AEEA1F815DA52EF4A136980D5166A892FEE274FD2` |
+| `ghouls-grip-master.3mf` | `51E7C08BA66DB753E608C5E5264311BE46782A400BDB2075F1F3EE42DAB4D0A7` |
+| `ghouls-grip-master-retracted.3mf` | `1B3D3C249DD2893EEE3DC91CA095FEE2B9A9E6B40F0EFF17DD97042706F09075` |
+| `ghouls-grip-print-black-pla.3mf` | `B6D6FAFE4C3E9980A15CD25D82E8E1DF9DE1BBD1BB7174E42F5783DC05FAA82D` |
+| `ghouls-grip-print-bone-pla.3mf` | `E37FC2C033782C3D40C5ED8940B1B26C3A7EED51FA02BBFDB5E8D3A20483D53A` |
+| `ghouls-grip-print-mechanism-pla.3mf` | `77545800B2750EA38774C2CBD3600FCB9038ED26417E8FBF086B0AD4932D2E3D` |
+| `ghouls-grip-print-accent-pla.3mf` | `C75592C220E6788219B585999AA98F7D4F5A0F136EF153B314B61CC6E886D12B` |
 
 ## Physische Restrisiken
 

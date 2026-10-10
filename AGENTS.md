@@ -92,6 +92,12 @@ If behavior around print constraints, validation policy, or coordinate targeting
   print-optimized jobs. Optional part STLs do not replace these files.
 - Prefer separately printed, keyed color bodies over purge-heavy in-place
   multicolor when assembly, strength, and appearance remain acceptable.
+- Material-separated parts must be physically assemblable after printing. Define
+  and verify an insertion direction, assembly order, reachable retaining feature
+  and collision-free insertion sweep for every cross-material joint. A static
+  master render is not proof: reject any part that reaches its final pose only by
+  passing through another solid, and split integral cross-material shafts/gears
+  into keyed couplings where necessary.
 - Detect Blender, Blender MCP, and OrcaSlicer before relying on them. If a tool is
   missing, ask whether the user wants it installed or enabled. If declined,
   continue with repo-native tools and label unavailable validation explicitly.
@@ -151,6 +157,7 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Image-to-STL workflow: [.github/skills/stl-from-image-measurements/SKILL.md](.github/skills/stl-from-image-measurements/SKILL.md)
 - Reusable asset/license research: [.github/skills/research-reusable-3d-assets/skill.md](.github/skills/research-reusable-3d-assets/skill.md)
 - Blender-assisted modeling: [.github/skills/blender-assisted-modeling/skill.md](.github/skills/blender-assisted-modeling/skill.md)
+- OrcaSlicer support minimization: [.github/skills/orcaslicer-support-minimization/SKILL.md](.github/skills/orcaslicer-support-minimization/SKILL.md)
 - OrcaSlicer validation: [.github/skills/orcaslicer-print-validation/skill.md](.github/skills/orcaslicer-print-validation/skill.md)
 - Multimaterial packaging: [.github/skills/multimaterial-assembly-packaging/skill.md](.github/skills/multimaterial-assembly-packaging/skill.md)
 - Local MCP setup: [docs/mcp-setup.md](docs/mcp-setup.md)
@@ -176,6 +183,7 @@ If behavior around print constraints, validation policy, or coordinate targeting
 | Optional helper libraries | repo support status | `.github/skills/README.md` | all skills | Mark non-default helpers such as `scikit-image` or `shapely` explicitly as optional where applicable. |
 | Reusable online assets | original source and explicit license | `research-reusable-3d-assets` | `research-part-specs`, `stl-from-image-measurements` | Search before original modeling; unclear or incompatible licenses are reference-only. |
 | Python vs Blender routing | feature type and frozen datums | `blender-assisted-modeling` | `create-ascii-stl`, `stl-from-image-measurements` | Python owns fit geometry; Blender owns approved organic/visual regions. |
+| Delivered-project support minimization | exact final STL/3MF plus fixed Kobra S1 profiles | `orcaslicer-support-minimization` | `orcaslicer-project-workflow`, `optimize-stl-for-print`, `orcaslicer-print-validation` | Compare bounded absolute datum rotations sequentially, preserve material/plate semantics, save orientation in 3MF, and leave geometry changes as suggestions until separately approved at the source model. |
 | Final slice evidence | successful OrcaSlicer project slice | `orcaslicer-print-validation` | `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Never claim print time or final print readiness without a successful slice. |
 | Complex 3MF packaging | assembled master plus print plates | `multimaterial-assembly-packaging` | `stl-create-edit-interview`, `optimize-stl-for-print` | Deliver a master 3MF and print-optimized 3MFs; prefer keyed color parts when practical. |
 

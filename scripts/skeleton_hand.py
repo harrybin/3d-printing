@@ -38,7 +38,6 @@ MCP_END_INSET = 4.0
 SOCKET_CLEAR = 1.00
 WRIST_D = 12.0
 WRIST_SOCKET = 16.0
-GUIDE_STANDOFF = 7.0
 # 0.8 mm is exactly two 0.4 mm perimeters, the thinnest web that still prints
 # solid. Rigid PLA bends most reliably when this web is exactly two perimeters.
 WEB = 0.8          # dorsal hinge web left standing at every flexure joint
@@ -336,42 +335,6 @@ def build_palm(skeleton: Skeleton) -> trimesh.Trimesh:
     return difference(body, cutters)
 
 
-def build_tendon_guide(skeleton: Skeleton) -> trimesh.Trimesh:
-    """Palmar fan that routes the five tendons from the knuckles to the wrist.
-
-    Boring the tendons through the bone itself fails: the channels graze the
-    organic palmar surface and tear the shell open. A separate guide clamped on
-    the wrist pin keeps every cut on simple geometry and lets the cords be
-    threaded after assembly.
-    """
-    mount, forearm = wrist_frame(skeleton)
-    hub = mount + forearm * 4.0
-    ring = cylinder(WRIST_D / 2.0 + 3.2, 6.0, hub, forearm)
-
-    arms, eyelets, bores = [], [], []
-    for ray in RAYS:
-        head = skeleton.axes[f"metacarpal-{ray}"][1]
-        direction = peg_direction(skeleton, ray)
-        side = _flex_axis(direction)
-        palmar = -np.cross(direction, side)
-        palmar = palmar / np.linalg.norm(palmar)
-        tip = head + palmar * (GUIDE_STANDOFF + 2.0) - direction * 2.0
-
-        for t in np.linspace(0.0, 1.0, 18):
-            point = hub * (1.0 - t) + tip * t
-            point = point + palmar * (GUIDE_STANDOFF * 0.45 * np.sin(np.pi * t))
-            arms.append(sphere(2.6, point, subdivisions=2))
-        eyelets.append(sphere(3.4, tip, subdivisions=3))
-        bores.append(cylinder(1.1, 14.0, tip, palmar))
-
-    body = simplify(fuse([ring, *arms, *eyelets], pitch=0.5, bridge=1.0, smooth=0.8),
-                    16000)
-    bores.append(cylinder((WRIST_D + SOCKET_CLEAR) / 2.0, 20.0, hub, forearm))
-    bores.append(cylinder(1.9 / 2.0, WRIST_D + 18.0, hub, np.array([1.0, 0.0, 0.0])))
-    return difference(body, bores)
-
-
-
 def metacarpal_pegs(skeleton: Skeleton) -> list[trimesh.Trimesh]:
     """Knuckle pegs. Their palmar tilt is the baked-in MCP flexion."""
     pegs = []
@@ -392,8 +355,7 @@ def peg_direction(skeleton: Skeleton, ray: str) -> np.ndarray:
 
 def assemble(skeleton: Skeleton, pose: dict = GRIP_POSE) -> dict[str, trimesh.Trimesh]:
     """Palm plus all five fingers, each seated on its knuckle peg."""
-    parts = {"hand-palm": build_palm(skeleton),
-             "hand-tendon-guide": build_tendon_guide(skeleton)}
+    parts = {"hand-palm": build_palm(skeleton)}
     for ray in RAYS:
         parts[f"hand-finger-{ray}"] = build_finger(skeleton, ray, pose)
     return parts

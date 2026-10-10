@@ -2,7 +2,7 @@
 
 Ergebnis: **PASS**
 
-Geprüft wird die starre, manuell reversible Kraftkette: Drehbarer Totenkopf -> Antriebsritzel -> Schlittenzahnstange -> Doppelschere sowie Antriebsritzel -> Deckelzahnstange -> gefangener Deckelkurbelzapfen. Ein mitfahrendes Vier-Zahnrad-Getriebe überträgt die Scherenarmdrehung auf den Unterarm. Es gibt keine Seile, Gummibänder, Federn oder Wickelspulen.
+Geprüft wird die starre, manuell reversible Kraftkette: Drehbarer Totenkopf -> Antriebsritzel -> Schlittenzahnstange -> Doppelschere sowie Antriebsritzel -> Deckelzahnstange -> gefangener Deckelkurbelzapfen. Ein mitfahrendes Fünf-Zahnrad-Getriebe mit drei Zwischenrädern überträgt die Scherenarmdrehung auf den Unterarm. Es gibt keine Seile, Gummibänder, Federn oder Wickelspulen.
 
 | Nachweis | Ergebnis |
 | --- | ---: |
@@ -12,16 +12,29 @@ Geprüft wird die starre, manuell reversible Kraftkette: Drehbarer Totenkopf -> 
 | Deckelkurbel-Schließfehler | 0.000000 mm |
 | Kleinster Deckelzapfen-Kulissenrand | 1.000 mm |
 | Max. Zahnrad-Mittenfehler | 0.000000 mm |
-| Max. Zahnrad-Teilungsfehler | 0.111 mm |
+| Max. Zahnrad-Teilungsfehler | 0.162 mm |
 | Zwischenrad-Pinspiel | 0.400 mm |
+| Unterarm-Einsetzsweep | 0.000 mm³ |
+| D-Wellen-Einsetzsweep | 0.000 mm³ |
 | Totenkopf-Drehweg | 113.54° |
-| Einzelkörper je Druckteil | {'scissor-arm': 1, 'slider': 1, 'platform': 1, 'drive-pinion': 1, 'lid-rack': 1, 'lid-follower-rack': 1, 'lid-crank': 1, 'scissor-drive-gear': 1, 'idler-gear': 1, 'forearm': 1, 'chest': 1, 'lid': 1} |
-| Laufzeit | 372.3 s |
+| Einzelkörper je Druckteil | {'scissor-arm': 1, 'slider': 1, 'lid-follower-rack': 1, 'platform': 1, 'drive-pinion': 1, 'lid-rack': 1, 'lid-crank': 1, 'scissor-drive-gear': 1, 'idler-gear': 1, 'forearm-output-gear': 1, 'forearm': 1, 'chest': 1, 'lid': 1} |
+| Laufzeit | 299.3 s |
 | Sweep hand_chest | 0.000 mm³ |
 | Sweep hand_lid | 0.000 mm³ |
 | Sweep hand_platform | 0.000 mm³ |
 | Sweep hand_scissor | 0.000 mm³ |
-| Sweep slider_chest | 0.008 mm³ |
+| Sweep forearm_platform | 0.000 mm³ |
+| Sweep input_gear_platform | 0.000 mm³ |
+| Sweep idler_gear_0_platform | 0.000 mm³ |
+| Sweep idler_gear_1_platform | 0.000 mm³ |
+| Sweep idler_gear_2_platform | 0.000 mm³ |
+| Sweep output_gear_platform | 0.000 mm³ |
+| Sweep output_gear_forearm | 0.000 mm³ |
+| Sweep gear_mesh_0_1 | 0.000 mm³ |
+| Sweep gear_mesh_1_2 | 0.000 mm³ |
+| Sweep gear_mesh_2_3 | 0.000 mm³ |
+| Sweep gear_mesh_3_4 | 0.000 mm³ |
+| Sweep slider_chest | 0.000 mm³ |
 | Sweep lid_chest | 0.000 mm³ |
 | Sweep lid_rack_lid | 0.000 mm³ |
 | Sweep lid_rack_chest | 0.000 mm³ |
@@ -45,5 +58,7 @@ Geprüft wird die starre, manuell reversible Kraftkette: Drehbarer Totenkopf -> 
 | 68° | 88.1° | -108.0° | -55.0° |
 | 73° | 100.6° | -108.0° | -50.0° |
 | 78° | 113.5° | -108.0° | -45.0° |
+
+Der knochenfarbene Unterarm wird ohne Zahnrad von oben zwischen die beiden Lagerohren gesetzt. Anschließend wird das naturweiße Ausgangszahnrad mit seiner D-Welle von der Zahnradseite axial durch beide Rundlager und die passende D-Nabe des Unterarms geschoben. Ein 1,75-mm-Filamentstift im äußeren Querloch sichert die Welle gegen Herausrutschen; erst danach werden die Zwischenräder aufgesteckt.
 
 Die Finger bleiben als druckbare, vorgekrümmte PLA-Flexuren in der kompakten Greifpose. Die neue starre Kraftkette betätigt Deckel, Scherenhub und Unterarm; sie enthält bewusst keine vorgetäuschte Sehnenbetätigung.

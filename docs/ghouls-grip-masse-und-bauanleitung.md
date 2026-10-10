@@ -50,14 +50,14 @@ Die Hand ist mit `HAND_SCALE = 0.72` aus einem anatomischen CT-Datensatz abgelei
 2. Eine Drehung um etwa 114° verschiebt die Schlittenzahnstange um 53,5 mm.
 3. Der Schlitten spreizt zwei parallele Scherenpaare von 18° auf 78° und hebt das offene Hubjoch um 48,2 mm.
 4. Gleichzeitig bewegt das Hauptgetriebe eine starre Deckelzahnstange. Ein gefangener Lost-Motion-Schlitz nimmt zunächst Leerweg auf; anschließend bewegt ein kurzer Folgejochweg von 7 mm das Deckelsegment schnell auf 108°.
-5. Ein mitfahrendes Vier-Zahnrad-Getriebe überträgt die Drehung eines Scherenarms kontinuierlich auf den Unterarm. Der Unterarm schwenkt von -105° auf -45°.
+5. Ein mitfahrendes Fünf-Zahnrad-Getriebe mit drei Zwischenrädern überträgt die Drehung eines Scherenarms kontinuierlich und mit dem richtigen Drehsinn auf den Unterarm. Der Unterarm schwenkt von -105° auf -45°.
 6. Beim Zurückdrehen läuft die gesamte Kraftkette positiv rückwärts: Unterarm faltet ein, Schere sinkt, Deckel schließt. Es wird keine Rückstellfeder benötigt.
 
 Der Deckel erreicht 108° bereits bei etwa 32° Scherenwinkel und bleibt während des restlichen Hubs formschlüssig offen. Dadurch kreuzt die Hand den Deckel nicht.
 
 ## Stückliste
 
-Vier Orca-Projekte enthalten **22 Teiltypen / 38 physische Druckobjekte**.
+Vier Orca-Projekte enthalten **22 Teiltypen / 39 physische Druckobjekte**.
 
 | Teil | Anzahl | Maße ungefähr | Farbe |
 | --- | ---: | --- | --- |
@@ -71,16 +71,19 @@ Vier Orca-Projekte enthalten **22 Teiltypen / 38 physische Druckobjekte**.
 | Deckel-Folgejoch/Zahnstange | 1 | 32 × 103 × 14 mm | Naturweiß |
 | Deckelsegment | 1 | 22 × 11,5 × 8 mm | Naturweiß |
 | Scheren-Eingangszahnrad | 1 | 27,4 × 27,5 × 10 mm | Naturweiß |
-| Zwischenrad | 2 | 25,4 × 25,5 × 6 mm | Naturweiß |
+| Zwischenrad | 3 | ca. 17 × 17 × 6 mm | Naturweiß |
+| Unterarm-Ausgangszahnrad mit D-Welle | 1 | 27,4 × 65 × 27,5 mm | Naturweiß |
 | Pivot-Pin Ø3 | 10 | Ø6,2 × 26 mm | Naturweiß |
 | Pivot-Pin Ø4 | 4 | Ø7,2 × 34 mm | Naturweiß |
-| Unterarm | 1 | 27,4 × 53 × 56,7 mm | Knochenbeige |
+| Unterarm mit D-Nabe | 1 | 25,8 × 18 × 50 mm | Knochenbeige |
 | Handfläche | 1 | 67,9 × 96,5 × 25,2 mm | Knochenbeige |
-| Handführung (`hand-tendon-guide`) | 1 | 62 × 77,4 × 25 mm | Knochenbeige |
 | Fünf Finger | je 1 | 9–66 mm | Knochenbeige |
 | Totenkopf-Drehknopf | 1 | 48,5 × 55,1 × 27,0 mm | Grau |
 
-`hand-tendon-guide` bleibt aus Dateikompatibilitätsgründen so benannt, führt aber in dieser Version keine Sehne.
+Die frühere separate Sehnenführung ist entfernt. Sie gehörte zum verworfenen
+Seilzugkonzept und hatte in der starren Mechanik keine tragende oder führende
+Funktion. Die kleinen Gelenkkragen und Flexurstege innerhalb der Finger bleiben
+erhalten, weil sie die einzelnen Knochen druckbar verbinden.
 
 ## Montage
 
@@ -90,9 +93,21 @@ Vier Orca-Projekte enthalten **22 Teiltypen / 38 physische Druckobjekte**.
 4. Hauptantriebsritzel von innen in das Frontlager einsetzen. Die integrierte Welle muss außen frei herausstehen und das Ritzel vollständig in die Schlittenzahnstange greifen.
 5. Totenkopfknopf außen mit der Blindbohrung auf die Ø8-mm-Welle pressen. Vor endgültigem Einpressen die geschlossene Stellung so ausrichten, dass das Gesicht senkrecht und gut greifbar steht.
 6. Deckel-Hauptzahnstange am Antrieb einsetzen. Den Zapfen des Folgejochs vollständig im Lost-Motion-Schlitz fangen. Das hintere Zahnsegment muss ohne Klemmen mit dem Deckelsegment kämmen.
-7. Das Scheren-Eingangszahnrad auf den formschlüssigen Zapfen eines Scherenarms setzen. Beide Zwischenräder auf die Jochpfosten stecken. Alle vier Zahnräder müssen über den gesamten Hub im Eingriff bleiben.
-8. Unterarm im Joch lagern und sein Ausgangszahnrad mit der letzten Stufe ausrichten. In geschlossener Stellung liegt der Unterarm bei -105°, ausgefahren bei -45°.
-9. Handfläche und Führung um -75° gerollt auf den Unterarm setzen und mit 1,75-mm-Filament sichern. Die fünf vorgekrümmten Finger auf ihre beschrifteten Sockel setzen. Keine Sehnen montieren.
+7. Das Scheren-Eingangszahnrad auf den formschlüssigen Zapfen eines Scherenarms setzen. Die drei Zwischenräder bleiben bis nach der Unterarmmontage noch ausgebaut.
+8. Den knochenfarbenen Unterarm **ohne Zahnrad** senkrecht von oben
+   zwischen die beiden Lagerohren des Jochs setzen. Die runden Lagerbohrungen
+   und die D-Nabe müssen fluchten. Anschließend das naturweiße
+   Unterarm-Ausgangszahnrad von der offenen Zahnradseite einschieben: Seine
+   lange D-Welle läuft durch das äußere Rundlager, die D-Nabe und das innere
+   Rundlager. Am gegenüberliegenden Wellenende einen 1,75-mm-Filamentstift
+   durch das Querloch stecken. Erst danach die drei Zwischenräder in ihrer
+   linearen Reihenfolge auf die zugänglichen Jochpfosten setzen. Alle fünf
+   Zahnräder müssen über den gesamten Hub im Eingriff bleiben. Das
+   Ausgangszahnrad hält die Welle auf einer Seite,
+   der Filamentstift auf der anderen; Klebstoff ist nicht erforderlich.
+   In geschlossener Stellung liegt der Unterarm bei -105°, ausgefahren bei
+   -45°.
+9. Handfläche um -75° gerollt auf den Unterarm setzen und mit 1,75-mm-Filament sichern. Die fünf vorgekrümmten Finger auf ihre beschrifteten Sockel setzen.
 10. Deckel mit 1,75-mm-Filament als Scharnierachse einsetzen und das Deckelsegment formschlüssig am Scharnier koppeln.
 11. Ohne Süßigkeiten langsam testen: Totenkopf drehen → Deckel öffnet früh → Schere hebt → Unterarm entfaltet. Danach exakt rückwärts drehen. Nichts darf von selbst zurückschnappen.
 

@@ -15,23 +15,45 @@ import numpy as np
 import trimesh
 
 from mesh_kit import (box, clean, cylinder, difference, intersection,
-                      rounded_box, simplify, union)
+                      simplify, sphere as solid_sphere, union)
 from sdf_bones import chain, segment_mesh, sphere
 
 
 def _masses():
-    """Braincase, face block and mandible as round cones. About 44 x 56 mm."""
+    """Anatomical masses for the braincase, face, cheekbones and mandible."""
     cranium = [
         sphere((0.0, 12.0, -2.0), 17.0),
+        # The forehead rolls into the nasal bridge instead of ending in a
+        # spherical overhang above two holes.
+        ((0.0, 10.0, 5.0), (0.0, -3.0, 8.0), 9.0, 5.2),
         ((0.0, 3.0, 1.0), (0.0, -5.0, 4.0), 15.5, 12.5),
         ((0.0, -5.0, 4.0), (0.0, -13.0, 5.0), 12.5, 9.0),
     ]
+
+    face = []
+    for side in (-1.0, 1.0):
+        # Supraorbital ridge and zygomatic buttress are the landmarks missing
+        # from the old egg-shaped face. They stay inside the cranium envelope.
+        face.extend([
+            ((side * 2.0, 7.0, 8.5), (side * 12.5, 5.2, 7.2), 2.5, 3.0),
+            ((side * 13.0, 3.0, 3.0), (side * 13.5, -6.5, 7.0), 2.8, 3.3),
+            sphere((side * 13.5, -6.5, 7.0), 3.3),
+            # Ascending ramus gives the mandible a recognisable rear corner.
+            ((side * 11.3, -7.0, -2.5),
+             (side * 12.0, -16.0, 0.5), 3.4, 4.0),
+        ])
+
+    # Maxillary/alveolar bow plus a U-shaped mandible and a modest chin.
+    face.extend(chain(
+        [(-10.0, -9.5, 5.2), (0.0, -12.0, 7.2), (10.0, -9.5, 5.2)],
+        [4.8, 5.3, 4.8],
+    ))
     jaw = chain(
-        [(-11.5, -9.0, -3.0), (-11.0, -18.0, 1.0), (0.0, -21.5, 5.0),
-         (11.0, -18.0, 1.0), (11.5, -9.0, -3.0)],
-        [3.2, 3.6, 4.0, 3.6, 3.2],
+        [(-11.8, -13.0, 0.0), (-10.5, -19.0, 2.5),
+         (0.0, -22.0, 5.5), (10.5, -19.0, 2.5), (11.8, -13.0, 0.0)],
+        [4.0, 4.2, 4.7, 4.2, 4.0],
     )
-    return cranium + jaw
+    return cranium + face + jaw
 
 
 def _cutters():
@@ -39,25 +61,35 @@ def _cutters():
     cuts = []
     for side in (-1.0, 1.0):
         centre = (side * 8.2, 2.0, 14.0)
-        orbit = rounded_box((13.5, 13.0, 26.0), 2.6, centre)
+        # A tilted ellipsoid produces the rounded orbit and stronger lateral
+        # rim seen in the licensed CT reference; the previous rounded box made
+        # the eyes look machined.
+        orbit = solid_sphere(1.0, subdivisions=3)
+        orbit.apply_scale([6.2, 5.6, 14.0])
+        orbit.apply_translation(centre)
         orbit.apply_transform(trimesh.transformations.rotation_matrix(
             np.deg2rad(side * -9.0), [0.0, 0.0, 1.0], centre))
         cuts.append(orbit)
         # Temple flats keep the braincase from reading as a ball.
         cuts.append(box((14.0, 44.0, 30.0), (side * 27.0, 8.0, 2.0)))
 
-    # Piriform aperture: a box on its corner gives the inverted-heart opening.
-    nose = box((7.2, 11.0, 24.0), (0.0, -6.5, 14.0))
-    nose.apply_transform(trimesh.transformations.rotation_matrix(
-        np.deg2rad(45.0), [0.0, 0.0, 1.0], [0.0, -6.5, 14.0]))
-    cuts.append(nose)
-    cuts.append(box((4.6, 5.0, 24.0), (0.0, -3.0, 14.0)))
+    # Overlapping ellipsoids form a piriform nasal aperture: narrow at the
+    # bridge and broad at the lower maxilla, without a diamond-shaped rim.
+    nose_upper = solid_sphere(1.0, subdivisions=2)
+    nose_upper.apply_scale([2.5, 5.0, 14.0])
+    nose_upper.apply_translation((0.0, -4.2, 14.0))
+    nose_lower = solid_sphere(1.0, subdivisions=2)
+    nose_lower.apply_scale([4.0, 4.2, 14.0])
+    nose_lower.apply_translation((0.0, -8.2, 14.0))
+    cuts.extend([nose_upper, nose_lower])
 
     # Bite line plus the gaps between the teeth. The cutters run clear through
     # the jaw - stopping them inside it leaves tangential knife edges.
-    cuts.append(box((23.0, 1.4, 34.0), (0.0, -15.4, 10.0)))
-    for i in range(-4, 5):
-        cuts.append(box((1.0, 5.0, 34.0), (i * 2.6, -15.4, 10.0)))
+    cuts.append(box((23.0, 1.0, 34.0), (0.0, -15.4, 10.0)))
+    tooth_gaps = (-8.8, -6.4, -4.2, -2.2, 0.0, 2.2, 4.2, 6.4, 8.8)
+    for x in tooth_gaps:
+        width = 0.65 if abs(x) <= 4.2 else 0.8
+        cuts.append(box((width, 4.2, 34.0), (x, -15.4, 10.0)))
 
     cuts.append(box((44.0, 14.0, 30.0), (0.0, -29.0, 6.0)))
     return cuts
@@ -66,9 +98,10 @@ def _cutters():
 def build_skull(scale: float = 1.0, pitch: float = 0.45) -> trimesh.Trimesh:
     mesh = simplify(segment_mesh(_masses(), pitch=pitch, blend=2.6), 30000)
     mesh = difference(mesh, [union(_cutters())])
-    # The capsule field builds a tall egg; a cranium is wider than it is long.
-    mesh.apply_scale([1.24, 0.94, 1.0])
-    mesh = clean(simplify(mesh, 18000))
+    # Keep the established control envelope after adding the lateral cheekbone
+    # masses; the old cranium needed more X stretch because it had no zygoma.
+    mesh.apply_scale([1.208, 0.94, 1.0])
+    mesh = clean(simplify(mesh, 30000))
     if scale != 1.0:
         mesh.apply_scale(scale)
     return mesh

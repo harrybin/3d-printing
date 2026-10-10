@@ -13,7 +13,7 @@ NIH 3D Print Exchange 3DPX-016815, licensed CC BY 4.0.
 
 The complete box drive is rigid and manually reversible: one skull-handled
 skull knob turns the rack-and-pinion slider, the scissor lift, the captured lid
-crank and the four-gear forearm train.  There are no cords, rubber bands,
+crank and the five-gear forearm train.  There are no cords, rubber bands,
 springs or winding spools.
 
 All dimensions are millimetres. Parts are exported in print orientation as
@@ -23,8 +23,10 @@ Only the assembled preview is also exported as ASCII STL for the canvas.
 
 from __future__ import annotations
 
+import os
 import re
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -92,7 +94,19 @@ def validate(name: str, mesh: trimesh.Trimesh) -> None:
 
 
 def write_ascii(mesh: trimesh.Trimesh, path: Path) -> None:
-    path.write_text(trimesh.exchange.stl.export_stl_ascii(mesh), encoding="ascii")
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        trimesh.exchange.stl.export_stl_ascii(mesh),
+        encoding="ascii",
+    )
+    for attempt in range(10):
+        try:
+            os.replace(temporary, path)
+            return
+        except OSError:
+            if attempt == 9:
+                raise
+            time.sleep(0.5)
 
 
 def write_3mf(path: Path, objects) -> None:
@@ -220,14 +234,15 @@ PART_MATERIAL = {
     "drive-pinion": MECH, "lid-rack": MECH,
     "lid-follower-rack": MECH, "lid-crank": MECH,
     "scissor-drive-gear": MECH, "idler-gear": MECH,
+    "forearm-output-gear": MECH,
     "pivot-pin-3": MECH, "pivot-pin-4": MECH,
     "drive-skull-knob": ACCENT,
-    "forearm": BONE, "hand-palm": BONE, "hand-tendon-guide": BONE,
+    "forearm": BONE, "hand-palm": BONE,
 }
 
 PRINT_QUANTITIES = {
     "scissor-arm": 4,
-    "idler-gear": 2,
+    "idler-gear": 3,
     "pivot-pin-3": 10,
     "pivot-pin-4": 4,
 }
@@ -276,7 +291,7 @@ def assembly_material(name: str) -> Material:
         return BLACK
     if name == "drive-skull-knob":
         return ACCENT
-    if name in {"forearm", "hand-palm", "hand-tendon-guide"}:
+    if name in {"forearm", "hand-palm"}:
         return BONE
     return MECH
 
