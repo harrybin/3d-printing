@@ -1,5 +1,17 @@
 # Modellauto-Ersatzreifen – Maße
 
+## Abschluss / Archiv
+
+Vom Benutzer am 2026-10-11 als fertig gemeldet und zur Archivierung freigegeben.
+Generator, STL, Druckprojekt, Praesentationsrender und Referenzindex bleiben
+unter den unten genannten Pfaden im Repository erhalten.
+Das nachtraeglich vom Benutzer gespeicherte 3MF ist die archivierte Projektfassung.
+Seine Meshdaten und die unten aufgefuehrten Druckprofile sind gegenueber dem
+urspruenglich gesliceten OrcaSlicer-Projekt unveraendert; die gespeicherte
+Projektfassung selbst enthaelt keine vollstaendigen Slice-Ergebnisse.
+Die Zeit- und Materialangaben unten stammen daher vom urspruenglichen Slice.
+Eine konkrete Passungs- oder Gripbewertung wurde nicht mitgeteilt.
+
 Referenzindex: `model-sources/archiv/modellauto-reifen-referenzfotos-index.png`
 (Kacheln siehe `model-sources/archiv/README.md`).
 
