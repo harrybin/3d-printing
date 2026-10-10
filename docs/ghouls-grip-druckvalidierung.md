@@ -1,10 +1,10 @@
 # The Ghoul's Grip – OrcaSlicer-Druckvalidierung
 
-Status: **VERIFIED**
+Status: **GEOMETRY-OPTIMIZED / ORCASLICER RE-SLICE PENDING**
 
-Validiert: 2026-10-10
+Geometrie-Optimierung: 2026-10-10
 
-OrcaSlicer: **2.4.2**
+OrcaSlicer-Basisprofil: **2.4.3 GUI / 2.4.2 CLI zuvor verifiziert**
 
 ![Übersicht](images/ghouls-grip-slice-overview.png)
 
@@ -19,7 +19,12 @@ OrcaSlicer: **2.4.2**
 - Eine reale Spule/Farbe je Projekt, kein Prime Tower
 - Farben: Schwarz `#202124`, Knochenbeige `#D8C6A5`, Naturweiß `#F1EBDD`, Grau `#777777`
 
-Alle sechs Platten wurden nacheinander mit der OrcaSlicer-CLI aus den gelieferten 3MF-Projekten gesliced. Es gibt keine Floating-region-, Out-of-bed-, Empty-layer- oder Invalid-toolpath-Warnung. Die gemessenen Gesamtwerte sind außerdem als `status=verified` in `Metadata/ghouls_grip_print_metadata.xml` der jeweiligen 3MF gespeichert.
+Die sechs Plattenwerte in der folgenden Tabelle gehören zur vorherigen, bereits
+verifizierten Geometrie. Nach der aktuellen Deckel-Optimierung wurden alle
+3MF-Projekte neu erzeugt; ihre Metadaten stehen deshalb korrekt auf
+`status=not-verified`, bis die neue Orca-Slicer-Slice erneut erfolgreich
+abgeschlossen ist. Die alten Zeit- und Massenwerte dürfen nicht als Werte der
+optimierten Ausgabe interpretiert werden.
 
 Orca meldet ausschließlich den nicht blockierenden Profilhinweis, dass
 `precise wall` bei der gespeicherten Wandreihenfolge ignoriert wird.
@@ -55,6 +60,24 @@ Das schwarze Projekt benötigt 455,96 g statt der ursprünglichen 629,66 g. Eins
 - Finger: 2 Wände, 15 %, 30 mm/s Außenwand und reduzierte Beschleunigung für die 0,8-mm-PLA-Flexuren.
 - Totenkopfknopf: 5 Wände, 40 %, supportfrei in der gespeicherten Druckorientierung.
 
+## Aktuelle Support-/Materialoptimierung
+
+- Der Deckel besitzt jetzt selbsttragende, etwa 45° geneigte Dächer über den
+  unteren Innenaussparungen statt der früheren großen horizontalen Decken.
+- Der Deckel bleibt watertight/manifold: 23.816 Facetten, 206 × 129 × 27,5 mm.
+- Die analytische Überhangprüfung meldet für den Deckel 746,68 mm²
+  überhangkritische Fläche bei 45° (0,9 % der Gesamtfläche) und 16.110,24 mm²
+  deckenartige Bridge-Fläche. Diese Bridge-Flächen müssen in OrcaSlicer mit
+  der tatsächlichen Vorschau beurteilt werden; sie sind kein Ersatz für eine
+  Slice-Messung.
+- Das breite Chest-Skirt wurde bewusst nicht verändert: der getestete
+  Frustum-Umbau destabilisiert die nachfolgenden Rail-/Service-Cut-Booleans.
+  Dadurch bleiben die mechanischen Führungen und die sichtbare Außenform
+  unverändert.
+- Die aktualisierten farbigen Plattenvorschauen wurden aus den neuen 3MF-Szenen
+  regeneriert. Sie zeigen die Material-/Farbgruppierung, nicht geslicte
+  Supportvolumina.
+
 ## Behobene Probleme
 
 1. 3MF-Build- und Komponenten-Transformationen sowie Orcas `plater_id` werden vom Canvas berücksichtigt; Objekte liegen nicht mehr übereinander.
@@ -70,12 +93,12 @@ Das schwarze Projekt benötigt 455,96 g statt der ursprünglichen 629,66 g. Eins
 
 | Datei | SHA-256 |
 | --- | --- |
-| `ghouls-grip-master.3mf` | `51E7C08BA66DB753E608C5E5264311BE46782A400BDB2075F1F3EE42DAB4D0A7` |
-| `ghouls-grip-master-retracted.3mf` | `1B3D3C249DD2893EEE3DC91CA095FEE2B9A9E6B40F0EFF17DD97042706F09075` |
-| `ghouls-grip-print-black-pla.3mf` | `B6D6FAFE4C3E9980A15CD25D82E8E1DF9DE1BBD1BB7174E42F5783DC05FAA82D` |
-| `ghouls-grip-print-bone-pla.3mf` | `E37FC2C033782C3D40C5ED8940B1B26C3A7EED51FA02BBFDB5E8D3A20483D53A` |
-| `ghouls-grip-print-mechanism-pla.3mf` | `77545800B2750EA38774C2CBD3600FCB9038ED26417E8FBF086B0AD4932D2E3D` |
-| `ghouls-grip-print-accent-pla.3mf` | `C75592C220E6788219B585999AA98F7D4F5A0F136EF153B314B61CC6E886D12B` |
+| `ghouls-grip-master.3mf` | `2AF85EBB8BA3AA1859C0B1EDBD07CE3315C3161BA977F25A89033E5DF3FDCB83` |
+| `ghouls-grip-master-retracted.3mf` | `97C242491AAF6A34D637542D732DB36A829888ADFFB6C09CE8CE4FB62B9ED21F` |
+| `ghouls-grip-print-black-pla.3mf` | `2A188BAC57F24A18FBC8869E4F107A1ADABCB1AE00E005014E6E66AAFC961D0A` |
+| `ghouls-grip-print-bone-pla.3mf` | `FB7BB84BE73051FFE32DA108DB5E8F1ECDEA3D9048D48C7174C553A3E88DEC9C` |
+| `ghouls-grip-print-mechanism-pla.3mf` | `9FFF5F4D5813622608EB3C9AB7022D74F32EE0493C11ED7DED98F60098995945` |
+| `ghouls-grip-print-accent-pla.3mf` | `D85BA298EAD99902B05911464E5C066046D7FAD21D2318CC95B9FFAFC53B00DC` |
 
 ## Physische Restrisiken
 

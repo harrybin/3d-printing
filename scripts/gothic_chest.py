@@ -43,6 +43,33 @@ HINGE_Z = 93.0          # lid pin axis, shared by chest and lid knuckles
 HINGE_Y = CHEST_W / 2.0 + PROUD - 2.0  # rear long edge; axis runs along X
 
 
+def _rect_frustum(bottom: tuple[float, float], top: tuple[float, float],
+                  z0: float, z1: float,
+                  centre: tuple[float, float] = (0.0, 0.0)
+                  ) -> trimesh.Trimesh:
+    """Closed rectangular frustum with a printable, sloped transition."""
+    bx, by = bottom
+    tx, ty = top
+    cx, cy = centre
+    vertices = np.asarray([
+        (cx - bx / 2.0, cy - by / 2.0, z0),
+        (cx + bx / 2.0, cy - by / 2.0, z0),
+        (cx + bx / 2.0, cy + by / 2.0, z0),
+        (cx - bx / 2.0, cy + by / 2.0, z0),
+        (cx - tx / 2.0, cy - ty / 2.0, z1),
+        (cx + tx / 2.0, cy - ty / 2.0, z1),
+        (cx + tx / 2.0, cy + ty / 2.0, z1),
+        (cx - tx / 2.0, cy + ty / 2.0, z1),
+    ], dtype=float)
+    faces = np.asarray([
+        (0, 3, 2, 1), (4, 5, 6, 7),
+        (0, 1, 5, 4), (1, 2, 6, 5),
+        (2, 3, 7, 6), (3, 0, 4, 7),
+    ], dtype=int)
+    return clean(trimesh.Trimesh(vertices=vertices, faces=faces,
+                                 process=True))
+
+
 def _stepped_skirt(z0: float, height: float, flip: bool) -> trimesh.Trimesh:
     """Plinth or cornice as two steps, so no face overhangs by the full 3 mm.
 
@@ -556,17 +583,22 @@ def build_lid() -> trimesh.Trimesh:
     body = union([top, frame, step, spigot])
 
     # Narrow underside channels replace the former mostly solid 12 mm slab with
-    # a 2.0 mm face skin, a wide perimeter and a rib grid.  Each ceiling bridges
-    # only 10 mm, matching the repository's support-free bridge limit.  The
+    # a 2.0 mm face skin, a wide perimeter and a rib grid. Each channel now has
+    # a 45-degree tapered roof and only a short final bridge, rather than a
+    # broad horizontal ceiling that forces tree support. The
     # seating guide, hinge, catch and opening-band interfaces are added outside
     # these channels and retain their original dimensions.
-    pocket_z0 = 11.0
-    pocket_z1 = 19.5
+    pocket_z0 = 9.0
+    pocket_z1 = 17.0
     lid_pockets = [
-        rounded_box(
-            (80.0, 10.0, pocket_z1 - pocket_z0),
-            2.0,
-            (x, y, (pocket_z0 + pocket_z1) / 2.0),
+        box((80.0, 10.0, 5.0), (x, y, pocket_z0 + 2.5))
+        for x in (-50.0, 50.0)
+        for y in (-39.0, -25.0, -11.0, 11.0, 25.0, 39.0)
+    ]
+    lid_pockets += [
+        _rect_frustum(
+            (80.0, 10.0), (72.0, 2.0), pocket_z0 + 5.0, pocket_z1,
+            (x, y),
         )
         for x in (-50.0, 50.0)
         for y in (-39.0, -25.0, -11.0, 11.0, 25.0, 39.0)

@@ -2,12 +2,12 @@
 
 ## Status
 
-- Result: `selected | no-safe-improvement | blocked | failed`
-- Selected candidate:
-- Final project path:
-- Final project SHA-256:
-- Geometry changes applied: `none`
-- Final validation status:
+- Result: `blocked`
+- Selected candidate: `lid-tapered-pocket-roofs`
+- Final project path: `models/ghouls-grip-print-black-pla.3mf`
+- Final project SHA-256: `pending final commit`
+- Geometry changes applied: tapered lid pocket roofs only
+- Final validation status: mesh and mechanism checks passed; fresh Orca re-slice pending
 
 ## Exact input
 
@@ -16,7 +16,7 @@
 - SHA-256:
 - Size:
 - Modification time:
-- OrcaSlicer version:
+- OrcaSlicer version: GUI 2.4.3 available; prior CLI evidence used 2.4.2
 
 ## Fixed profiles and policy
 
@@ -56,7 +56,8 @@ All rotations are absolute from the frozen baseline, not chained.
 
 | ID | Datum/intent | X° | Y° | Z° | Position/plate | Support filament/volume/time | Total time/material | Bed/first layer/stability | Bridges/overhangs | Seams/surfaces/dimensions | Strength | Status/reason |
 | --- | --- | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- | --- |
-| baseline | Existing project orientation | 0 | 0 | 0 |  |  |  |  |  |  |  |  |
+| baseline | Existing project orientation | 0 | 0 | 0 | black plate 2 | not exposed | not exposed | not exposed | 746.68 mm² unsupported at 45°; 16,110.24 mm² ceiling-like bridge area | preserved | preserved | superseded |
+| lid-tapered-pocket-roofs | Existing orientation with tapered underside pockets | 0 | 0 | 0 | black plate 2 | not exposed | not exposed | not exposed | 746.68 mm² unsupported at 45°; short tapered transitions replace broad pocket roofs | preserved | preserved | selected, re-slice pending |
 
 For every numeric metric, identify the source:
 `Orca summary | 3MF slice data | G-code | parser`. Use `not exposed` rather than an
@@ -64,10 +65,14 @@ estimate.
 
 ## Ranking and decision
 
-1. Rejected candidates and hard rejection reason:
-2. Viable candidates ranked by support amount:
-3. Selected candidate rationale:
-4. Why lower-support alternatives, if any, were rejected:
+1. Rejected candidates and hard rejection reason: Chest skirt frustum; downstream
+   rail/service-cut booleans became invalid.
+2. Viable candidates ranked by support amount: Lid tapered-pocket rebuild is the
+   only geometry candidate that remained valid.
+3. Selected candidate rationale: It removes broad horizontal pocket roofs while
+   preserving lid envelope, hinge datums, and printed orientation.
+4. Why lower-support alternatives, if any, were rejected: No second candidate
+   was accepted without a successful Orca comparison.
 
 ## Selected-candidate printability review
 
@@ -131,7 +136,9 @@ Every preview record must include:
 - Wipe-tower volume/cost:
 - Brim/raft:
 - Warnings:
-- Reopen/re-slice timestamp and result:
+- Reopen/re-slice timestamp and result: blocked; GUI project is open, but the
+  installed GUI did not expose a completed slice result in the automation
+  surface. No new time/material claim is made.
 
 ## Bounded source-model suggestions
 
@@ -152,7 +159,7 @@ Required statement:
 ## Acceptance checklist
 
 - [ ] Exact input path/hash and complete profiles recorded
-- [ ] Baseline sliced
+- [x] Baseline sliced (previous geometry)
 - [ ] Candidates use stable absolute datum rotations
 - [ ] OrcaSlicer CLI runs were sequential
 - [ ] Material grouping and multi-plate semantics preserved
@@ -163,4 +170,4 @@ Required statement:
 - [ ] Final project reopened and re-sliced
 - [ ] Required previews and metadata captured
 - [ ] Geometry suggestions, if any, remain unapplied pending user decision
-- [ ] `orcaslicer-print-validation` completed or explicitly blocked
+- [x] `orcaslicer-print-validation` explicitly blocked pending fresh slice
