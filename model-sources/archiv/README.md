@@ -72,5 +72,19 @@ die neu benutzerbestätigten Maße 50,20 mm (Mast) und 67,00 mm (Hülse) vom
 | 02 | PXL_20260916_153155947.jpg | schwarzer Fehldruck, Messung 35,85 mm |
 | 03 | PXL_20260916_153218515.jpg | schwarzer Fehldruck, Messung 52,11 mm |
 
+## modellauto-reifen-referenzfotos-index.png
+
+Modellauto-Ersatzreifen (`scripts/modellauto_reifen.py`,
+`docs/modellauto-reifen-masse.md`). Fotos vom 2026-10-10.
+
+| Kachel | Originaldatei | Nachweis |
+| ---: | --- | --- |
+| 00 | PXL_20261010_115638099.jpg | Felgenbreite axial 23,20 mm |
+| 01 | PXL_20261010_115826962.jpg | Wandstärke Originalreifen-Bruchstück 2,05 mm |
+| 02 | PXL_20261010_115705004.jpg | vorderer Felgenring Ø 22,54 mm |
+| 03 | PXL_20261010_115723187.jpg | Übersicht Achse, intakter Reifen, Felge ohne Reifen |
+| 04 | PXL_20261010_115612975.jpg | Rippenkranz Ø 33,74 mm |
+| 05 | PXL_20261010_115756377.jpg | umlaufender Ring im Rippenkranz 2,29 mm |
+
 Neue Kontaktblaetter erzeugt man mit
 `python scripts/make_contact_sheet.py <bildordner> --out model-sources/archiv/<modell>-index.png`.

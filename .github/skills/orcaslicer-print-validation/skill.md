@@ -29,6 +29,12 @@ local executable's help before using them; CLI behavior can change between versi
 Use the GUI when the installed CLI cannot expose the required project, plate, or
 preview information.
 
+CLI profile loading (verified with OrcaSlicer 2.4.2): pass the system profile JSON
+files from `C:\Program Files\OrcaSlicer\resources\profiles\Anycubic\{machine,process,filament}`
+directly to `--load-settings "<machine>;<process>"` and `--load-filaments <filament>`.
+Hand-flattened copies of those profiles fail with exit code `-17`
+(`CLI_PROCESS_NOT_COMPATIBLE`), even with emptied compatibility lists.
+
 The repository MCP template is `.vscode/mcp.json`, but the OrcaSlicer entry is
 disabled by default because OrcaSlicer officially documents a CLI, not a first-party
 MCP server. Only enable a third-party OrcaSlicer MCP after auditing its source,
