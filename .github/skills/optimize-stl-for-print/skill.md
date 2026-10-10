@@ -31,6 +31,13 @@ python scripts\mesh_tool.py center   models\part.stl --drop
 python scripts\mesh_tool.py arrange  models\a.stl models\b.stl -o models\plate.stl --gap 5
 ```
 
+The overhang report measures the actual downward-facing **surface angle from
+the horizontal build plane**: 0° is a horizontal ceiling and 90° is a vertical
+wall. Its unsupported-area total includes non-bed ceilings; the separate
+ceiling line is a diagnostic subset. The reported maximum ceiling short span
+groups coplanar connected ceiling faces and must remain within the repo's bridge
+limit; disabling slicer support does not make a longer ceiling printable.
+
 Orientation changes are print-setup decisions, so write them to a **new** file or
 do them in the slicer. Never overwrite the parametric output of a generator
 script with a rotated copy - that desyncs `models/` from `scripts/`.
@@ -77,6 +84,14 @@ bridges <= 10 mm free, 10-25 mm only with ribs or chamfers, > 25 mm needs suppor
 
 - Minimum wall: **0.8 mm** (2 lines). Functional wall: **1.2 mm** (3 lines).
   Load bearing: **1.6-2.4 mm**.
+- Do not leave a thick decorative or mechanical body as a massive solid merely
+  because slicer infill can reduce it. Model broad nonfunctional regions as
+  inspectable shells, open frames, ribs, webs or through-tunnels while retaining
+  solid material around bores, teeth, pivots, bearing seats and load paths.
+- Prefer through-open structure aligned with the print direction over closed
+  internal voids. Closed cavities can trap support and hide failed bridges.
+- For modeled ribs with a 0.4 mm nozzle, use at least 1.2 mm thickness; use
+  1.6-2.4 mm where the rib transfers gear, bending or hinge loads.
 - Snap-fit and press-fit bosses: at least **2.0 mm** of surrounding material.
 - Minimum through-hole diameter **1.5 mm**, minimum pin diameter **1.0 mm**,
   minimum slot **0.4 mm**.

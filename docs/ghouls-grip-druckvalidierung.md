@@ -30,54 +30,67 @@ Orca meldet ausschließlich den nicht blockierenden Profilhinweis, dass
 
 | Projekt / Platte | Inhalt | Schichten | Filament | Zeit | Vorschau |
 | --- | --- | ---: | ---: | ---: | --- |
-| Schwarz | Schatulle stehend, Deckel hochkant dahinter; keine Stützpfade | 645 | 385,08 g | 12 h 44 min 30 s | [PNG](images/ghouls-grip-slice-black-plate-1.png) |
-| Knochenbeige | Unterarm, Handfläche, fünf Finger | 250 | 46,63 g | 3 h 31 min 26 s | [PNG](images/ghouls-grip-slice-bone.png) |
-| Mechanik, Platte 1 | 4 Arme, Schlitten, Folgejoch, Hubjoch, Ritzel, Deckeltrieb, Scherenrad | 454 | 130,30 g | 6 h 21 min 27 s | [PNG](images/ghouls-grip-slice-mechanism-plate-1.png) |
-| Mechanik, Platte 2 | 3 Zwischenräder, Ausgangszahnrad/D-Welle, 10 kleine und 4 große Pins | 214 | 13,65 g | 59 min 34 s | [PNG](images/ghouls-grip-slice-mechanism-plate-2.png) |
-| Grau | Anatomischer Totenkopf-Drehknopf | 135 | 23,36 g | 1 h 22 min 53 s | [PNG](images/ghouls-grip-slice-accent.png) |
-| **Gesamt** | **39 Druckobjekte / 5 Platten** | – | **599,02 g** | **24 h 59 min 50 s** | – |
+| Schwarz | Leichtbau-Schatulle stehend, gerippter Deckel hochkant; automatische kritische Baumstützen | 645 | 332,91 g | 13 h 10 min 22 s | [PNG](images/ghouls-grip-slice-black-plate-1.png) |
+| Knochenbeige | Unterarm, Handfläche, fünf Finger | 250 | 45,72 g | 3 h 27 min 40 s | [PNG](images/ghouls-grip-slice-bone.png) |
+| Mechanik, Platte 1 | 4 gelochte Arme, offener Schlitten/Plattformrahmen, Zahnstangen und Speichenritzel | 464 | 111,11 g | 4 h 44 min 30 s | [PNG](images/ghouls-grip-slice-mechanism-plate-1.png) |
+| Mechanik, Platte 2 | 3 Zwischenräder, Ausgangszahnrad/D-Welle, 10 kleine und 4 große Pins | 217 | 13,00 g | 1 h 00 min 26 s | [PNG](images/ghouls-grip-slice-mechanism-plate-2.png) |
+| Grau | Anatomischer Totenkopf-Drehknopf | 135 | 23,14 g | 1 h 22 min 13 s | [PNG](images/ghouls-grip-slice-accent.png) |
+| **Gesamt** | **39 Druckobjekte / 5 Platten** | – | **525,88 g** | **23 h 45 min 11 s** | – |
 
 Projektmetadaten:
 
 | Projekt | Zeit | Masse | Länge | Volumen | Platten |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Schwarz | 45.870 s | 385,08 g | 129.110,25 mm | 310.550 mm³ | 1 |
-| Knochenbeige | 12.686 s | 46,63 g | 15.633,52 mm | 37.600 mm³ | 1 |
-| Mechanik | 26.461 s | 143,95 g | 48.264,95 mm | 116.090 mm³ | 2 |
-| Grau | 4.973 s | 23,36 g | 7.832,36 mm | 18.840 mm³ | 1 |
+| Schwarz | 47.422 s | 332,91 g | 111.620,36 mm | 268.480 mm³ | 1 |
+| Knochenbeige | 12.460 s | 45,72 g | 15.329,80 mm | 36.870 mm³ | 1 |
+| Mechanik | 20.696 s | 124,11 g | 41.613,71 mm | 100.090 mm³ | 2 |
+| Grau | 4.933 s | 23,14 g | 7.759,25 mm | 18.660 mm³ | 1 |
 
-Das schwarze Projekt benötigt nun 385,08 g statt 455,96 g vor dieser
-Optimierungsrunde: **70,88 g / 15,5 % weniger**. Gegenüber dem ursprünglichen
-629,66-g-Entwurf beträgt die Einsparung **244,58 g / 38,8 %**. Die Gesamt-BOM
-sinkt von 668,50 g auf 599,02 g und von 31 h 00 min 05 s auf 24 h 59 min 50 s.
-Die vom Benutzer gezeigte GUI-Vorschau enthielt allein für Schatulle und Deckel
-rund 133,7 g Support/Support-Interface. Der finale schwarze G-Code enthält
-unter dem eingebetteten Profil **0 Support-Werkzeugpfade**; wegen der zugleich
-geänderten Geometrie und Projekteinstellungen ist dies kein 1:1-Profilvergleich.
+Das schwarze Projekt benötigt nun 332,91 g statt 455,96 g vor der
+Leichtbau-Runde: **123,05 g / 27,0 % weniger**. Gegenüber dem ursprünglichen
+629,66-g-Entwurf beträgt die Einsparung **296,75 g / 47,1 %**. Die Gesamt-BOM
+sinkt gegenüber dem zuletzt verifizierten Stand von 599,02 g auf 525,88 g
+und von 24 h 59 min 50 s auf 23 h 45 min 11 s.
+
+Wichtig: Das schwarze Projekt wird nicht mehr als „supportfrei“ bezeichnet.
+OrcaSlicer hatte zuvor nur deshalb keine Stützpfade erzeugt, weil Support
+deaktiviert war. Im finalen Projekt sind automatische Baumstützen, 45°-Schwelle
+und `critical regions only` aktiv. Der G-Code enthält tatsächlich
+**74,49 g Support einschließlich Interface**. Diese Zahl stammt aus den
+Support-Extrusionswegen des G-Codes, skaliert mit dessen Gesamtmasse/-länge.
 
 ## Stützen und Objekt-Overrides
 
-- Schatulle/Deckel: 3 Wände, 10 % Gyroid, objektbezogen vollständig
-  stützfrei. Der finale schwarze G-Code enthält weder `Support`- noch
-  `Support interface`-Werkzeugpfade.
-- Mechanik: 5–6 Wände, 40–100 % Infill; Arme, Zahnräder und Pins verstärkt. Normale Stützen sind nur für Plattform, Schlitten, beide Deckelzahnstangen und das lange Ausgangszahnrad/D-Wellen-Teil aktiviert.
+- Schatulle/Deckel: 3 Wände, 10 % Gyroid, automatische kritische Baumstützen;
+  analytischer maximaler Deckel-Brückenspalt 10,0 mm, Schatulle 6,0 mm.
+- Mechanik: 5–6 Wände, modellierte Öffnungen, Rahmen, Rippen und Speichen;
+  20–50 % Infill in den verbleibenden Hohlräumen. Arme und Pins bleiben durch
+  Wandlinien praktisch massiv. Normale Stützen sind nur an den weiterhin
+  kritischen Objekten aktiv.
 - Hand/Knochen: 4 Wände, 25 %; organische Überhänge mit bettgebundenen Baumstützen.
 - Finger: 2 Wände, 15 %, 30 mm/s Außenwand und reduzierte Beschleunigung für die 0,8-mm-PLA-Flexuren.
 - Totenkopfknopf: 5 Wände, 40 %, supportfrei in der gespeicherten Druckorientierung.
 
 ## Aktuelle Support-/Materialoptimierung
 
-- Der Deckel besitzt selbsttragende, etwa 45° geneigte Dächer über den
-  unteren Innenaussparungen und steht beim Druck auf seiner geraden Vorderkante.
-  Die große Dachfläche liegt damit vertikal statt als Stützdecke über dem Bett.
+- Der Deckel besitzt eine 2,4-mm-Deckhaut, offene Unterseiten-Träger,
+  fünf gerippte Längstraversen und fünf kurze hintere Anschlagpads statt eines
+  massiven, 193 mm breiten Querriegels. Er steht auf seiner langen Vorderkante.
 - Schatulle und Deckel passen mit 20 mm Abstand gemeinsam auf eine Platte.
 - Der Sockel und der obere Kranz der Schatulle wurden von horizontalen Stufen
   auf zwei geneigte, selbsttragende Kurse umgebaut. Die Pilasterkapitelle und
   die Unterseiten der Scharnierlager sind ebenfalls geneigt.
-- Die inneren nichttragenden Wandfelder behalten nur noch eine 1,2-mm-
-  Dreilinien-Außenhaut. Das Schatullen-Volumen sank von 315.001 mm³ auf
-  295.062 mm³.
-- Der Deckel bleibt watertight/manifold: 23.816 Facetten, 206 × 129 × 27,5 mm.
+- Die dekorative Schatullenwand und der Boden sind 2,0 mm stark; die
+  3,0-mm-Funktionsdatums an Schienen, Lagern und Führungen bleiben erhalten.
+  Gerundete Außenkanten sowie vertiefte statt aufgesetzte Reliefs wirken
+  organischer und vermeiden zusätzliche massive Zierkörper.
+- Das Schatullen-Volumen sank von 295.062 auf 184.056 mm³
+  (**−37,6 %**), das Deckelvolumen von 252.068 auf 124.903 mm³
+  (**−50,5 %**). Zusammen sind das **−43,5 % Modellvolumen**.
+- Acht überarbeitete Mechanikteile sanken durch offene Rahmen, Fenster und
+  Speichen von 118.567 auf 82.649 mm³ (**−30,3 %**).
+- Der Deckel bleibt ein einzelner watertight/manifold Körper:
+  22.114 Facetten, 206 × 129 × 24 mm.
 - Die Schienen- und Lagerbooleans werden zuerst in der bewährten Kernschale
   erzeugt; die geneigten Zierkurse werden danach kontrolliert angefügt. Dadurch
   bleiben die mechanischen Führungen geschlossen und manifold.
@@ -91,7 +104,7 @@ geänderten Geometrie und Projekteinstellungen ist dies kein 1:1-Profilvergleich
 2. Die interne Führung besitzt eine 1,8-mm-Außenabdeckung; außen bleibt die Kiste geschlossen.
 3. Die Mechanikplatte wurde kompakt in zwei vollständige 250-mm-Platten gepackt. Alle 29 naturweißen Mechanikobjekte sind genau einmal zugeordnet.
 4. Der frühere Hebel, Rastschieber, die Spule, Schlüssel, Bandanker, Seile, Gummibänder und Federn sind entfernt. Der graue Totenkopf dreht direkt die Ritzelwelle.
-5. `scripts/render_ghouls_grip_print_projects.py` rendert die sechs
+5. `scripts/render_ghouls_grip_print_projects.py` rendert die fünf
    farbcodierten Plattenvorschauen direkt aus den ausgelieferten 3MF-Szenen.
    Der im Export verwendete Plattenabstand von 300 mm wird dabei wieder in
    einzelne Druckplatten aufgelöst.
@@ -100,12 +113,12 @@ geänderten Geometrie und Projekteinstellungen ist dies kein 1:1-Profilvergleich
 
 | Datei | SHA-256 |
 | --- | --- |
-| `ghouls-grip-master.3mf` | `4E3EAF7D37C5166D0AE2E59DDCF4AE58B03DB5E789A52356B879D3F1C88EA1E4` |
-| `ghouls-grip-master-retracted.3mf` | `B1655EF1455E499D4E05596501FE5939E38045BF58E61F4B50C56855FD9FA073` |
-| `ghouls-grip-print-black-pla.3mf` | `1F125B35A8159DEBA431B817C3BC7A3B2FE468AAB61248F9753C56B3D77BACAC` |
-| `ghouls-grip-print-bone-pla.3mf` | `2030CBFE7B10C5730D167E84BC916F95C8F05AD1BFAD848F6DDA4077CAEBC8E8` |
-| `ghouls-grip-print-mechanism-pla.3mf` | `75F236E91EA1124ECFC19373932F137AA57F8BE94A1712641695C1975875944E` |
-| `ghouls-grip-print-accent-pla.3mf` | `B14E3645E8E6C52287FECE87954670670E0BAC706F7328F8F304B16A99F9F784` |
+| `ghouls-grip-master.3mf` | `8BDA068705130408D9A91B6AABF8AF1AE575472CB5A1F3AD9F74C0815C7B76B5` |
+| `ghouls-grip-master-retracted.3mf` | `905067CECDFA3E5DDB6CF00E15F4CD3330636D0CF336590BA7260929F32776F1` |
+| `ghouls-grip-print-black-pla.3mf` | `5DBD4F49BDE80D10FDCAA41947862FD63827E318532E97D2FD8395489BA2DAF5` |
+| `ghouls-grip-print-bone-pla.3mf` | `95E424893539C2F9D2AAD413214473E2F68BB06D82E800A66842C6821ECF8613` |
+| `ghouls-grip-print-mechanism-pla.3mf` | `51478FAC1719AB7FB046616012DFEC29D6075A15809737D38AE457578064CDA0` |
+| `ghouls-grip-print-accent-pla.3mf` | `03556A2356C72CEAB3E4491530B20DEA5D7E58D42DE23F058FDB7C8B8496FD49` |
 
 ## Physische Restrisiken
 

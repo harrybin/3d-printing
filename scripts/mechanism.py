@@ -196,9 +196,32 @@ def lid_angle(theta: float) -> float:
 
 
 def _spur_gear(root_r: float, tooth_h: float, teeth: int,
-               width: float) -> trimesh.Trimesh:
+               width: float, hub_r: float | None = None,
+               rim: float = 2.4, spokes: int = 6) -> trimesh.Trimesh:
     """Printable coarse spur gear with rectangular FDM-safe teeth."""
-    parts = [cylinder(root_r, width, (0.0, 0.0, width / 2.0))]
+    blank = cylinder(root_r, width, (0.0, 0.0, width / 2.0))
+    parts = []
+    if hub_r is None:
+        parts.append(blank)
+    else:
+        inner_r = root_r - rim
+        parts.extend([
+            difference(blank, [
+                cylinder(inner_r, width + 2.0,
+                         (0.0, 0.0, width / 2.0))
+            ]),
+            cylinder(hub_r, width, (0.0, 0.0, width / 2.0)),
+        ])
+        spoke_length = inner_r - hub_r + 0.8
+        for index in range(spokes):
+            spoke = box(
+                (spoke_length, 2.4, width),
+                ((inner_r + hub_r) / 2.0, 0.0, width / 2.0),
+            )
+            spoke.apply_transform(trimesh.transformations.rotation_matrix(
+                2.0 * np.pi * index / spokes, (0.0, 0.0, 1.0)
+            ))
+            parts.append(spoke)
     tooth_w = 0.32 * 2.0 * np.pi * (root_r + tooth_h / 2.0) / teeth
     tooth_l = tooth_h + 0.4
     for index in range(teeth):
@@ -264,7 +287,12 @@ def build_scissor_arm() -> trimesh.Trimesh:
         cylinder(3.2 / 2.0, ARM_T + 4.0, (x, 0.0, ARM_T / 2.0))
         for x in (-ARM_L / 2.0 + 8.0, ARM_L / 2.0 - 8.0)
     ]
-    body = difference(body, bores)
+    lightening = [
+        rounded_box((18.0, 5.6, ARM_T + 2.0), 2.4,
+                    (sx * 14.0, 0.0, ARM_T / 2.0))
+        for sx in (-1.0, 1.0)
+    ]
+    body = difference(body, [*bores, *lightening])
     return clean(body)
 
 
@@ -275,7 +303,20 @@ def build_slider() -> trimesh.Trimesh:
     # The carriage is asymmetric around its pivot. Its short rear overhang and
     # forward band hooks preserve positive clearance to the fixed posts at the
     # compact 78 degree deployed stop.
-    body = box((30.0, span, 10.0), (7.0, 0.0, RAIL_Z + 3.0))
+    frame_z = RAIL_Z + 3.0
+    frame_wall = 4.0
+    body = union([
+        box((30.0, frame_wall, 10.0),
+            (7.0, sy * (span - frame_wall) / 2.0, frame_z))
+        for sy in (-1.0, 1.0)
+    ] + [
+        box((frame_wall, span - 2.0 * frame_wall, 10.0),
+            (7.0 + sx * (30.0 - frame_wall) / 2.0, 0.0, frame_z))
+        for sx in (-1.0, 1.0)
+    ] + [
+        box((5.0, span - 2.0 * frame_wall, 10.0),
+            (0.0, 0.0, frame_z))
+    ])
 
     tongues = [box((30.0, 2.0 * (RAIL_D - 0.4), RAIL_W - 0.4),
                    (7.0, sy * inner, RAIL_Z + RAIL_W / 2.0))
@@ -286,6 +327,10 @@ def build_slider() -> trimesh.Trimesh:
             for sy in (-1.0, 1.0)]
 
     rack_bar = box((80.0, 8.0, 5.0), (-32.0, -50.0, 15.5))
+    rack_bar = difference(rack_bar, [
+        box((8.0, 4.8, 3.8), (x, -50.0, 14.4))
+        for x in np.arange(-65.0, 2.0, 11.0)
+    ])
     rack_teeth = _rack_teeth(
         np.arange(-70.0, 8.1, GEAR_PITCH), -50.0, 18.0
     )
@@ -319,8 +364,15 @@ def build_platform() -> trimesh.Trimesh:
         for sy in (-1.0, 1.0)
     ]
     # The forearm hinge is at the free end, outside the stowed palm envelope.
-    hinge_bridge = box((18.0, 86.0, PLATFORM_T),
-                       (ARM_HINGE_X, 0.0, PLATFORM_T / 2.0))
+    hinge_bridge = union([
+        box((4.0, 86.0, PLATFORM_T),
+            (ARM_HINGE_X + sx * 7.0, 0.0, PLATFORM_T / 2.0))
+        for sx in (-1.0, 1.0)
+    ] + [
+        box((18.0, 5.0, PLATFORM_T),
+            (ARM_HINGE_X, y, PLATFORM_T / 2.0))
+        for y in (-40.5, -14.0, 0.0, 14.0, 40.5)
+    ])
 
     pins = [_lug(PIVOT_D, 16.0, ARM_T + 2.0 * FIT + 2.0,
                  (PLATFORM_PIN_X, sy * SCISSOR_Y, -8.0))
@@ -362,9 +414,11 @@ def build_platform() -> trimesh.Trimesh:
     ]
 
     hinge_gussets = [
-        box((18.0, 8.0, ARM_HINGE_Z - 13.0),
-            (ARM_HINGE_X, sy * ARM_EAR_Y, (ARM_HINGE_Z - 13.0) / 2.0))
+        box((3.2, 8.0, ARM_HINGE_Z - 13.0),
+            (ARM_HINGE_X + dx, sy * ARM_EAR_Y,
+             (ARM_HINGE_Z - 13.0) / 2.0))
         for sy in (-1.0, 1.0)
+        for dx in (-6.4, 0.0, 6.4)
     ]
     body = union([*side_rails, *pivot_links, hinge_bridge,
                   *pins, *slots, *arm_ears, *idler_posts,
@@ -400,7 +454,10 @@ def build_platform() -> trimesh.Trimesh:
 
 def build_drive_pinion() -> trimesh.Trimesh:
     """Main pinion with an integral bearing shaft through the front wall."""
-    gear = _spur_gear(DRIVE_ROOT_R, GEAR_TOOTH_H, DRIVE_TEETH, 8.0)
+    gear = _spur_gear(
+        DRIVE_ROOT_R, GEAR_TOOTH_H, DRIVE_TEETH, 8.0,
+        hub_r=7.2, rim=3.0,
+    )
     shaft = cylinder(DRIVE_SHAFT_D / 2.0, 24.0, (0.0, 0.0, 12.0))
     collar = cylinder(7.0, 3.0, (0.0, 0.0, 9.5))
     return clean(union([gear, shaft, collar]))
@@ -409,6 +466,10 @@ def build_drive_pinion() -> trimesh.Trimesh:
 def build_lid_rack() -> trimesh.Trimesh:
     """Main vertical rack with a downward lost-motion slot for the lid."""
     spine = box((67.0, 8.0, 5.0), (6.5, 0.0, 0.0))
+    spine = difference(spine, [
+        box((8.4, 5.6, 7.0), (x, 0.0, 0.0))
+        for x in np.arange(-20.0, 34.0, 10.0)
+    ])
     teeth = [
         box((2.1, 7.0, GEAR_TOOTH_H),
             (x, 0.0, -(5.0 + GEAR_TOOTH_H) / 2.0))
@@ -438,6 +499,10 @@ def build_lid_follower_rack() -> trimesh.Trimesh:
         (6.0, LID_YOKE_SPAN + 5.0, 6.0),
         (-20.0, LID_YOKE_SPAN / 2.0, 0.0),
     )
+    connector = difference(connector, [
+        box((2.8, 9.0, 8.0), (-20.0, y, 0.0))
+        for y in np.arange(8.0, LID_YOKE_SPAN - 4.0, 12.0)
+    ])
     rear_link = box((24.0, 5.0, 6.0), (-10.0, LID_YOKE_SPAN, 0.0))
     pin = cylinder(3.0, 14.0, (-20.0, 0.0, 0.0))
     return clean(union([rear_spine, connector, rear_link, pin, *teeth]))
@@ -461,6 +526,7 @@ def build_scissor_drive_gear() -> trimesh.Trimesh:
         GEAR_TOOTH_H,
         FOREARM_INPUT_TEETH,
         6.0,
+        hub_r=4.2,
     )
     gear.apply_transform(trimesh.transformations.rotation_matrix(
         np.deg2rad(FOREARM_INPUT_TOOTH_PHASE), (0.0, 0.0, 1.0)
@@ -496,6 +562,7 @@ def build_forearm_output_gear() -> trimesh.Trimesh:
         GEAR_TOOTH_H,
         FOREARM_OUTPUT_TEETH,
         6.0,
+        hub_r=4.6,
     )
     gear.apply_transform(trimesh.transformations.rotation_matrix(
         np.deg2rad(FOREARM_OUTPUT_TOOTH_PHASE), (0.0, 0.0, 1.0)

@@ -28,7 +28,8 @@ Die Finger sind vorgekrümmte PLA-Flexuren. Sie werden nicht aktiv bewegt; beim 
 | Geschlossene Zielgröße | 200 × 120 × 110 mm |
 | Gehäuse inklusive Dekor | 209,2 × 131,4 × 98,0 mm |
 | Deckel | 206,0 × 129,0 × 27,5 mm |
-| Wand/Boden | 3,0 mm |
+| Dekorative Außenwand/Boden | 2,0 mm |
+| Funktionsdatum an Schienen, Lagern und Führungen | 3,0 mm |
 | Innenraum | 194 × 114 × 80 mm |
 | Scherenarm | 72 mm Pivotabstand, 12 × 4 mm |
 | Scherenbohrung | 3,2 mm |
@@ -116,7 +117,7 @@ erhalten, weil sie die einzelnen Knochen druckbar verbinden.
 - `models/ghouls-grip-master.3mf` – ausgefahrene Montageansicht.
 - `models/ghouls-grip-master-retracted.3mf` – geschlossene Einbaukontrolle.
 - `models/ghouls-grip-preview.stl` – Canvas-Vorschau.
-- `models/ghouls-grip-print-black-pla.3mf` – Schatulle stehend und Deckel hochkant, gemeinsam auf einer stützfreien Platte.
+- `models/ghouls-grip-print-black-pla.3mf` – Schatulle stehend und Deckel hochkant, gemeinsam auf einer Platte; automatische kritische Baumstützen bleiben aktiviert und sind im Druckbericht quantifiziert.
 - `models/ghouls-grip-print-bone-pla.3mf` – Unterarm, Hand und Finger, eine Platte.
 - `models/ghouls-grip-print-mechanism-pla.3mf` – starre Mechanik, zwei Platten.
 - `models/ghouls-grip-print-accent-pla.3mf` – Totenkopf-Drehknopf, eine Platte.

@@ -66,6 +66,12 @@ export const APP_HTML = `
     <button type="button" id="measureClear" title="Clear selected features (Esc)">Clear</button>
   </div>
 </div>
+<section id="printSummary" class="print-summary" aria-label="Print project summary" hidden>
+  <div class="print-card"><span>Print time</span><strong id="summaryPrintTime">—</strong></div>
+  <div class="print-card"><span>Material usage</span><strong id="summaryMaterial">—</strong></div>
+  <div class="print-card"><span>Filament length</span><strong id="summaryLength">—</strong></div>
+  <div class="print-card"><span>Validation</span><strong id="summaryStatus">—</strong></div>
+</section>
 <div class="viewer-container">
   <canvas id="view"></canvas>
   <div id="info" hidden></div>
@@ -83,6 +89,44 @@ export function createOrcaSlicerOpenUrl(file, accessibleUrl, baseUrl = globalThi
     return `orcaslicer://open/?file=${encodeURIComponent(url.href)}`
   } catch {
     return ''
+  }
+}
+
+export function formatPrintMetadataSummary(projectMetadata = {}) {
+  const metadataValue = (key, fallback = 'not available') => {
+    const value = projectMetadata[key]
+    return value && value !== 'unknown' ? value : fallback
+  }
+  const metadataWithUnit = (key, unit) => {
+    const value = metadataValue(key)
+    return value === 'not available' ? value : `${value} ${unit}`
+  }
+  const seconds = Number(projectMetadata.estimatedPrintTimeSeconds)
+  let printTime = 'not available'
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.round((seconds % 3600) / 60)
+    printTime = hours ? `${hours} h ${minutes} min` : `${minutes} min`
+  }
+  const grams = metadataWithUnit('filamentUsageGrams', 'g')
+  const material = metadataValue('materialType', '')
+  return {
+    visible: Object.keys(projectMetadata).length > 0,
+    printTime,
+    materialUsage: grams === 'not available' ? grams : `${grams}${material ? ` ${material}` : ''}`,
+    filamentLength: metadataWithUnit('filamentUsageMillimeters', 'mm'),
+    status: metadataValue('status'),
+  }
+}
+
+export function createOrcaLaunchRequest(url, modelPath, nonce) {
+  return {
+    url,
+    options: {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ modelPath, nonce }),
+    },
   }
 }
 
@@ -146,6 +190,8 @@ const viewApiUrl = options.viewApiUrl || '/api/view'
 const modelsApiUrl = options.modelsApiUrl || '/api/models'
 const modelApiUrl = options.modelApiUrl || '/api/model'
 const modelDownloadApiUrl = options.modelDownloadApiUrl || '/api/model-file'
+const openInOrcaApiUrl = options.openInOrcaApiUrl || ''
+const openInOrcaNonce = options.openInOrcaNonce || ''
 const pollIntervalMs = Number.isFinite(options.pollIntervalMs) ? options.pollIntervalMs : 1500
 const maxPixelRatio = Number.isFinite(options.maxPixelRatio) ? Math.max(0.5, options.maxPixelRatio) : Number.POSITIVE_INFINITY
 const repository = options.repository && typeof options.repository === 'object' ? options.repository : {}
@@ -835,12 +881,16 @@ const orcaField = document.getElementById('orcaField');
 const openInOrcaBtn = document.getElementById('openInOrcaBtn');
 const orcaStatus = document.getElementById('orcaStatus');
 let orcaStatusTimer = null;
-function updateOrcaAction(file = '') {
+function updateOrcaAction(file = '', modelPath = '') {
   const source = file ? modelSource(file) : null
   const openUrl = createOrcaSlicerOpenUrl(file, source?.downloadUrl || '', window.location.href)
-  orcaField.hidden = !openUrl
-  openInOrcaBtn.disabled = !openUrl
+  const canOpenLocally = runtimeMode === 'extension' && /\.3mf$/i.test(String(file || '').trim()) &&
+    Boolean(openInOrcaApiUrl) && Boolean(openInOrcaNonce)
+  orcaField.hidden = !openUrl && !canOpenLocally
+  openInOrcaBtn.disabled = !openUrl && !canOpenLocally
   openInOrcaBtn.dataset.openUrl = openUrl
+  openInOrcaBtn.dataset.file = file
+  openInOrcaBtn.dataset.modelPath = modelPath
   clearTimeout(orcaStatusTimer)
   orcaStatus.hidden = true
   orcaStatus.textContent = ''
@@ -963,6 +1013,7 @@ function renderModelMeta() {
   const stats = plate?.stats || loadedModelInfo.stats
   const bounds = stats?.bounds
   const projectMetadata = loadedModelInfo.projectMetadata || {}
+  const printSummaryValues = formatPrintMetadataSummary(projectMetadata)
   const metadataValue = (key, fallback = 'not available') => {
     const value = projectMetadata[key]
     return value && value !== 'unknown' ? value : fallback
@@ -971,16 +1022,9 @@ function renderModelMeta() {
     const value = metadataValue(key)
     return value === 'not available' ? value : `${value} ${unit}`
   }
-  const formatPrintTime = () => {
-    const seconds = Number(projectMetadata.estimatedPrintTimeSeconds)
-    if (!Number.isFinite(seconds) || seconds < 0) return 'not available'
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.round((seconds % 3600) / 60)
-    return hours ? `${hours} h ${minutes} min` : `${minutes} min`
-  }
   const printFields = [
     ['Status', metadataValue('status')],
-    ['Print time', formatPrintTime()],
+    ['Print time', printSummaryValues.printTime],
     ['Filament', metadataWithUnit('filamentUsageGrams', 'g')],
     ['Filament length', metadataWithUnit('filamentUsageMillimeters', 'mm')],
     ['Filament volume', metadataWithUnit('filamentUsageCubicMillimeters', 'mm³')],
@@ -997,6 +1041,14 @@ function renderModelMeta() {
     ['Supports', metadataValue('supportPolicy')],
     ['Plates', metadataValue('plateCount')],
   ]
+  const printSummary = document.getElementById('printSummary')
+  printSummary.hidden = !printSummaryValues.visible
+  if (printSummaryValues.visible) {
+    document.getElementById('summaryPrintTime').textContent = printSummaryValues.printTime
+    document.getElementById('summaryMaterial').textContent = printSummaryValues.materialUsage
+    document.getElementById('summaryLength').textContent = printSummaryValues.filamentLength
+    document.getElementById('summaryStatus').textContent = printSummaryValues.status
+  }
   const meta = document.getElementById('meta')
   meta.innerHTML = '<span><strong>File:</strong> ' + escapeHtml(loadedModelInfo.path) + '</span>' +
     (loadedModelInfo.source ? '<span><strong>Source:</strong> ' + escapeHtml(loadedModelInfo.source) + '</span>' : '') +
@@ -1356,6 +1408,7 @@ function loadModel(file, preserveView) {
         source: data.source || '',
         stats: s,
         projectMetadata: data.projectMetadata || {},
+        modelPath: data.modelPath || '',
       }
       triangles = []
       loadedTriangles = []
@@ -1377,7 +1430,7 @@ function loadModel(file, preserveView) {
       currentMtime = data.mtime || ''
       if (!preserveView) applySavedOrFit()
       draw()
-      updateOrcaAction(file)
+      updateOrcaAction(file, loadedModelInfo.modelPath)
       emitModelChange(file)
       return true
     })
@@ -2040,18 +2093,34 @@ reloadBtn.addEventListener('click', () => {
   const selected = fileChooser.value || currentFile
   if (selected) loadModel(selected, false)
 })
-openInOrcaBtn.addEventListener('click', () => {
+openInOrcaBtn.addEventListener('click', async () => {
   const openUrl = openInOrcaBtn.dataset.openUrl || ''
-  if (!openUrl) return
+  const file = openInOrcaBtn.dataset.file || ''
+  const modelPath = openInOrcaBtn.dataset.modelPath || ''
+  if (!openUrl && !modelPath) return
   openInOrcaBtn.disabled = true
   orcaStatus.textContent = 'Opening OrcaSlicer…'
   orcaStatus.hidden = false
+  clearTimeout(orcaStatusTimer)
+  if (runtimeMode === 'extension' && openInOrcaApiUrl && openInOrcaNonce && modelPath) {
+    try {
+      const request = createOrcaLaunchRequest(openInOrcaApiUrl, modelPath, openInOrcaNonce)
+      const response = await fetch(request.url, request.options)
+      const result = await response.json()
+      if (!response.ok || !result.ok) throw new Error(result.error || 'OrcaSlicer launch failed')
+      orcaStatus.textContent = 'Opened in OrcaSlicer.'
+    } catch (error) {
+      orcaStatus.textContent = `Could not open OrcaSlicer: ${error}`
+    } finally {
+      openInOrcaBtn.disabled = false
+    }
+    return
+  }
   try {
     window.location.assign(openUrl)
   } catch {
     orcaStatus.textContent = 'Could not launch OrcaSlicer. Download the 3MF and open it manually.'
   }
-  clearTimeout(orcaStatusTimer)
   orcaStatusTimer = setTimeout(() => {
     openInOrcaBtn.disabled = false
     orcaStatus.textContent = 'If nothing opened, install OrcaSlicer or register the orcaslicer:// protocol.'

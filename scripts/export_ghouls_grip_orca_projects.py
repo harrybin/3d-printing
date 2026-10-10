@@ -36,9 +36,14 @@ MATERIAL_PROJECTS = {
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         # Economy shell: the 3 mm source walls still retain a durable
         # 1.2 mm perimeter envelope. Lower infill limits cosmetic mass; the
-        # rebuilt slopes and vertical lid orientation allow support to stay off.
+        # rebuilt slopes, short explicit bridges and vertical lid orientation
+        # are verified with automatic tree support enabled. Zero generated
+        # support is therefore a slicer result, not a forced setting.
         "wall_loops": "3", "infill": "10%", "speed": "standard",
-        "filament_type": "PLA", "support": "none",
+        "filament_type": "PLA", "support": "tree",
+        "support_threshold_angle": "45",
+        "support_critical_regions_only": True,
+        "bridge_no_support": True,
         "manual_gap": 20.0,
         "object_overrides": True,
         "plate_row_pitch": 250.0,
@@ -77,34 +82,32 @@ MATERIAL_PROJECTS = {
 OBJECT_OVERRIDES = {
     "chest": {
         "wall_loops": "3", "sparse_infill_density": "10%",
-        "enable_support": "0",
     },
     "lid": {
         "wall_loops": "3", "sparse_infill_density": "10%",
-        "enable_support": "0",
     },
     "scissor-arm": {
         "wall_loops": "5", "sparse_infill_density": "100%",
         "enable_support": "0",
     },
     "slider": {
-        "wall_loops": "5", "sparse_infill_density": "40%",
+        "wall_loops": "5", "sparse_infill_density": "25%",
         "enable_support": "1",
     },
     "platform": {
-        "wall_loops": "5", "sparse_infill_density": "40%",
+        "wall_loops": "5", "sparse_infill_density": "20%",
         "enable_support": "1",
     },
     "drive-pinion": {
-        "wall_loops": "5", "sparse_infill_density": "50%",
+        "wall_loops": "5", "sparse_infill_density": "30%",
         "enable_support": "0",
     },
     "lid-rack": {
-        "wall_loops": "5", "sparse_infill_density": "50%",
+        "wall_loops": "5", "sparse_infill_density": "25%",
         "enable_support": "1",
     },
     "lid-follower-rack": {
-        "wall_loops": "5", "sparse_infill_density": "50%",
+        "wall_loops": "5", "sparse_infill_density": "25%",
         "enable_support": "1",
     },
     "lid-crank": {
@@ -112,7 +115,7 @@ OBJECT_OVERRIDES = {
         "enable_support": "0",
     },
     "scissor-drive-gear": {
-        "wall_loops": "5", "sparse_infill_density": "100%",
+        "wall_loops": "5", "sparse_infill_density": "50%",
         "enable_support": "0",
     },
     "idler-gear": {
@@ -120,7 +123,7 @@ OBJECT_OVERRIDES = {
         "enable_support": "0",
     },
     "forearm-output-gear": {
-        "wall_loops": "6", "sparse_infill_density": "100%",
+        "wall_loops": "6", "sparse_infill_density": "50%",
         "enable_support": "1",
     },
     "pivot-pin-3": {
@@ -188,6 +191,8 @@ def _process_settings(spec: dict) -> dict:
         })
     if spec.get("support_critical_regions_only"):
         data["support_critical_regions_only"] = "1"
+    if spec.get("bridge_no_support"):
+        data["bridge_no_support"] = "1"
     if spec["speed"] == "mechanism":
         data.update({
             "outer_wall_speed": "120", "inner_wall_speed": "180",

@@ -2,10 +2,13 @@ import { createServer } from "node:http";
 import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, statSync } from "node:fs";
 import { resolve, join, dirname } from "node:path";
 import { homedir } from "node:os";
+import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { inflateRawSync } from "node:zlib";
 import { joinSession, createCanvas, CanvasError } from "@github/copilot-sdk/extension";
 import { compose3mfTransforms, transform3mfPoint as apply3mfTransform } from "./viewer-app.mjs";
+import { launchOrcaSlicer, validateOrcaModelPath } from "./orca-launcher.mjs";
+import { createModelApiPayload, handleOrcaOpenRequest } from "./canvas-server-helpers.mjs";
 
 const extensionDir = dirname(fileURLToPath(import.meta.url));
 const viewerAppPath = join(extensionDir, "viewer-app.mjs");
@@ -451,7 +454,7 @@ function escapeHtml(value) {
         .replace(/"/g, "&quot;");
 }
 
-function renderHtml(title, defaultFile) {
+function renderHtml(title, defaultFile, openInOrcaNonce) {
     const config = escapeJsonForScript(JSON.stringify({
         dataSource: "extension",
         defaultModelFile: defaultFile,
@@ -459,6 +462,8 @@ function renderHtml(title, defaultFile) {
         modelsApiUrl: "/api/models",
         modelApiUrl: "/api/model",
         modelDownloadApiUrl: "/api/model-file",
+        openInOrcaApiUrl: "/api/open-in-orca",
+        openInOrcaNonce,
     }));
     return `<!doctype html>
 <html>
@@ -480,7 +485,8 @@ function renderHtml(title, defaultFile) {
 
 async function startServer(modelPath) {
     const instanceDefaultFile = modelPath.split(/[\\/]/).pop();
-    const server = createServer((req, res) => {
+    const openInOrcaNonce = randomBytes(32).toString("hex");
+    const server = createServer(async (req, res) => {
         const url = new URL(req.url || '/', 'http://127.0.0.1');
         if (url.pathname === '/viewer-app.mjs') {
             try {
@@ -549,6 +555,21 @@ async function startServer(modelPath) {
             }
             return;
         }
+        if (url.pathname === "/api/open-in-orca") {
+            if (req.method !== "POST") {
+                res.statusCode = 405;
+                res.setHeader("Allow", "POST");
+                res.end("Method not allowed");
+                return;
+            }
+            await handleOrcaOpenRequest(req, res, {
+                defaultModelPath: modelPath,
+                expectedNonce: openInOrcaNonce,
+                validate: (requestedPath) => validateOrcaModelPath(requestedPath, process.cwd()),
+                launch: launchOrcaSlicer,
+            });
+            return;
+        }
         if (req.url && req.url.startsWith("/api/model")) {
             try {
                 const url = new URL(req.url, "http://127.0.0.1");
@@ -560,20 +581,13 @@ async function startServer(modelPath) {
                 const content = parsed.format === "ascii" ? raw.toString("utf8") : "";
                 res.setHeader("Content-Type", "application/json; charset=utf-8");
                 res.setHeader("Cache-Control", "no-store");
-                res.end(JSON.stringify({
-                    path: requested,
-                    stats: {
-                        ...parsed,
-                        triangles: undefined,
-                        triangleColors: undefined,
-                        plates: undefined,
-                    },
-                    triangles: parsed.triangles || [],
-                    triangleColors: parsed.triangleColors || [],
-                    plates: parsed.plates || [],
+                res.end(JSON.stringify(createModelApiPayload({
+                    requested,
+                    resolved,
+                    parsed,
                     content,
                     mtime: fileVersion(requested),
-                }));
+                })));
                 return;
             } catch (err) {
                 res.statusCode = 500;
@@ -583,7 +597,7 @@ async function startServer(modelPath) {
             }
         }
         res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.end(renderHtml("STL Canvas", instanceDefaultFile));
+        res.end(renderHtml("STL Canvas", instanceDefaultFile, openInOrcaNonce));
     });
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();

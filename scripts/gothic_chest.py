@@ -6,8 +6,8 @@ panels and lancet tracery built from annulus sectors, because a pointed arch
 cannot be hulled from two circles. Every relief stands at least 1.2 mm proud,
 well above the 0.4 mm a 0.4 mm nozzle can resolve.
 
-The chest prints upright and the lid prints face down, so no decorated surface
-is ever a bridge.
+The chest prints upright and the lid prints on its long front edge. Decorative
+features are shallow rounded engravings rather than unsupported raised shelves.
 """
 
 from __future__ import annotations
@@ -24,8 +24,9 @@ CHEST_L = 200.0
 CHEST_W = 120.0
 BODY_H = 86.0
 LID_H = 24.0
-WALL = 3.0
-FLOOR = 3.0
+WALL = 2.0
+FLOOR = 2.0
+FUNCTIONAL_WALL_DATUM = 3.0
 
 PLINTH_H = 10.0
 CORNICE_H = 8.0
@@ -34,6 +35,7 @@ PILASTER = 19.0
 PANEL_DEPTH = 2.5
 RELIEF = 2.6
 ECONOMY_SKIN = 1.2    # three-line visual shell behind internal lightening pockets
+ENGRAVING_DEPTH = 0.8
 
 RAIL_W = 4.0           # slider rail groove, as specified in the brief
 RAIL_D = 3.0
@@ -165,10 +167,10 @@ def _lancet(width: float, height: float, depth: float,
     inlay_centre[axis] -= np.sign(inlay_centre[axis]) * 0.35
     if normal_x:
         return [arch]
-    return [union([
+    return [
         arch,
         _lancet_inlay(width, height, depth, inlay_centre, normal_x),
-    ])]
+    ]
 
 
 def _frame(size, centre, normal_x: bool, proud: float,
@@ -331,22 +333,29 @@ def _scroll_pair(depth: float) -> trimesh.Trimesh:
     return union(parts)
 
 
-def _front_scrollwork(z: float) -> list[trimesh.Trimesh]:
-    depth = RELIEF + 1.5
+def _seat_wall_cutter(mesh: trimesh.Trimesh, face: float, sign: float,
+                      normal_x: bool) -> trimesh.Trimesh:
+    """Seat a shallow engraving across an exterior wall surface."""
+    result = mesh.copy()
+    axis = 0 if normal_x else 1
+    outer = sign * face
+    if sign > 0:
+        shift = outer + 0.2 - result.bounds[1, axis]
+    else:
+        shift = outer - 0.2 - result.bounds[0, axis]
+    translation = np.zeros(3)
+    translation[axis] = shift
+    result.apply_translation(translation)
+    return result
+
+
+def _front_scrollwork(z: float) -> trimesh.Trimesh:
+    depth = ENGRAVING_DEPTH + 0.4
     motif = _scroll_pair(depth)
-    # Local Y becomes world Z and local Z becomes -world Y.
     motif.apply_transform(trimesh.transformations.rotation_matrix(
         np.pi / 2.0, (1.0, 0.0, 0.0)))
-    motif.apply_translation([0.0,
-                             -CHEST_W / 2.0 - (RELIEF - 1.5) / 2.0,
-                             z])
-    # A shallow plaque gives every thorn and leaf a robust common root instead
-    # of relying on coincident contacts between many small relief islands.
-    backing = box(
-        (142.0, 3.0, 56.0),
-        (0.0, -CHEST_W / 2.0 + 0.2, 46.0),
-    )
-    return [union([backing, motif])]
+    motif.apply_translation([0.0, 0.0, z])
+    return _seat_wall_cutter(motif, CHEST_W / 2.0, -1.0, False)
 
 
 def _lancet_inlay(width: float, height: float, depth: float,
@@ -416,29 +425,48 @@ def _wall_decoration(length: float, x_sign: float, y_sign: float,
     panel_z = PLINTH_H + 8.0 + panel_h / 2.0
     field = length - 2 * PILASTER - 10.0
 
-    adds = []
-    # Decoration is sunk 1.5 mm into the wall so the union has real overlap
-    # instead of a tangential knife edge.
-    frame_plane = face + (PANEL_DEPTH - 1.5) / 2.0
-    centre = ((sign * frame_plane, 0.0, panel_z) if normal_x
-              else (0.0, sign * frame_plane, panel_z))
-    adds.append(_frame((field, panel_h), centre, normal_x, PANEL_DEPTH + 1.5))
+    cuts = []
+    centre = ((0.0, 0.0, panel_z) if normal_x
+              else (0.0, 0.0, panel_z))
+    cuts.append(_seat_wall_cutter(
+        _frame(
+            (field, panel_h),
+            centre,
+            normal_x,
+            ENGRAVING_DEPTH + 0.4,
+            band=5.0,
+        ),
+        face,
+        sign,
+        normal_x,
+    ))
 
     pitch = field / arch_count
     arch_w = min(pitch - 10.0, 36.0)
     arch_h = panel_h - 10.0
-    plane = face + (RELIEF - 1.5) / 2.0
     for i in range(arch_count):
         if skip_middle and i == arch_count // 2:
             continue      # the skull trigger sits in the middle bay
         offset = (i - (arch_count - 1) / 2.0) * pitch
         base = panel_z - arch_h / 2.0
         if normal_x:
-            spot = (sign * plane, offset, base)
+            spot = (0.0, offset, base)
         else:
-            spot = (offset, sign * plane, base)
-        adds += _lancet(arch_w, arch_h, RELIEF + 1.5, spot, normal_x)
-    return [], adds
+            spot = (offset, 0.0, base)
+        for lancet in _lancet(
+            arch_w,
+            arch_h,
+            ENGRAVING_DEPTH + 0.4,
+            spot,
+            normal_x,
+        ):
+            cuts.append(_seat_wall_cutter(
+                lancet,
+                face,
+                sign,
+                normal_x,
+            ))
+    return cuts, []
 
 
 def _wall_lightening_pockets() -> list[trimesh.Trimesh]:
@@ -479,7 +507,11 @@ def _wall_lightening_pockets() -> list[trimesh.Trimesh]:
 
 def build_chest() -> trimesh.Trimesh:
     """Open-topped gothic chest with internal rails and control bores."""
-    shell = box((CHEST_L, CHEST_W, BODY_H), (0.0, 0.0, BODY_H / 2.0))
+    shell = rounded_box(
+        (CHEST_L, CHEST_W, BODY_H),
+        6.0,
+        (0.0, 0.0, BODY_H / 2.0),
+    )
     cavity = box((CHEST_L - 2 * WALL, CHEST_W - 2 * WALL, BODY_H),
                  (0.0, 0.0, FLOOR + BODY_H / 2.0))
 
@@ -489,16 +521,19 @@ def build_chest() -> trimesh.Trimesh:
         for sy in (-1.0, 1.0):
             cx = sx * (CHEST_L / 2.0 - PILASTER / 2.0 + PROUD)
             cy = sy * (CHEST_W / 2.0 - PILASTER / 2.0 + PROUD)
-            pilasters.append(box((PILASTER, PILASTER, shaft_h),
-                                 (cx, cy, PLINTH_H + shaft_h / 2.0)))
+            pilasters.append(rounded_box(
+                (PILASTER, PILASTER, shaft_h),
+                2.8,
+                (cx, cy, PLINTH_H + shaft_h / 2.0),
+            ))
             # Tapered base and capital preserve the column silhouette without
             # horizontal 1.5 mm ledges that trigger full-height tree supports.
             pilasters.extend([
                 _rect_frustum(
                     (PILASTER + 3.0, PILASTER + 3.0),
                     (PILASTER, PILASTER),
+                    0.0,
                     PLINTH_H,
-                    PLINTH_H + 6.0,
                     (cx, cy),
                 ),
                 _rect_frustum(
@@ -511,7 +546,7 @@ def build_chest() -> trimesh.Trimesh:
             ])
 
     cuts, adds = _wall_lightening_pockets(), []
-    front_plaque = _front_scrollwork(40.0)[0]
+    cuts.append(_front_scrollwork(40.0))
     for normal_x, sign, length, count, skip in ((False, 1.0, CHEST_L, 3, False),
                                                 (True, -1.0, CHEST_W, 2, False),
                                                 (True, 1.0, CHEST_W, 2, False)):
@@ -522,18 +557,30 @@ def build_chest() -> trimesh.Trimesh:
     # The concept art is dominated by raised acanthus scrolls.  Lancet arches
     # alone read as plain architecture, so a deep paired curl frames the skull
     # trigger on the front while preserving the 3 mm structural wall.
-    rivets = []
+    rivet_dimples = []
     for sign in (-1.0, 1.0):
         for x in np.arange(-CHEST_L / 2.0 + 16.0, CHEST_L / 2.0 - 10.0, 24.0):
             for z in (PLINTH_H - 4.0, BODY_H - CORNICE_H + 4.0):
-                rivets.append(sphere(2.4, (x, sign * (CHEST_W / 2.0 + PROUD - 1.0), z),
-                                     subdivisions=2))
+                rivet_dimples.append(sphere(
+                    2.4,
+                    (
+                        x,
+                        sign * (CHEST_W / 2.0 + 1.8),
+                        z,
+                    ),
+                    subdivisions=2,
+                ))
+    cuts.extend(rivet_dimples)
 
     # Keep the functional wall shell independent while cutting rails and
     # bearings. The tapered plinth/cornice are fused only after those booleans,
     # which avoids coplanar intersections in the lower rail band.
-    body = union([shell, *pilasters, front_plaque])
-    body = difference(body, [cavity, *cuts])
+    body = union([shell, *pilasters])
+    body = difference(body, [cavity])
+    for index, cutter in enumerate(cuts):
+        body = difference(body, [cutter])
+        if not body.is_volume:
+            raise RuntimeError(f"chest engraving {index} broke the solid")
     for index, ornament in enumerate(adds):
         if not body.is_volume or not ornament.is_volume:
             raise RuntimeError(
@@ -563,9 +610,9 @@ def build_chest() -> trimesh.Trimesh:
     # Function cuts: slider rails and the skull-knob/pinion bearing.
     service = [
         box((CHEST_L, RAIL_D * 2.0, RAIL_W),
-            (0.0, -(CHEST_W / 2.0 - WALL), RAIL_Z + RAIL_W / 2.0)),
+            (0.0, -(CHEST_W / 2.0 - FUNCTIONAL_WALL_DATUM), RAIL_Z + RAIL_W / 2.0)),
         box((CHEST_L, RAIL_D * 2.0, RAIL_W),
-            (0.0, CHEST_W / 2.0 - WALL, RAIL_Z + RAIL_W / 2.0)),
+            (0.0, CHEST_W / 2.0 - FUNCTIONAL_WALL_DATUM, RAIL_Z + RAIL_W / 2.0)),
         cylinder(8.8 / 2.0, 44.0, mechanism.DRIVE_AXIS, (0.0, 1.0, 0.0)),
         box(
             (14.0, 12.0, 24.0),
@@ -577,14 +624,19 @@ def build_chest() -> trimesh.Trimesh:
     # Close the full-depth internal rail grooves with a printable external
     # skin, then add the support-free tapered plinth and cornice around it.
     rail_cover_t = 1.8
-    rail_cover_y = CHEST_W / 2.0 + rail_cover_t / 2.0 - 0.6
-    rail_covers = [
-        box(
-            (CHEST_L, rail_cover_t, RAIL_W),
-            (0.0, sign * rail_cover_y, RAIL_Z + RAIL_W / 2.0),
-        )
-        for sign in (-1.0, 1.0)
-    ]
+    rail_covers = []
+    for sign in (-1.0, 1.0):
+        inner_y = sign * (CHEST_W / 2.0)
+        outer_y = sign * (CHEST_W / 2.0 + rail_cover_t - 0.6)
+        profile = [
+            (inner_y, RAIL_Z),
+            (outer_y, RAIL_Z + abs(outer_y - inner_y)),
+            (outer_y, RAIL_Z + RAIL_W),
+            (inner_y, RAIL_Z + RAIL_W),
+        ]
+        if sign < 0:
+            profile.reverse()
+        rail_covers.append(_extrude_yz_polygon(profile, CHEST_L))
     for cover in rail_covers:
         if not body.is_volume or not cover.is_volume:
             raise RuntimeError(
@@ -597,10 +649,6 @@ def build_chest() -> trimesh.Trimesh:
         _stepped_skirt(BODY_H - CORNICE_H, CORNICE_H, flip=True),
     ):
         body = union([body, skirt])
-    for index, rivet in enumerate(rivets):
-        body = union([body, rivet])
-        if not body.is_volume:
-            raise RuntimeError(f"chest rivet {index} broke the solid")
     # The decorative courses overlap the lower rail band and rear cornice.
     # Re-open only those frozen functional envelopes after the partial rebuild;
     # the outer rail cover begins at the nominal y=60 wall plane and remains.
@@ -649,104 +697,168 @@ def build_chest() -> trimesh.Trimesh:
 
 
 def build_lid() -> trimesh.Trimesh:
-    """Flat-topped gothic lid with a skull cartouche, printed face down."""
-    top = box((CHEST_L, CHEST_W, 6.0), (0.0, 0.0, LID_H - 3.0))
-    frame = box((CHEST_L + 2 * PROUD, CHEST_W + 2 * PROUD, 6.0),
-                (0.0, 0.0, LID_H - 9.0))
-    step = box((CHEST_L + PROUD, CHEST_W + PROUD, 3.0),
-               (0.0, 0.0, LID_H - 10.5))
+    """Lightweight ribbed Gothic lid printed on its long front edge."""
+    top = rounded_box(
+        (CHEST_L, CHEST_W, 2.4),
+        6.0,
+        (0.0, 0.0, LID_H - 1.2),
+    )
+    frame = difference(
+        rounded_box(
+            (CHEST_L + 2 * PROUD, CHEST_W + 2 * PROUD, 4.4),
+            7.0,
+            (0.0, 0.0, 19.6),
+        ),
+        [rounded_box(
+            (CHEST_L - 14.0, CHEST_W - 14.0, 5.4),
+            4.5,
+            (0.0, 0.0, 19.6),
+        )],
+    )
+    step = difference(
+        rounded_box(
+            (CHEST_L + PROUD, CHEST_W + PROUD, 6.2),
+            6.5,
+            (0.0, 0.0, 15.1),
+        ),
+        [rounded_box(
+            (CHEST_L - 10.0, CHEST_W - 10.0, 7.2),
+            4.0,
+            (0.0, 0.0, 15.1),
+        )],
+    )
     # A full rectangular plug cannot rotate out of the chest: its front edge
     # sweeps into the front wall during the first opening degrees.  A rear-and-
     # side U-guide seats the lid just as accurately while leaving that sweep
     # volume open.
-    spigot_outer_x = CHEST_L - 2 * WALL - 0.6
-    spigot_outer_y = CHEST_W - 2 * WALL - 0.6
+    spigot_outer_x = CHEST_L - 2 * FUNCTIONAL_WALL_DATUM - 0.6
+    spigot_outer_y = CHEST_W - 2 * FUNCTIONAL_WALL_DATUM - 0.6
     spigot_wall = 3.3
-    side_length = spigot_outer_y - 18.0
-    spigot = union([
-        box((spigot_outer_x, spigot_wall, 12.0),
-            (0.0, (spigot_outer_y - spigot_wall) / 2.0, 6.0)),
-        box((spigot_wall, side_length, 12.0),
-            (-(spigot_outer_x - spigot_wall) / 2.0, 9.0, 6.0)),
-        box((spigot_wall, side_length, 12.0),
-            ((spigot_outer_x - spigot_wall) / 2.0, 9.0, 6.0)),
-    ])
+    spigot_height = 12.5
+    guide_front = -(CHEST_W + 2.0 * PROUD) / 2.0
+    guide_rear = (spigot_outer_y - spigot_wall) / 2.0
+    ramp_start = -(CHEST_W - 2.0 * WALL) / 2.0
+    ramp_end = ramp_start + 12.0
+    def guide_profiles(top_z: float) -> list[list[tuple[float, float]]]:
+        return [
+            [
+                (guide_front, 12.0),
+                (guide_front, top_z),
+                (ramp_start, top_z),
+                (ramp_start, 12.0),
+            ],
+            [
+                (ramp_start, 12.0),
+                (ramp_start, top_z),
+                (ramp_end, top_z),
+                (ramp_end, 0.0),
+            ],
+            [
+                (ramp_end, 0.0),
+                (ramp_end, top_z),
+                (guide_rear, top_z),
+                (guide_rear, 0.0),
+            ],
+        ]
 
-    body = union([top, frame, step, spigot])
-
-    # Narrow underside channels replace the former mostly solid 12 mm slab with
-    # a 2.0 mm face skin, a wide perimeter and a rib grid. Each channel now has
-    # a 45-degree tapered roof and only a short final bridge, rather than a
-    # broad horizontal ceiling that forces tree support. The
-    # seating guide, hinge, catch and opening-band interfaces are added outside
-    # these channels and retain their original dimensions.
-    pocket_z0 = 9.0
-    pocket_z1 = 17.0
-    lid_pockets = [
-        box((80.0, 10.0, 5.0), (x, y, pocket_z0 + 2.5))
-        for x in (-50.0, 50.0)
-        for y in (-39.0, -25.0, -11.0, 11.0, 25.0, 39.0)
-    ]
-    lid_pockets += [
-        _rect_frustum(
-            (80.0, 10.0), (72.0, 2.0), pocket_z0 + 5.0, pocket_z1,
-            (x, y),
+    # The seating guide is an open truss rather than a solid U-shaped plug.
+    # Its two side webs start on the selected print edge with a 45-degree lower
+    # ramp, so they grow from the bed without slicer support but still clear the
+    # chest front wall throughout the opening sweep. Five short rear stop pads
+    # replace the former 193 mm unsupported crossbar.
+    side_guides = [
+        _extrude_yz_polygon(
+            profile,
+            spigot_wall,
+            sx * (spigot_outer_x - spigot_wall) / 2.0,
         )
-        for x in (-50.0, 50.0)
-        for y in (-39.0, -25.0, -11.0, 11.0, 25.0, 39.0)
+        for sx in (-1.0, 1.0)
+        for profile in guide_profiles(21.8)
     ]
-    body = difference(body, lid_pockets)
+    rib_x = (-80.0, -40.0, 0.0, 40.0, 80.0)
+    rear_pads = [
+        box(
+            (12.0, spigot_wall, spigot_height),
+            (x, guide_rear, spigot_height / 2.0),
+        )
+        for x in rib_x
+    ]
+
+    # Each internal truss uses continuous lower and upper chords plus short
+    # vertical posts. The openings are visible and inspectable; no closed void
+    # relies on slicer infill, and every local bridge is at most 5.5 mm.
+    ribs = []
+    for x in rib_x:
+        ribs.extend([
+            *[
+                _extrude_yz_polygon(profile, 3.0, x)
+                for profile in guide_profiles(spigot_height)
+            ],
+            box(
+                (3.0, guide_rear - guide_front, 3.8),
+                (x, (guide_front + guide_rear) / 2.0, 19.9),
+            ),
+        ])
+        ribs.extend([
+            box((3.0, 3.0, 5.5), (x, y, 15.25))
+            for y in (-40.0, -20.0, 0.0, 20.0, 40.0, guide_rear)
+        ])
+    body = union([top, frame, step, *side_guides, *rear_pads, *ribs])
 
     # Sunken field on the lid face.
-    floor_z = LID_H - PANEL_DEPTH
-    field = rounded_box((CHEST_L - 38.0, CHEST_W - 38.0, PANEL_DEPTH * 2.0),
-                        4.0, (0.0, 0.0, LID_H))
+    floor_z = LID_H - ENGRAVING_DEPTH
+    field = rounded_box(
+        (CHEST_L - 38.0, CHEST_W - 38.0, ENGRAVING_DEPTH + 0.4),
+        7.0,
+        (0.0, 0.0, LID_H),
+    )
     body = difference(body, [field])
 
-    # Skull cartouche, sunk 1.5 mm into the field so the union really overlaps.
-    cartouche = skull_relief(1.5, depth=RELIEF + PANEL_DEPTH)
-    cartouche.apply_translation([0.0, 0.0, floor_z - 1.5])
+    # Rounded Gothic engraving: the skull, wings and foliage are recessed by
+    # less than one millimetre. This keeps the organic detail while eliminating
+    # the unsupported lower shelves of a raised vertical relief.
+    engraving_depth = ENGRAVING_DEPTH + 0.4
+    cartouche = skull_relief(1.5, depth=engraving_depth)
+    cartouche.apply_translation([0.0, 0.0, LID_H - ENGRAVING_DEPTH])
 
     # Raised bead frame around the field plus corner bosses.
     bead = difference(
-        box((CHEST_L - 30.0, CHEST_W - 30.0, PANEL_DEPTH + 1.5),
-            (0.0, 0.0, floor_z + (PANEL_DEPTH - 1.5) / 2.0)),
-        [box((CHEST_L - 42.0, CHEST_W - 42.0, PANEL_DEPTH + 6.0),
-             (0.0, 0.0, floor_z))])
+        rounded_box(
+            (CHEST_L - 30.0, CHEST_W - 30.0, engraving_depth),
+            8.0,
+            (0.0, 0.0, LID_H - ENGRAVING_DEPTH / 2.0 + 0.2),
+        ),
+        [rounded_box(
+            (CHEST_L - 42.0, CHEST_W - 42.0, engraving_depth + 1.0),
+            6.0,
+            (0.0, 0.0, LID_H - ENGRAVING_DEPTH / 2.0 + 0.2),
+        )])
     beads = []
     for sx in (-1.0, 1.0):
         for sy in (-1.0, 1.0):
-            beads.append(sphere(5.0, (sx * (CHEST_L / 2.0 - 11.0),
-                                      sy * (CHEST_W / 2.0 - 11.0),
-                                      LID_H - 1.5), subdivisions=3))
-    bat_wings = _lid_bat_wings(
-        RELIEF + 1.5,
-        floor_z + (RELIEF - 1.5) / 2.0,
-    )
-    corner_foils = []
-    for sx in (-1.0, 1.0):
-        for sy in (-1.0, 1.0):
-            corner_foils.append(_quatrefoil(
-                4.3,
-                RELIEF + 1.5,
+            beads.append(sphere(
+                5.0,
                 (
-                    sx * (CHEST_L / 2.0 - 22.0),
-                    sy * (CHEST_W / 2.0 - 22.0),
-                    floor_z + (RELIEF - 1.5) / 2.0,
+                    sx * (CHEST_L / 2.0 - 11.0),
+                    sy * (CHEST_W / 2.0 - 11.0),
+                    LID_H + 4.2,
                 ),
+                subdivisions=3,
             ))
-
-    lid_ornaments = [
+    bat_wings = _lid_bat_wings(
+        engraving_depth,
+        LID_H - ENGRAVING_DEPTH / 2.0 + 0.2,
+    )
+    lid_engravings = [
         cartouche,
         bead,
         *bat_wings.split(only_watertight=False),
         *beads,
-        *corner_foils,
     ]
-    for index, ornament in enumerate(lid_ornaments):
-        body = union([body, ornament])
+    for index, ornament in enumerate(lid_engravings):
+        body = difference(body, [ornament])
         if not body.is_volume:
-            raise RuntimeError(f"lid ornament {index} produced an invalid solid")
+            raise RuntimeError(f"lid engraving {index} produced an invalid solid")
 
     # The decorative rear frame stops at the hinge axis. Material extending
     # behind that axis would dip into the chest rim during the first degrees
@@ -754,16 +866,32 @@ def build_lid() -> trimesh.Trimesh:
     body = difference(body, [
         box((CHEST_L + 8.0, 3.0, 18.0), (0.0, 62.5, 9.0))
     ])
+    if not body.is_volume:
+        raise RuntimeError("lid rear trim broke the solid")
 
     # Four lid knuckles fill the gaps between the three chest knuckles.
     lid_segments = ((-90.0, 18.0), (-33.0, 36.0),
                     (33.0, 36.0), (90.0, 18.0))
-    knuckles = [cylinder(5.0, length, (x, HINGE_Y, LID_H - 5.0),
-                         (1.0, 0.0, 0.0)) for x, length in lid_segments]
+    knuckles = [
+        difference(
+            cylinder(
+                5.0,
+                length,
+                (x, HINGE_Y, LID_H - 5.0),
+                (1.0, 0.0, 0.0),
+            ),
+            [cylinder(
+                2.0 / 2.0,
+                length + 2.0,
+                (x, HINGE_Y, LID_H - 5.0),
+                (1.0, 0.0, 0.0),
+            )],
+        )
+        for x, length in lid_segments
+    ]
     body = union([body, *knuckles])
-    body = difference(body, [cylinder(2.0 / 2.0, CHEST_L + 24.0,
-                                      (0.0, HINGE_Y, LID_H - 5.0),
-                                      (1.0, 0.0, 0.0))])
+    if not body.is_volume:
+        raise RuntimeError("lid knuckles broke the solid")
 
     # Rebuild only the rear seating region around frozen chest-side hardware.
     # Alternating pockets clear the three chest hinge supports; the small
@@ -779,7 +907,27 @@ def build_lid() -> trimesh.Trimesh:
         (14.0, 20.0, 26.0),
         (-mechanism.DRIVE_PITCH_R, mechanism.LID_RACK_Y, 13.0),
     ))
-    return clean(difference(body, clearance_pockets))
+    for index, cutter in enumerate(clearance_pockets):
+        body = difference(body, [cutter])
+        if not body.is_volume:
+            raise RuntimeError(f"lid clearance {index} broke the solid")
+    components = sorted(
+        body.split(only_watertight=False),
+        key=lambda component: abs(component.volume),
+        reverse=True,
+    )
+    if len(components) != 1:
+        sliver_volumes = [abs(component.volume) for component in components[1:]]
+        if max(sliver_volumes) > 50.0 or sum(sliver_volumes) > 100.0:
+            details = [
+                (round(abs(component.volume), 3), np.round(component.bounds, 3).tolist())
+                for component in components
+            ]
+            raise RuntimeError(
+                f"lid has disconnected structural components: {details}"
+            )
+        body = components[0]
+    return clean(body)
 
 
 if __name__ == "__main__":

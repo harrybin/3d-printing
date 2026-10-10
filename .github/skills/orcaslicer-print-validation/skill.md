@@ -63,6 +63,12 @@ Do not report comparable print estimates unless these settings are held constant
    silently accepting changed geometry.
 7. Re-slice after every geometry, orientation, support, or profile change.
 
+Do not infer `support-free` from a project whose support setting is `none`.
+Validate that claim with automatic support enabled at the intended threshold,
+then confirm the generated G-code contains neither support nor support-interface
+paths. Also record the analytical maximum ceiling/bridge span; zero generated
+support does not override a span beyond the repository limit.
+
 ## Required report
 
 Write `docs/<model>-druckvalidierung.md` or update the model's existing validation

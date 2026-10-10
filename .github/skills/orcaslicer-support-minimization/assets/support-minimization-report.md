@@ -3,11 +3,11 @@
 ## Status
 
 - Result: `verified`
-- Selected candidate: `support-free-black-single-plate`
+- Selected candidate: `lightweight-black-single-plate-auto-support`
 - Final project path: `models/ghouls-grip-print-black-pla.3mf`
-- Final project SHA-256: `1F125B35A8159DEBA431B817C3BC7A3B2FE468AAB61248F9753C56B3D77BACAC`
-- Geometry changes applied: tapered lid pocket roofs, vertical lid orientation,
-  tapered chest plinth/cornice/pilasters/hinge supports, 1.2 mm lightened wall skin
+- Final project SHA-256: `5DBD4F49BDE80D10FDCAA41947862FD63827E318532E97D2FD8395489BA2DAF5`
+- Geometry changes applied: 2.0 mm rounded enclosure shell, recessed organic
+  decoration, open lid trusses/rear pads, tapered chest courses and hinge supports
 - Final validation status: mesh checks and final Orca CLI slice passed; full
   mechanism verification is recorded in `docs/ghouls-grip-mechanik-verifikation.md`
 
@@ -15,7 +15,7 @@
 
 - Absolute input path: `models/ghouls-grip-print-black-pla.3mf` in this worktree
 - Input kind: printable 3MF
-- SHA-256: `1F125B35A8159DEBA431B817C3BC7A3B2FE468AAB61248F9753C56B3D77BACAC`
+- SHA-256: `5DBD4F49BDE80D10FDCAA41947862FD63827E318532E97D2FD8395489BA2DAF5`
 - Size: see repository artifact
 - Modification time: 2026-10-10
 - OrcaSlicer version: GUI 2.4.3 available; prior CLI evidence used 2.4.2
@@ -28,8 +28,9 @@
 - Process preset: `0.20mm Standard @Anycubic Kobra S1 0.4 nozzle`
 - Layer height: 0.20 mm
 - Filament preset(s), slot(s), and color/material: Anycubic PLA, black `#202124`
-- Support type/style: globally disabled; also disabled on both objects
-- Support threshold/settings: not applicable; no support toolpaths generated
+- Support type/style: automatic tree support, build-plate only
+- Support threshold/settings: 45 degrees, critical regions only; bridge support
+  suppression enabled only for analytically bounded bridges
 - Brim/raft policy: automatic 5 mm brim, no raft
 - Other fixed overrides: 3 walls, 10% gyroid, 0.15 mm elephant-foot compensation
 
@@ -40,7 +41,7 @@
 - Objects per plate: chest and lid
 - Material grouping: one black PLA spool/project, unchanged
 - Object/volume-to-filament mapping: both objects use black PLA slot 1
-- Modifiers/per-object overrides: 3 walls, 10% infill, support disabled
+- Modifiers/per-object overrides: 3 walls, 10% infill; automatic support remains active
 - Presentation master preserved at: `models/ghouls-grip-master.3mf`
 - Differences from baseline other than selected orientation/placement: listed
   source-model chamfers and wall lightening only
@@ -61,7 +62,7 @@ All rotations are absolute from the frozen baseline, not chained.
 | --- | --- | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- | --- |
 | baseline | Existing project orientation | 0 | 0 | 0 | black plate 2 | tree supports present | 8 h 48 min 04 s / 173.56 g for lid plate | stable flat lid | 746.68 mm² unsupported at 45°; 16,110.24 mm² ceiling-like bridge area | preserved | preserved | superseded |
 | lid-tapered-pocket-roofs | Flat lid with tapered underside pockets | 0 | 0 | 0 | black plate 2 | tree supports present | 8 h 28 min 23 s / 166.11 g for lid plate | stable flat lid | fewer support-triggering pocket roofs | preserved | preserved | superseded |
-| support-free-black-single-plate | Chest upright; lid on straight front edge | 90 | 0 | 0 | black plate 1 | 0 support toolpaths | 12 h 44 min 30 s / 385.08 g for complete black project | 206 mm edge plus auto brim; 129 mm high | broad lid roof vertical; chest ledges tapered | visible relief faces remain unobstructed | hinge axis stays in XY layers | selected/verified |
+| lightweight-black-single-plate-auto-support | Rounded 2 mm chest upright; open-truss lid on straight front edge | 90 | 0 | 0 | black plate 1 | 74.49 g measured support/interface | 13 h 10 min 22 s / 332.91 g complete black project | 206 mm edge plus auto brim; 129 mm high | lid max bridge 10.0 mm; chest max bridge 6.0 mm | recessed relief faces remain unobstructed | hinge axis stays in XY layers | selected/verified |
 
 For every numeric metric, identify the source:
 `Orca summary | 3MF slice data | G-code | parser`. Use `not exposed` rather than an
@@ -71,23 +72,27 @@ estimate.
 
 1. Rejected candidates and hard rejection reason: the first monolithic chest
    frustum edit refilled or destabilized rail/service booleans.
-2. Viable candidates ranked by support amount: vertical lid plus partially rebuilt
-   chest produced zero black-project support paths; flat tapered lid remained second.
-3. Selected candidate rationale: it removes all black support material, combines
-   two plates into one, and preserves hinge/rail datums.
-4. Lower-support alternatives: none; the selected black project is already
-   support-free.
+2. A zero-support G-code was rejected as evidence because it was produced with
+   support disabled rather than by a source model that needed no support.
+3. Selected candidate rationale: it cuts enclosure model volume by 43.5%, keeps
+   both objects on one plate, preserves hinge/rail datums, and allows Orca to
+   generate only the support it still considers necessary.
+4. Lower-support alternatives require a separate keyed lid-face/functional-frame
+   redesign or a different multi-plate orientation; neither is represented as
+   already solved.
 
 ## Selected-candidate printability review
 
-- Support contact/removal/scarring: none; no `Support` or `Support interface`
-  feature appears in the final black G-code.
+- Support contact/removal/scarring: support remains, primarily around the
+  high-standing lid guide and chest details. Final G-code contains 74.49 g of
+  support/interface extrusion.
 - Bed contact and first-layer continuity: chest base and 206 mm lid edge are
   continuous; automatic brim retained.
 - Center of mass, height/footprint, and stability: lid height is 129 mm; its long
   edge and brim provide the required stability.
-- Bridges, unsupported islands, and overhangs: lid pocket roofs are tapered;
-  chest courses and hinge undersides use self-supporting slopes.
+- Bridges, unsupported islands, and overhangs: analytical maximum ceiling span
+  is 10.0 mm for the lid and 6.0 mm for the chest. Orca automatic support
+  remains the acceptance authority and still emits support paths.
 - Seam locations: unchanged from Orca automatic placement.
 - Functional and visible surface quality: relief faces are vertical and never
   touch support material.
@@ -130,7 +135,7 @@ Every preview record must include:
 ## Final project metadata
 
 - Absolute selected project path: `models/ghouls-grip-print-black-pla.3mf`
-- SHA-256 after save: `1F125B35A8159DEBA431B817C3BC7A3B2FE468AAB61248F9753C56B3D77BACAC`
+- SHA-256 after save: `5DBD4F49BDE80D10FDCAA41947862FD63827E318532E97D2FD8395489BA2DAF5`
 - Per-object absolute rotations: chest 0/0/0; lid +90/0/0 degrees
 - Per-object positions and plate IDs: chest and lid on plate 1 with 20 mm layout gap
 - Printer preset: Anycubic Kobra S1 0.4 nozzle
@@ -138,12 +143,12 @@ Every preview record must include:
 - Bed: Textured PEI Plate
 - Process/layer height: 0.20mm Standard / 0.20 mm
 - Filament presets and mappings: Anycubic PLA, black, slot 1
-- Support settings: disabled per chest and lid object
+- Support settings: tree(auto), build-plate only, 45°, critical regions only
 - Plate count: 1
-- Estimated total time: 12 h 44 min 30 s
-- Total filament length/volume/mass: 129,110.25 mm / 310,550 mm³ / 385.08 g
-- Support-only filament/volume/time: 0 / 0 / 0, verified by absent support
-  feature paths in the G-code
+- Estimated total time: 13 h 10 min 22 s
+- Total filament length/volume/mass: 111,620.36 mm / 268,480 mm³ / 332.91 g
+- Support-only filament/mass: 24,974.18 mm / 74.49 g, measured from `Support`
+  and `Support interface` extrusion moves in the final G-code
 - Layer count: 645
 - Tool changes: 0 material changes
 - Wipe-tower volume/cost: 0
