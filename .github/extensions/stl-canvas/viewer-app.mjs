@@ -8,63 +8,66 @@ export const APP_HTML = `
     <label for="plateChooser">Plate</label>
     <select id="plateChooser"><option value="all">All</option></select>
   </div>
-  <div class="field">
-    <button type="button" id="reloadBtn" title="Reload current model">Reload</button>
-  </div>
   <div class="field" id="orcaField" hidden>
     <button type="button" id="openInOrcaBtn" title="Open the current 3MF project in OrcaSlicer">Open in OrcaSlicer</button>
     <span id="orcaStatus" class="action-status" role="status" aria-live="polite" hidden></span>
   </div>
-  <label class="field"><input id="autoReload" type="checkbox"> Auto reload</label>
-  <div class="field">
-    <label for="zoom">Zoom</label>
-    <input id="zoom" type="range" min="0.1" max="30" step="0.1" value="1.7">
-  </div>
-  <div class="field">
-    <label><input id="wireframe" type="checkbox"> Wireframe</label>
-  </div>
-  <div class="field">
-    <label for="shading">Shading</label>
-    <select id="shading">
-      <option value="lambert">Lambert</option>
-      <option value="phong">Phong</option>
-      <option value="normal">Normal</option>
-      <option value="basic">Basic</option>
-      <option value="material">Material</option>
-    </select>
-  </div>
-</div>
-<div class="toolbar secondary">
-  <div class="group">
-    <span class="group-label">View</span>
-    <button type="button" data-view="isometric" title="Isometric view">Iso</button>
-    <button type="button" data-view="top" title="Top view">Top</button>
-    <button type="button" data-view="bottom" title="Bottom view">Bottom</button>
-    <button type="button" data-view="front" title="Front view">Front</button>
-    <button type="button" data-view="back" title="Back view">Back</button>
-    <button type="button" data-view="left" title="Left view">Left</button>
-    <button type="button" data-view="right" title="Right view">Right</button>
-    <button type="button" id="fitBtn" title="Fit model to view">Fit</button>
-  </div>
-  <div class="group">
-    <span class="group-label">Rotate model</span>
-    <button type="button" data-rotate="x" title="Rotate model 90° around X">X 90°</button>
-    <button type="button" data-rotate="y" title="Rotate model 90° around Y">Y 90°</button>
-    <button type="button" data-rotate="z" title="Rotate model 90° around Z">Z 90°</button>
-    <button type="button" id="resetRotation" title="Clear model rotation">Reset</button>
-  </div>
-  <div class="group">
-    <span class="group-label">Show</span>
-    <label class="field"><input id="showGrid" type="checkbox"> Grid</label>
-    <label class="field"><input id="showAxes" type="checkbox"> Axes</label>
-    <label class="field"><input id="showBoundingBox" type="checkbox"> Box</label>
-    <label class="field"><input id="showInfo" type="checkbox"> Info</label>
-  </div>
-  <div class="group">
-    <span class="group-label">Measure</span>
-    <label class="field"><input id="measureMode" type="checkbox"> On</label>
-    <button type="button" id="measureClear" title="Clear selected features (Esc)">Clear</button>
-  </div>
+  <details class="tool-drawer">
+    <summary title="Show view, model and reload controls">View &amp; model controls</summary>
+    <div class="tool-drawer-panel">
+      <div class="group">
+        <span class="group-label">File</span>
+        <button type="button" id="reloadBtn" title="Reload current model">Reload</button>
+        <label class="field"><input id="autoReload" type="checkbox"> Auto reload</label>
+      </div>
+      <div class="group grow-controls">
+        <span class="group-label">Display</span>
+        <label class="field zoom-field" for="zoom">Zoom
+          <input id="zoom" type="range" min="0.1" max="30" step="0.1" value="1.7">
+        </label>
+        <label class="field"><input id="wireframe" type="checkbox"> Wireframe</label>
+        <label class="field" for="shading">Shading
+          <select id="shading">
+            <option value="lambert">Lambert</option>
+            <option value="phong">Phong</option>
+            <option value="normal">Normal</option>
+            <option value="basic">Basic</option>
+            <option value="material">Material</option>
+          </select>
+        </label>
+      </div>
+      <div class="group">
+        <span class="group-label">View</span>
+        <button type="button" data-view="isometric" title="Isometric view">Iso</button>
+        <button type="button" data-view="top" title="Top view">Top</button>
+        <button type="button" data-view="bottom" title="Bottom view">Bottom</button>
+        <button type="button" data-view="front" title="Front view">Front</button>
+        <button type="button" data-view="back" title="Back view">Back</button>
+        <button type="button" data-view="left" title="Left view">Left</button>
+        <button type="button" data-view="right" title="Right view">Right</button>
+        <button type="button" id="fitBtn" title="Fit model to view">Fit</button>
+      </div>
+      <div class="group">
+        <span class="group-label">Rotate model</span>
+        <button type="button" data-rotate="x" title="Rotate model 90° around X">X 90°</button>
+        <button type="button" data-rotate="y" title="Rotate model 90° around Y">Y 90°</button>
+        <button type="button" data-rotate="z" title="Rotate model 90° around Z">Z 90°</button>
+        <button type="button" id="resetRotation" title="Clear model rotation">Reset</button>
+      </div>
+      <div class="group">
+        <span class="group-label">Show</span>
+        <label class="field"><input id="showGrid" type="checkbox"> Grid</label>
+        <label class="field"><input id="showAxes" type="checkbox"> Axes</label>
+        <label class="field"><input id="showBoundingBox" type="checkbox"> Box</label>
+        <label class="field"><input id="showInfo" type="checkbox"> Info</label>
+      </div>
+      <div class="group">
+        <span class="group-label">Measure</span>
+        <label class="field"><input id="measureMode" type="checkbox"> On</label>
+        <button type="button" id="measureClear" title="Clear selected features (Esc)">Clear</button>
+      </div>
+    </div>
+  </details>
 </div>
 <section id="printSummary" class="print-summary" aria-label="Print project summary" hidden>
   <div class="print-card"><span>Print time</span><strong id="summaryPrintTime">—</strong></div>
@@ -77,8 +80,11 @@ export const APP_HTML = `
   <canvas id="view"></canvas>
   <div id="info" hidden></div>
   <div id="measurePanel" hidden></div>
+  <details id="metaPanel" class="meta-panel" open>
+    <summary>Model &amp; print details</summary>
+    <div id="meta">Loading model…</div>
+  </details>
 </div>
-<div id="meta">Loading model…</div>
 
 `
 

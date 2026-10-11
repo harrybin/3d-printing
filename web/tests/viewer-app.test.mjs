@@ -2,10 +2,19 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  APP_HTML,
   createOrcaLaunchRequest,
   createOrcaSlicerOpenUrl,
   formatPrintMetadataSummary,
 } from '../../.github/extensions/stl-canvas/viewer-app.mjs'
+
+test('keeps advanced controls and metadata in collapsible surfaces', () => {
+  assert.match(APP_HTML, /<details class="tool-drawer">/)
+  assert.match(APP_HTML, /View &amp; model controls/)
+  assert.match(APP_HTML, /<details id="metaPanel" class="meta-panel" open>/)
+  assert.match(APP_HTML, /<div id="meta">Loading model…<\/div>/)
+  assert.doesNotMatch(APP_HTML, /<div class="toolbar secondary">/)
+})
 
 test('builds the official OrcaSlicer open URL for a current 3MF file', () => {
   assert.equal(
