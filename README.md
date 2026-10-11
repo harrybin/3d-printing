@@ -15,9 +15,50 @@ A collection of ASCII STL models for the Anycubic Kobra S1 Combo + ACE Pro (250 
 | `models/lampe-5-leuchtflaechen.stl` | All four translucent lamp panels arranged together on the 250 × 250 mm bed |
 | `models/ghouls-grip-master.3mf` | Multi-material deployed master assembly of the mechanical Halloween candy-box ([dimensions and assembly](docs/ghouls-grip-masse-und-bauanleitung.md)) |
 | `models/ghouls-grip-master-retracted.3mf` | Closed-lid/retracted master assembly for cavity and clearance inspection |
-| `models/ghouls-grip-print-*.3mf` | Four print-ready OrcaSlicer projects, exactly one per PLA colour/spool. The lightweight black chest/lid project fits on one plate and retains automatically generated tree support only where OrcaSlicer still requires it; the natural-white mechanism uses two plates, and bones plus all five fingers share one bone-beige plate. Every project embeds Anycubic Kobra S1, Textured PEI, filament/process settings and complete quantities. |
+| `models/ghouls-grip-print-*.3mf` | Four print-ready OrcaSlicer projects, exactly one per PLA colour/spool and six plates in total. Black uses separate chest and lid plates; the lid stands on its rear edge. Natural-white mechanism parts use two plates, while forearm, palm and all five fingers share one bone-beige plate. Every project embeds Anycubic Kobra S1, Textured PEI, filament/process settings, complete quantities and verified print metadata. |
 | `models/ghouls-grip-preview.stl` | Assembly-only multi-body preview; printable parts live in the print 3MF projects and regenerate from `scripts/` |
 | `model-sources/ghouls-grip/ghouls-grip-master.blend` | Blender CLI/MCP scene checkpoint; technical objects are frozen and organic objects are separately marked |
+
+### The Ghoul's Grip: final project contract
+
+The original spring, rubber-band, tendon and latch concept was replaced by a
+fully rigid, manually reversible mechanism:
+
+`rotating skull knob -> rack-and-pinion slider -> dual scissor lift + lid linkage + five-gear forearm drive`
+
+The closed box contains the complete mechanism. The internal lid rack, follower
+and crank sit below a sealed black service hood with a continuous 2.0 mm roof;
+only its assembly cavity opens toward the inside of the chest. The intended
+external skull knob remains accessible at the front.
+
+The four material projects contain **35 physical objects on six plates**:
+
+| Project | Plates | Main contents | Verified material / support / time |
+| --- | ---: | --- | ---: |
+| Black PLA | 2 | chest; lid standing on rear edge | 330.96 g / 17.98 g / 13 h 53 min |
+| Bone-beige PLA | 1 | forearm, socketed palm, five flexure fingers | 42.82 g / 12.51 g / 3 h 12 min |
+| Natural-white PLA | 2 | complete rigid mechanism, gears, shafts and pivot pins | 122.76 g / 16.69 g / 6 h 18 min |
+| Gray PLA | 1 | anatomical skull drive knob | 20.30 g / 8.21 g / 1 h 16 min |
+| **Total** | **6** | **complete print BOM** | **516.84 g / 55.39 g / 24 h 39 min** |
+
+All generated OrcaSlicer projects use these repository defaults unless a
+documented part-specific override is required:
+
+- seam position: **Random** (`seam_position=random`)
+- ironing: **All top surfaces** (`ironing_type=top`)
+- automatic supports: **enabled** (`enable_support=1`)
+- Textured PEI plate, 0.4 mm nozzle, 0.20 mm layer height
+- XY hole compensation 0.10 mm and elephant-foot compensation 0.15 mm
+
+Support is deliberately left enabled. A zero-support result must come from
+self-supporting geometry and a successful slice, never from switching support
+generation off. The exact per-plate support quantities and measured orientation
+comparisons are recorded in
+[`docs/ghouls-grip-druckvalidierung.md`](docs/ghouls-grip-druckvalidierung.md).
+Assembly order, connector use and dimensions are in
+[`docs/ghouls-grip-masse-und-bauanleitung.md`](docs/ghouls-grip-masse-und-bauanleitung.md);
+the full swept-volume proof is in
+[`docs/ghouls-grip-mechanik-verifikation.md`](docs/ghouls-grip-mechanik-verifikation.md).
 
 ## Setup
 
@@ -243,10 +284,24 @@ Erweiterung, zeigt also lokale Vorschauen konsistent im Web und im Agent-UI an.
 ### Funktionen
 
 - 3D-Vorschau für **STL und 3MF** aus `models/`
+- Auswahl einzelner 3MF-Druckplatten unter Berücksichtigung von
+  Build-/Komponenten-Transformationen und OrcaSlicer-`plater_id`
+- kompakte, ständig sichtbare Druckübersicht für Zeit, Gesamtmaterial,
+  Stützmaterial, Filamentlänge und Validierungsstatus
+- einklappbares Detail-Overlay rechts unten mit Profil, Farbe, Bett, Wänden,
+  Infill, Supportart, Plattenzahl und vollständigen Projektmetadaten
+- ein einziges einklappbares Menü für Reload/Auto-Reload, Zoom, Shading,
+  Wireframe, Ansichten, Modellrotation, Hilfsanzeigen und Messwerkzeuge
+- lokaler Canvas-Button **Open in OrcaSlicer**, der genau die aktuell gewählte
+  Workspace-3MF über den validierten lokalen Launcher öffnet
 - direkter Download der aktuell gewählten Datei
 - GitHub-Link zurück zum Repository
 - Button für ein neues Modell-Ticket über
   `.github/ISSUE_TEMPLATE/model-request.yml`
+
+Die Web-SPA und die Copilot-Canvas-Erweiterung teilen Renderer und Layout. Der
+OrcaSlicer-Launcher ist nur in der lokalen Extension verfügbar; die öffentliche
+Webseite kann keine lokale Desktop-Anwendung starten.
 
 Auf Mobilgeräten verwendet die Seite ein reduziertes Canvas-Pixelverhältnis und
 deaktiviert das frühere automatische Polling, damit große Modelle spürbar

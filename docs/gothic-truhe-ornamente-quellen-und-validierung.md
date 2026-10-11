@@ -77,7 +77,7 @@ sparsam getunten Schale bliebe dort unter 1.8 mm Restmaterial.
 ```powershell
 .\.venv\Scripts\python.exe scripts\gothic_chest.py
 # chest  faces  74750 watertight True bodies 1 euler -8  extents [209.0, 130.5, 98.0]
-# lid    faces  27116 watertight True bodies 1 euler -58 extents [206.0, 129.0, 25.6]
+# lid    faces  27796 watertight True bodies 1 extents [206.0, 129.786, 28.2]
 
 .\.venv\Scripts\python.exe scripts\mesh_tool.py validate model-sources\ghouls-grip\reference\_chest.stl
 # PASS - watertight, manifold, euler_number -8, ready to slice
@@ -130,3 +130,7 @@ Artefakte: `build/ornament-audit/audit-control.3mf`,
   Stütz-Gate erneut erfordern.
 - Der `.npz`-Cache muss nach jeder Blender-Änderung neu erzeugt werden, sonst
   divergieren Skript und Geometrie.
+- Die lokale 28,2-mm-Deckelhöhe stammt von der geschlossenen Schutzhaube über
+  Yoke und Deckelkurbel, nicht von einer global verdickten Deckelschale. Die
+  Haube besitzt eine 2,0-mm-Dachhaut und eine nur nach innen offene
+  Montagekavität.

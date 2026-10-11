@@ -18,6 +18,12 @@ OrcaSlicer-Basisprofil: **2.4.3 GUI / 2.4.2 CLI**
 - Starttemperaturen: 55/215 °C
 - Eine reale Spule/Farbe je Projekt, kein Prime Tower
 - Farben: Schwarz `#202124`, Knochenbeige `#D8C6A5`, Naturweiß `#F1EBDD`, Grau `#777777`
+- Nahtposition: `random`
+- Bügeln: `top` (**Alle oberen Oberflächen**)
+- Support: in jedem Projekt aktiviert (`enable_support=1`)
+- Support-Auflage: nur Druckplatte
+- XY-Lochkompensation: +0,10 mm
+- Elephant-Foot-Kompensation: 0,15 mm
 
 Alle sechs Druckplatten wurden nach der Geometrie- und Orientierungsoptimierung
 neu gesliced. Die Werte stammen aus den finalen G-Codes; die vier ausgelieferten
@@ -36,7 +42,7 @@ Orca meldet ausschließlich den nicht blockierenden Profilhinweis, dass
 | Mechanik, Platte 1 | 4 gelochte Arme, offener Schlitten/Plattformrahmen, Zahnstangen und Speichenritzel | 464 | 111,88 g | 15,44 g (13,8 %) | 5 h 25 min 27 s | [PNG](images/ghouls-grip-slice-mechanism-plate-1.png) |
 | Mechanik, Platte 2 | 3 Zwischenräder, Ausgangszahnrad/D-Welle, Pins und Splinte | 177 | 10,88 g | 1,24 g (11,4 %) | 0 h 52 min 46 s | [PNG](images/ghouls-grip-slice-mechanism-plate-2.png) |
 | Grau | Anatomischer Totenkopf-Drehknopf, Gesicht nach oben | 135 | 20,30 g | 8,21 g (40,4 %) | 1 h 16 min 03 s | [PNG](images/ghouls-grip-slice-accent.png) |
-| **Gesamt** | **39 Druckobjekte / 6 Platten** | – | **516,84 g** | **55,39 g (10,7 %)** | **24 h 39 min 28 s** | – |
+| **Gesamt** | **35 Druckobjekte / 6 Platten** | – | **516,84 g** | **55,39 g (10,7 %)** | **24 h 39 min 28 s** | – |
 
 Projektmetadaten (`status=verified` in den ausgelieferten 3MF-Dateien):
 
@@ -72,7 +78,9 @@ Gegenüber dem ursprünglichen 629,66-g-Entwurf beträgt die Materialeinsparung
 **125,00 g / 27,4 %**.
 
 Wichtig: Kein Projekt wird als „supportfrei“ bezeichnet. In allen vier Projekten
-sind Baumstützen (`tree(auto)`, 30°-Schwelle, bettgebunden) aktiv. Die
+ist automatische, bettgebundene Support-Erzeugung aktiv. Schwarz, Knochen und
+Grau verwenden `tree(auto)`; die Mechanik verwendet `normal(auto)` mit
+`snug`. Der Standardwinkel beträgt 30°, beim schwarzen Projekt 45°. Die
 angegebenen Stützmengen stammen aus den `;TYPE:Support`- und
 `;TYPE:Support interface`-Extrusionswegen des G-Codes, skaliert mit dessen
 Gesamtmasse/-länge.
@@ -128,6 +136,27 @@ Gesamtmasse/-länge.
 - Die aktualisierten farbigen Plattenvorschauen wurden aus den neuen 3MF-Szenen
   regeneriert. Sie zeigen die Material-/Farbgruppierung, nicht geslicte
   Supportvolumina.
+
+## Anzeige in Canvas und Web-Viewer
+
+Die ausgelieferten 3MF-Dateien enthalten die verifizierten Projektwerte direkt
+in `Metadata/ghouls_grip_print_metadata.xml`. Der gemeinsame Web-/Canvas-
+Renderer zeigt daraus:
+
+- eine kompakte Zeile mit Druckzeit, Gesamtmaterial, Supportmaterial,
+  Filamentlänge und Validierungsstatus;
+- ein einklappbares Detail-Overlay rechts unten mit Maschine, Düse, Prozess,
+  Filamentprofil, Material, Farbe, Bett, Wandzahl, Infill, Support und
+  Plattenzahl;
+- die korrekte einzelne Platte oder alle Platten unter Berücksichtigung von
+  3MF-Komponenten-Transformationen und OrcaSlicer-`plater_id`;
+- ein einklappbares Werkzeugmenü für Reload, Auto-Reload, Zoom, Wireframe,
+  Shading, Ansichten, Rotation, Hilfsanzeigen und Messung.
+
+In der lokalen Copilot-Canvas-Erweiterung öffnet **Open in OrcaSlicer** die
+exakt ausgewählte Workspace-3MF über einen lokalen POST-Endpunkt mit
+Nonce-Prüfung und Pfadvalidierung. Der Button wird für STL, unsichere Pfade und
+die öffentliche Web-SPA nicht als Desktop-Startweg angeboten.
 
 ## Behobene Probleme
 

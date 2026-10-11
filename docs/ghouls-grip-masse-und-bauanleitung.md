@@ -26,8 +26,8 @@ Die Finger sind vorgekrümmte PLA-Flexuren. Sie werden nicht aktiv bewegt; beim 
 | Merkmal | Wert |
 | --- | ---: |
 | Geschlossene Zielgröße | 200 × 120 × 110 mm |
-| Gehäuse inklusive Dekor | 209,2 × 131,4 × 98,0 mm |
-| Deckel | 206,0 × 129,0 × 27,5 mm |
+| Gehäuse inklusive Dekor | 209,0 × 130,5 × 98,0 mm |
+| Deckel inklusive lokaler Schutzhaube | 206,0 × 129,8 × 28,2 mm |
 | Dekorative Außenwand/Boden | 2,0 mm |
 | Funktionsdatum an Schienen, Lagern und Führungen | 3,0 mm |
 | Innenraum | 194 × 114 × 80 mm |
@@ -45,6 +45,42 @@ Die Finger sind vorgekrümmte PLA-Flexuren. Sie werden nicht aktiv bewegt; beim 
 
 Die Hand ist mit `HAND_SCALE = 0.72` aus einem anatomischen CT-Datensatz abgeleitet. Die größere Handfläche gegenüber der ursprünglichen 50 × 45-mm-Idee ist erforderlich, um Handwurzel- und Mittelhandknochen erkennbar zu erhalten.
 
+## Verbindliche Konstruktionsentscheidungen
+
+- Die Box ist in geschlossener Stellung vollständig geschlossen. Schlitten,
+  Schere, Deckelgestänge und Unterarm ragen nicht aus dem Gehäuse.
+- Der graue Totenkopf bleibt der absichtlich außenliegende Handantrieb. Er ist
+  kein Druckknopf, sondern wird über etwa 114° gedreht.
+- Es gibt keine Feder, kein Gummiband, keine Sehne, keine Rastklinke und keinen
+  Rückholmechanismus. Zurückgestellt wird durch Rückwärtsdrehen des Totenkopfs.
+- Fitkritische Geometrie, Lager, Zahnräder, Schienen, Steckrichtungen und
+  Kollisionsfreiräume bleiben parametrisch in Python.
+- Organische Zierflächen dürfen in Blender entstehen, verändern aber keine
+  Funktionsdatums. Der Generator verwendet reproduzierbare, gecachte
+  Höhenfelder aus `assets/gothic-chest-reliefs/`.
+- Dicke Bauteile werden nicht unnötig massiv gefüllt: Schatulle und Deckel
+  verwenden dünne Schalen, Rippen und offene Träger; Mechanikteile verwenden
+  Rahmen, Fenster, Speichen und lokale massive Funktionszonen.
+- „Supportfrei“ darf nur nach einem Slice mit eingeschalteter
+  Support-Erzeugung behauptet werden. Für die aktuelle Ausgabe wird kein
+  vollständiges Supportfrei-Versprechen abgegeben.
+
+## Ornamentik und organische Modellierung
+
+Die finale Schatulle kombiniert abgerundete, selbsttragende Basreliefs:
+
+- Vorderseite: zwei Totenköpfe, Schlangen, Ranken und Voluten
+- Rückseite: Brustkorb und zwei Wyvern mit Hörnern, Zähnen, Klauen und Flughaut
+- Seiten: Totenkopf mit durchlaufender Schlange
+- Deckel: geflügelte Totenkopf-Kartusche mit Schlangen und Voluten
+- Pilaster: 1,2 mm vertiefte, kuppelförmig endende Kanneluren
+
+Die erhabenen Reliefs werden als geglättete Höhenfelder aufgebaut und um 45°
+geschert. Dadurch wachsen sie ohne scharfe Unterseiten aus der Wand und erhöhen
+im gemessenen Kontrollslice die Supportpfade nicht. Die nur 2,0 mm starken
+Wandfelder werden nicht tief graviert; vertiefte Details liegen ausschließlich
+in ausreichend starkem Material.
+
 ## Funktionsprinzip
 
 1. Der graue Totenkopf sitzt direkt auf der Ø8-mm-Welle des Hauptritzels.
@@ -58,12 +94,12 @@ Der Deckel erreicht 108° bereits bei etwa 32° Scherenwinkel und bleibt währen
 
 ## Stückliste
 
-Vier Orca-Projekte enthalten **22 Teiltypen / 39 physische Druckobjekte**.
+Vier Orca-Projekte enthalten **22 Teiltypen / 35 physische Druckobjekte**.
 
 | Teil | Anzahl | Maße ungefähr | Farbe |
 | --- | ---: | --- | --- |
-| Schatulle | 1 | 209,2 × 131,4 × 98,0 mm | Schwarz |
-| Deckel | 1 | 206,0 × 129,0 × 27,5 mm | Schwarz |
+| Schatulle | 1 | 209,0 × 130,5 × 98,0 mm | Schwarz |
+| Deckel | 1 | 206,0 × 129,8 × 28,2 mm | Schwarz |
 | Scherenarm | 4 | 84 × 12 × 4 mm | Naturweiß |
 | Schlitten mit Zahnstange | 1 | 94 × 119,2 × 26 mm | Naturweiß |
 | Hubjoch | 1 | 82 × 92 × 51 mm | Naturweiß |
@@ -75,7 +111,6 @@ Vier Orca-Projekte enthalten **22 Teiltypen / 39 physische Druckobjekte**.
 | Zwischenrad | 3 | ca. 17 × 17 × 6 mm | Naturweiß |
 | Unterarm-Ausgangszahnrad mit D-Welle | 1 | 27,4 × 65 × 27,5 mm | Naturweiß |
 | Pivot-Pin Ø3 | 10 | Ø6,2 × 26 mm | Naturweiß |
-| Pivot-Pin Ø4 | 4 | Ø7,2 × 34 mm | Naturweiß |
 | Unterarm mit D-Nabe | 1 | 25,8 × 18 × 50 mm | Knochenbeige |
 | Handfläche | 1 | 67,9 × 96,5 × 25,2 mm | Knochenbeige |
 | Fünf Finger | je 1 | 9–66 mm | Knochenbeige |
@@ -85,6 +120,21 @@ Die frühere separate Sehnenführung ist entfernt. Sie gehörte zum verworfenen
 Seilzugkonzept und hatte in der starren Mechanik keine tragende oder führende
 Funktion. Die kleinen Gelenkkragen und Flexurstege innerhalb der Finger bleiben
 erhalten, weil sie die einzelnen Knochen druckbar verbinden.
+
+## Verbinder und formschlüssige Schnittstellen
+
+| Verbindung | Verbinder | Montageprinzip |
+| --- | --- | --- |
+| Scherenarme, Schlitten und Hubjoch | 10 gedruckte Ø3-Pins; optional M3-Schrauben an hoch belasteten Gelenken | Pin durch die fluchtenden 3,2-mm-Bohrungen stecken; Kopf bleibt außen |
+| Unterarm im Hubjoch | lange D-Welle des naturweißen Ausgangszahnrads + 1,75-mm-Filament-Querstift | Unterarm zuerst zwischen die Lagerohren setzen, D-Welle danach axial einschieben und außen sichern |
+| Handfläche am Unterarm | 11,6-mm-Unterarmzapfen in sichtbarer Ø12-mm-Handgelenkaufnahme + 1,75-mm-Filament-Querstift | Zapfen durch die 2-mm-Einführsenkung bis zum Anschlag einschieben, Querbohrungen fluchten lassen, Filamentstift einsetzen |
+| Finger an Handfläche | beschriftete, geneigte MCP-Steckzapfen und passende Sockel | jeden Finger seinem Sockel zuordnen und in Druckrichtung aufstecken |
+| Deckel am Gehäuse | 1,75-mm-Filament als Scharnierachse | durch die fluchtenden Scharnierbohrungen schieben |
+| Totenkopf am Hauptritzel | blinde Ø8-mm-Pressaufnahme mit 0,2 mm Untermaß am Knopf | geschlossene Stellung ausrichten, anschließend axial aufpressen |
+
+Die Handfläche besitzt ausdrücklich eine offene, verlängerte
+Handgelenkaufnahme; sie ist kein massiver Block. Die Einführsenkung macht die
+Öffnung im Knochen-3MF sichtbar und nimmt Elephant-Foot- oder Supportspuren auf.
 
 ## Montage
 
@@ -108,7 +158,10 @@ erhalten, weil sie die einzelnen Knochen druckbar verbinden.
    der Filamentstift auf der anderen; Klebstoff ist nicht erforderlich.
    In geschlossener Stellung liegt der Unterarm bei -105°, ausgefahren bei
    -45°.
-9. Handfläche um -75° gerollt auf den Unterarm setzen und mit 1,75-mm-Filament sichern. Die fünf vorgekrümmten Finger auf ihre beschrifteten Sockel setzen.
+9. Die sichtbare Ø12-mm-Handgelenkaufnahme der Handfläche auf den
+   11,6-mm-Unterarmzapfen schieben, die Handfläche dabei um -75° rollen und die
+   Querbohrungen ausrichten. Mit 1,75-mm-Filament sichern. Danach die fünf
+   vorgekrümmten Finger auf ihre beschrifteten Sockel setzen.
 10. Deckel mit 1,75-mm-Filament als Scharnierachse einsetzen und das Deckelsegment formschlüssig am Scharnier koppeln.
 11. Ohne Süßigkeiten langsam testen: Totenkopf drehen → Deckel öffnet früh → Schere hebt → Unterarm entfaltet. Danach exakt rückwärts drehen. Nichts darf von selbst zurückschnappen.
 
@@ -129,6 +182,30 @@ Deckelkurbel und Yoke wurden zusätzlich als eigene Kollisionspaare über den
 gesamten Hub geprüft und schneiden weder Deckel noch Schatulle.
 
 Alle Projekte verwenden PLA, Anycubic Kobra S1 0.4, Textured PEI, 0,20 mm Schichthöhe und eingebettete Farben. Die exakten Slice-Ergebnisse stehen in [`ghouls-grip-druckvalidierung.md`](ghouls-grip-druckvalidierung.md).
+
+### Gespeicherte OrcaSlicer-Defaults
+
+Diese Optionen werden beim Generieren aller vier Materialprojekte gesetzt und
+durch `tests/test_ghouls_grip_orca_settings.py` abgesichert:
+
+| Option | Gespeicherter Wert |
+| --- | --- |
+| Nahtposition | Random (`seam_position=random`) |
+| Bügeln | Alle oberen Oberflächen (`ironing_type=top`) |
+| Support erzeugen | Ein (`enable_support=1`) |
+| Standard-Support | automatisch, bettgebunden |
+| Schicht / Düse | 0,20 mm / 0,4 mm |
+| Platte | Textured PEI Plate |
+| XY-Lochkompensation | +0,10 mm |
+| XY-Konturkompensation | 0,00 mm |
+| Elephant-Foot-Kompensation | 0,15 mm |
+| Prime Tower | aus, da jedes Projekt genau eine Farbe/Spule enthält |
+
+Schwarz, Knochen und Grau verwenden automatische Baumstützen. Das
+Mechanikprojekt verwendet `normal(auto)` mit `snug`, weil Zahnstangen,
+Rahmenöffnungen und Verbinder damit reproduzierbarer abgestützt werden.
+Objekt-Overrides steuern Wände, Infill, Geschwindigkeit und Beschleunigung;
+kein Override deaktiviert Support.
 
 ## Sicherheit und verbleibende Risiken
 
