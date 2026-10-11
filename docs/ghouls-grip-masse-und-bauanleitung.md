@@ -122,6 +122,12 @@ erhalten, weil sie die einzelnen Knochen druckbar verbinden.
 - `models/ghouls-grip-print-mechanism-pla.3mf` – starre Mechanik, zwei Platten.
 - `models/ghouls-grip-print-accent-pla.3mf` – Totenkopf-Drehknopf, eine Platte.
 
+Im geschlossenen Zustand liegt die vollständige interne Deckelmechanik unter
+einer mit dem Deckel vereinigten schwarzen Schutzhaube. Der Montagekanal ist
+nur zur Boxinnenseite offen; von oben besteht eine durchgehende 2,0-mm-Dachhaut.
+Deckelkurbel und Yoke wurden zusätzlich als eigene Kollisionspaare über den
+gesamten Hub geprüft und schneiden weder Deckel noch Schatulle.
+
 Alle Projekte verwenden PLA, Anycubic Kobra S1 0.4, Textured PEI, 0,20 mm Schichthöhe und eingebettete Farben. Die exakten Slice-Ergebnisse stehen in [`ghouls-grip-druckvalidierung.md`](ghouls-grip-druckvalidierung.md).
 
 ## Sicherheit und verbleibende Risiken

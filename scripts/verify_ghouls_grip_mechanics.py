@@ -240,6 +240,8 @@ def check() -> dict:
         "lid_rack_chest": 0.0,
         "lid_yoke_lid": 0.0,
         "lid_yoke_chest": 0.0,
+        "lid_crank_lid": 0.0,
+        "lid_crank_chest": 0.0,
     }
     motion_sweep = []
     for theta in np.linspace(mechanism.THETA_MIN, mechanism.THETA_MAX, 13):
@@ -312,6 +314,12 @@ def check() -> dict:
             ),
             "lid_yoke_chest": volume_intersection(
                 named["lid-follower-rack"], named["chest"]
+            ),
+            "lid_crank_lid": volume_intersection(
+                named["lid-crank"], named["lid"]
+            ),
+            "lid_crank_chest": volume_intersection(
+                named["lid-crank"], named["chest"]
             ),
         }
         for name, value in values.items():

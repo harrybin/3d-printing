@@ -7,13 +7,16 @@ import unittest
 from pathlib import Path
 
 import numpy as np
+import trimesh
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from gothic_chest import (  # noqa: E402
     CREATURE_RELIEF_DEPTH,
+    LID_DROP,
     LID_H,
+    SERVICE_HOOD_TOP,
     _dragon,
     _rib_cage,
     _serpent,
@@ -21,6 +24,7 @@ from gothic_chest import (  # noqa: E402
     build_lid,
 )
 from ghouls_grip import expand_print_parts  # noqa: E402
+import mechanism  # noqa: E402
 
 
 class LightweightEnclosureTests(unittest.TestCase):
@@ -97,7 +101,9 @@ class LightweightEnclosureTests(unittest.TestCase):
         # height is the shell plus however much relief stands proud of it.
         self.assertGreaterEqual(self.lid.extents[2], LID_H - 0.05)
         self.assertLessEqual(
-            self.lid.extents[2], LID_H + CREATURE_RELIEF_DEPTH + 0.05)
+            self.lid.extents[2],
+            max(LID_H + CREATURE_RELIEF_DEPTH, SERVICE_HOOD_TOP) + 0.05,
+        )
 
     def test_print_lid_stands_on_its_rear_edge(self) -> None:
         """The measured lowest-support orientation (4598.9 vs 20336.1 E)."""
@@ -109,6 +115,23 @@ class LightweightEnclosureTests(unittest.TestCase):
         self.assertAlmostEqual(
             printable.extents[1], self.lid.extents[2], delta=0.05)
         self.assertLess(printable.extents[2], 250.0)
+
+    def test_closed_lid_service_channel_has_a_solid_roof(self) -> None:
+        """The internal rack channel may not open through the closed lid."""
+        probe = trimesh.creation.box(extents=(8.0, 8.0, 1.0))
+        probe.apply_translation((
+            -mechanism.DRIVE_PITCH_R,
+            mechanism.LID_RACK_Y - 1.8,
+            SERVICE_HOOD_TOP - 0.5,
+        ))
+        overlap = self.lid.intersection(probe, engine="manifold")
+        self.assertGreater(abs(float(overlap.volume)), 20.0)
+
+        # In the assembled pose the roof hides the full hinge-sector envelope.
+        self.assertGreater(
+            LID_DROP + SERVICE_HOOD_TOP,
+            mechanism.LID_HINGE_Z + 6.0,
+        )
 
 
 if __name__ == "__main__":

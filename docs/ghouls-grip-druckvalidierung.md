@@ -31,18 +31,18 @@ Orca meldet ausschließlich den nicht blockierenden Profilhinweis, dass
 | Projekt / Platte | Inhalt | Schichten | Filament | davon Stützen | Zeit | Vorschau |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
 | Schwarz, Platte 1 | Leichtbau-Schatulle stehend mit organisch skulptierten Kreaturenreliefs | 490 | 196,55 g | 0,33 g (0,2 %) | 8 h 15 min 57 s | [PNG](images/ghouls-grip-slice-black-plate-1.png) |
-| Schwarz, Platte 2 | Gerippter Deckel auf seiner Hinterkante stehend | 645 | 132,82 g | 15,69 g (11,8 %) | 5 h 29 min 29 s | [PNG](images/ghouls-grip-slice-black-plate-2.png) |
+| Schwarz, Platte 2 | Gerippter, vollständig geschlossener Deckel auf seiner Hinterkante stehend | 649 | 134,41 g | 17,64 g (13,1 %) | 5 h 37 min 11 s | [PNG](images/ghouls-grip-slice-black-plate-2.png) |
 | Knochenbeige | Unterarm, Handfläche hochkant, fünf Finger | 482 | 42,82 g | 12,51 g (29,2 %) | 3 h 12 min 04 s | [PNG](images/ghouls-grip-slice-bone.png) |
 | Mechanik, Platte 1 | 4 gelochte Arme, offener Schlitten/Plattformrahmen, Zahnstangen und Speichenritzel | 464 | 111,88 g | 15,44 g (13,8 %) | 5 h 25 min 27 s | [PNG](images/ghouls-grip-slice-mechanism-plate-1.png) |
 | Mechanik, Platte 2 | 3 Zwischenräder, Ausgangszahnrad/D-Welle, Pins und Splinte | 177 | 10,88 g | 1,24 g (11,4 %) | 0 h 52 min 46 s | [PNG](images/ghouls-grip-slice-mechanism-plate-2.png) |
 | Grau | Anatomischer Totenkopf-Drehknopf, Gesicht nach oben | 135 | 20,30 g | 8,21 g (40,4 %) | 1 h 16 min 03 s | [PNG](images/ghouls-grip-slice-accent.png) |
-| **Gesamt** | **39 Druckobjekte / 6 Platten** | – | **515,25 g** | **53,42 g (10,4 %)** | **24 h 31 min 46 s** | – |
+| **Gesamt** | **39 Druckobjekte / 6 Platten** | – | **516,84 g** | **55,39 g (10,7 %)** | **24 h 39 min 28 s** | – |
 
 Projektmetadaten (`status=verified` in den ausgelieferten 3MF-Dateien):
 
 | Projekt | Zeit | Masse | Stützmaterial | Länge | Volumen | Platten |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Schwarz | 49.526 s | 329,37 g | 16,02 g | 110.432,98 mm | 265.620 mm³ | 2 |
+| Schwarz | 49.988 s | 330,96 g | 17,98 g | 110.966,48 mm | 266.910 mm³ | 2 |
 | Knochenbeige | 11.524 s | 42,82 g | 12,51 g | 14.356,12 mm | 34.530 mm³ | 1 |
 | Mechanik | 22.693 s | 122,76 g | 16,69 g | 41.157,86 mm | 99.000 mm³ | 2 |
 | Grau | 4.563 s | 20,30 g | 8,21 g | 6.805,82 mm | 16.370 mm³ | 1 |
@@ -64,11 +64,12 @@ Skripte: `scripts/audit_lid_orientation.py`, `scripts/audit_part_orientation.py`
 `scripts/audit_chest_support.py`.
 
 Gegenüber dem zuvor verifizierten Stand (528,22 g / 138,60 g Support) sinkt der
-Stützbedarf um **85,18 g / 61,5 %** und die Gesamtmasse um 12,97 g, allein durch
-gemessene Orientierungswechsel – die Geometrie wurde dafür nicht verändert.
+Stützbedarf um **83,21 g / 60,0 %** und die Gesamtmasse um 11,38 g. Die
+gemessenen Orientierungswechsel tragen den Hauptteil der Einsparung; die
+zusätzliche geschlossene Deckelhaube erhöht das schwarze Projekt nur um 1,59 g.
 Gegenüber dem ursprünglichen 629,66-g-Entwurf beträgt die Materialeinsparung
-**114,41 g / 18,2 %**, gegenüber der Vor-Leichtbau-Schatulle (455,96 g schwarz)
-**126,59 g / 27,8 %**.
+**112,82 g / 17,9 %**, gegenüber der Vor-Leichtbau-Schatulle (455,96 g schwarz)
+**125,00 g / 27,4 %**.
 
 Wichtig: Kein Projekt wird als „supportfrei“ bezeichnet. In allen vier Projekten
 sind Baumstützen (`tree(auto)`, 30°-Schwelle, bettgebunden) aktiv. Die
@@ -96,6 +97,13 @@ Gesamtmasse/-länge.
   massiven, 193 mm breiten Querriegels. Er steht auf seiner Hinterkante: in
   dieser Lage ist weder die hohle Innendecke noch das skulptierte Kartuschen-
   relief ein großer Überhang (4.598,9 statt 20.336,1 Stütz-E).
+- Der frühere durchgehende Servicekanal für Yoke und Deckelkurbel ist nach außen
+  vollständig geschlossen. Eine lokale schwarze Haube besitzt eine 2,0-mm-
+  Dachhaut, eine ausschließlich nach innen offene Montagekavität und eine
+  gemessene Labyrinth-Freistellung am Scharnier. Im geschlossenen Zustand liegt
+  jedes interne Mechanikteil unter dieser Deckelgeometrie; der vollständige
+  18°–78°-Sweep ergibt für `lid_crank_lid`, `lid_yoke_lid`, `lid_chest` und
+  die jeweiligen Brustkontakte jeweils **0,000 mm³**.
 - Schatulle und Deckel liegen auf zwei getrennten Platten desselben schwarzen
   Projekts, weil der stehende Deckel 129 mm hoch baut.
 - Der Sockel und der obere Kranz der Schatulle wurden von horizontalen Stufen
@@ -111,8 +119,9 @@ Gesamtmasse/-länge.
 - Acht überarbeitete Mechanikteile sanken durch offene Rahmen, Fenster und
   Speichen von 118.567 auf 82.649 mm³ (**−30,3 %**).
 - Der Deckel bleibt ein einzelner watertight/manifold Körper:
-  27.116 Facetten, 206 × 129 × 25,6 mm (24,0 mm Grundkörper plus 1,6 mm
-  skulptiertes Kartuschenrelief).
+  27.796 Facetten, 206 × 129,786 × 28,2 mm. Die lokale Schutzhaube ist nur
+  2,6 mm höher als das skulptierte Kartuschenrelief und enthält keine
+  getrennten oder eingeschlossenen Körper.
 - Die Schienen- und Lagerbooleans werden zuerst in der bewährten Kernschale
   erzeugt; die geneigten Zierkurse werden danach kontrolliert angefügt. Dadurch
   bleiben die mechanischen Führungen geschlossen und manifold.

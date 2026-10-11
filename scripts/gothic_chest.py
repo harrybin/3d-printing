@@ -55,6 +55,7 @@ LID_DROP = 74.0         # chest z of the lid local origin when closed
 RAIL_Z = 8.0
 HINGE_Z = 93.0          # lid pin axis, shared by chest and lid knuckles
 HINGE_Y = CHEST_W / 2.0 + PROUD - 2.0  # rear long edge; axis runs along X
+SERVICE_HOOD_TOP = 28.2  # sealed roof over the internal lid rack/sector
 
 
 def _rect_frustum(bottom: tuple[float, float], top: tuple[float, float],
@@ -1604,13 +1605,58 @@ def build_lid() -> trimesh.Trimesh:
     # Narrow service channel for the rigid lid rack and hinge sector.  It
     # replaces a slice of one lid knuckle without weakening the other three.
     clearance_pockets.append(box(
-        (14.0, 20.0, 26.0),
+        (18.0, 20.0, 26.0),
         (-mechanism.DRIVE_PITCH_R, mechanism.LID_RACK_Y, 13.0),
     ))
     for index, cutter in enumerate(clearance_pockets):
         body = difference(body, [cutter])
         if not body.is_volume:
             raise RuntimeError(f"lid clearance {index} broke the solid")
+
+    # The rack/sector service channel must be accessible from the lid underside,
+    # but it must never be an opening through the closed box.  Rebuild only this
+    # local zone as a hollow hood: the frozen hinge axis, rack clearance and lid
+    # shell stay unchanged, while a 2 mm roof and side walls hide the mechanism.
+    # The inner cutter extends below the hood, so the cavity remains open only
+    # toward the box interior and cannot trap support or block assembly.
+    hood_outer = rounded_box(
+        (22.0, 22.6, 11.2),
+        4.0,
+        (
+            -mechanism.DRIVE_PITCH_R,
+            mechanism.LID_RACK_Y - 1.8,
+            SERVICE_HOOD_TOP - 5.6,
+        ),
+    )
+    hood_inner = box(
+        (20.0, 20.8, 16.2),
+        (
+            -mechanism.DRIVE_PITCH_R,
+            mechanism.LID_RACK_Y - 1.7,
+            SERVICE_HOOD_TOP - 10.1,
+        ),
+    )
+    # The follower crosses the rear wall only below the hinge line at full
+    # opening.  A small, overlapping labyrinth notch clears that measured
+    # sweep while the continuous roof still closes every view from above.
+    yoke_sweep_notch = box(
+        (8.0, 3.2, 4.4),
+        (
+            -mechanism.DRIVE_PITCH_R,
+            mechanism.LID_RACK_Y + 9.5,
+            18.6,
+        ),
+    )
+    service_hood = difference(
+        hood_outer,
+        [hood_inner, yoke_sweep_notch],
+    )
+    if not service_hood.is_volume:
+        raise RuntimeError("lid service hood is not a closed shell")
+    body = union([body, service_hood])
+    if not body.is_volume:
+        raise RuntimeError("lid service hood broke the solid")
+
     components = sorted(
         body.split(only_watertight=False),
         key=lambda component: abs(component.volume),
