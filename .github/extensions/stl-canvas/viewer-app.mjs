@@ -69,6 +69,7 @@ export const APP_HTML = `
 <section id="printSummary" class="print-summary" aria-label="Print project summary" hidden>
   <div class="print-card"><span>Print time</span><strong id="summaryPrintTime">—</strong></div>
   <div class="print-card"><span>Material usage</span><strong id="summaryMaterial">—</strong></div>
+  <div class="print-card"><span>Support material</span><strong id="summarySupport">—</strong></div>
   <div class="print-card"><span>Filament length</span><strong id="summaryLength">—</strong></div>
   <div class="print-card"><span>Validation</span><strong id="summaryStatus">—</strong></div>
 </section>
@@ -110,10 +111,15 @@ export function formatPrintMetadataSummary(projectMetadata = {}) {
   }
   const grams = metadataWithUnit('filamentUsageGrams', 'g')
   const material = metadataValue('materialType', '')
+  const supportGrams = Number(projectMetadata.supportFilamentGrams)
+  const supportUsage = Number.isFinite(supportGrams) && supportGrams > 0
+    ? `${supportGrams.toFixed(2)} g`
+    : 'none'
   return {
     visible: Object.keys(projectMetadata).length > 0,
     printTime,
     materialUsage: grams === 'not available' ? grams : `${grams}${material ? ` ${material}` : ''}`,
+    supportUsage,
     filamentLength: metadataWithUnit('filamentUsageMillimeters', 'mm'),
     status: metadataValue('status'),
   }
@@ -1028,6 +1034,8 @@ function renderModelMeta() {
     ['Filament', metadataWithUnit('filamentUsageGrams', 'g')],
     ['Filament length', metadataWithUnit('filamentUsageMillimeters', 'mm')],
     ['Filament volume', metadataWithUnit('filamentUsageCubicMillimeters', 'mm³')],
+    ['Support material', printSummaryValues.supportUsage],
+    ['Support length', metadataWithUnit('supportFilamentMillimeters', 'mm')],
     ['Printer', metadataValue('printerProfile')],
     ['Nozzle', metadataWithUnit('nozzleDiameterMm', 'mm')],
     ['Process', metadataValue('processProfile')],
@@ -1046,6 +1054,7 @@ function renderModelMeta() {
   if (printSummaryValues.visible) {
     document.getElementById('summaryPrintTime').textContent = printSummaryValues.printTime
     document.getElementById('summaryMaterial').textContent = printSummaryValues.materialUsage
+    document.getElementById('summarySupport').textContent = printSummaryValues.supportUsage
     document.getElementById('summaryLength').textContent = printSummaryValues.filamentLength
     document.getElementById('summaryStatus').textContent = printSummaryValues.status
   }

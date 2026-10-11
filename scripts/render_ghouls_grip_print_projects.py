@@ -19,7 +19,8 @@ PROJECTS = {
     "black": (
         MODELS / "ghouls-grip-print-black-pla.3mf",
         "#202124",
-        ("ghouls-grip-slice-black-plate-1.png",),
+        ("ghouls-grip-slice-black-plate-1.png",
+         "ghouls-grip-slice-black-plate-2.png"),
     ),
     "bone": (
         MODELS / "ghouls-grip-print-bone-pla.3mf",

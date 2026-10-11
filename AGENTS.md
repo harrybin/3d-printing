@@ -72,6 +72,17 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Blender is allowed for organic, sculptural, relief, and visually complex regions.
   It must not freely alter measured datums, bores, fits, interfaces, or keyed joints.
   Validate every Blender export independently with the repo tools.
+- Whenever a region should read as realistic, photorealistic, organic or sculptural
+  (ornaments, creatures, skulls, foliage, drapery), do not keep stacking Python
+  primitives. Switch to Blender for that region and first search online for a
+  license-compatible motif, scan or asset that comes close to the target, then adapt
+  it instead of approximating it from scratch. Record source, author and license per
+  `research-reusable-3d-assets`.
+- Ornaments do not have to be purely raised. Recessed/engraved relief is allowed
+  wherever the remaining wall thickness and stability still satisfy the part's
+  structural requirement. Whichever direction is used, the decorated part must be
+  sliced against a matched undecorated control with automatic support enabled, and
+  it must not increase support paths or support extrusion.
 - Prefer the official Blender Lab MCP integration, bind it only to localhost, save a
   `.blend` checkpoint before agent-controlled changes, and treat arbitrary Blender
   Python execution as trusted local code execution.
@@ -87,6 +98,11 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Every delivered print plate must be sliced in OrcaSlicer with the intended Kobra
   S1/nozzle/process/filament profiles when OrcaSlicer is available. Record print
   time and material only from a successful slice.
+- Generated OrcaSlicer 3MF projects default to random seam placement, ironing on
+  all top surfaces and enabled automatic support (`seam_position=random`,
+  `ironing_type=top`, `enable_support=1`) unless a documented part-specific reason
+  requires an exception. Support stays on so that a zero-support slice is proven
+  geometry, never a disabled setting.
 - New complex assemblies use `models/<name>-master.3mf` for the complete assembled
   object and one or more `models/<name>-print-<plate-or-material>.3mf` files for
   print-optimized jobs. Optional part STLs do not replace these files.
@@ -125,7 +141,7 @@ If behavior around print constraints, validation policy, or coordinate targeting
   as many internal plates as needed. Parts sharing material and color should
   share a plate whenever they fit safely; Ghoul's Grip fingers and bones are the
   reference example.
-- For ornate reference designs, use real raised/recessed geometry (scrolls, tracery, leaves, ribs, cartouches), not a few generic arches or a texture. Validate minimum stroke and relief depth for the nozzle.
+- For ornate reference designs, use real raised/recessed geometry (scrolls, tracery, leaves, ribs, cartouches), not a few generic arches or a texture. Validate minimum stroke and relief depth for the nozzle. Raised and engraved relief may be mixed; engraving requires enough remaining wall thickness to stay structurally sound.
 
 ## Common Pitfalls
 
@@ -182,7 +198,7 @@ If behavior around print constraints, validation policy, or coordinate targeting
 | STL canvas preview | written output path under `models/` | `create-ascii-stl` | `edit-stl-transform`, `stl-from-image-measurements`, `validate-stl-mesh`, `optimize-stl-for-print` | Also preview written STL outputs in the canvas; for 3MF-first outputs, report the 3MF path and preview an STL counterpart when available. |
 | Optional helper libraries | repo support status | `.github/skills/README.md` | all skills | Mark non-default helpers such as `scikit-image` or `shapely` explicitly as optional where applicable. |
 | Reusable online assets | original source and explicit license | `research-reusable-3d-assets` | `research-part-specs`, `stl-from-image-measurements` | Search before original modeling; unclear or incompatible licenses are reference-only. |
-| Python vs Blender routing | feature type and frozen datums | `blender-assisted-modeling` | `create-ascii-stl`, `stl-from-image-measurements` | Python owns fit geometry; Blender owns approved organic/visual regions. |
+| Python vs Blender routing | feature type and frozen datums | `blender-assisted-modeling` | `create-ascii-stl`, `stl-from-image-measurements`, `research-reusable-3d-assets` | Python owns fit geometry; Blender owns approved organic/visual regions, and realistic or sculptural requests move to Blender with a prior license-compatible asset search instead of more primitives. |
 | Delivered-project support minimization | exact final STL/3MF plus fixed Kobra S1 profiles | `orcaslicer-support-minimization` | `orcaslicer-project-workflow`, `optimize-stl-for-print`, `orcaslicer-print-validation` | Compare bounded absolute datum rotations sequentially, preserve material/plate semantics, save orientation in 3MF, and leave geometry changes as suggestions until separately approved at the source model. |
 | Final slice evidence | successful OrcaSlicer project slice | `orcaslicer-print-validation` | `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Never claim print time or final print readiness without a successful slice. |
 | Complex 3MF packaging | assembled master plus print plates | `multimaterial-assembly-packaging` | `stl-create-edit-interview`, `optimize-stl-for-print` | Deliver a master 3MF and print-optimized 3MFs; prefer keyed color parts when practical. |

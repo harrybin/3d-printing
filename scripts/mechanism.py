@@ -66,6 +66,7 @@ FOREARM_SOCKET_FLAT_X = 1.9
 FOREARM_SHAFT_Y_MIN = -22.0
 FOREARM_SHAFT_Y_MAX = 53.0
 FOREARM_RETAINER_Y = -19.5
+FOREARM_LENGTH = 34.0
 GEAR_TRAIN_DISTANCE = float(np.hypot(
     ARM_HINGE_X - PLATFORM_PIN_X, ARM_HINGE_Z - (-8.0)
 ))
@@ -283,10 +284,6 @@ def build_scissor_arm() -> trimesh.Trimesh:
     body = union([shaft, *ends])
     bores = [cylinder(PIVOT_D / 2.0, ARM_T + 4.0, (x, 0.0, ARM_T / 2.0))
              for x in (-ARM_L / 2.0, 0.0, ARM_L / 2.0)]
-    bores += [
-        cylinder(3.2 / 2.0, ARM_T + 4.0, (x, 0.0, ARM_T / 2.0))
-        for x in (-ARM_L / 2.0 + 8.0, ARM_L / 2.0 - 8.0)
-    ]
     lightening = [
         rounded_box((18.0, 5.6, ARM_T + 2.0), 2.4,
                     (sx * 14.0, 0.0, ARM_T / 2.0))
@@ -335,12 +332,7 @@ def build_slider() -> trimesh.Trimesh:
         np.arange(-70.0, 8.1, GEAR_PITCH), -50.0, 18.0
     )
 
-    body = union([body, *tongues, *lugs, rack_bar, *rack_teeth])
-    body = difference(body, [
-        cylinder(4.0 / 2.0, 12.0, (8.0, 40.0, RAIL_Z + 12.0), (0.0, 1.0, 0.0)),
-        cylinder(4.0 / 2.0, 12.0, (8.0, -40.0, RAIL_Z + 12.0), (0.0, 1.0, 0.0)),
-    ])
-    return clean(body)
+    return clean(union([body, *tongues, *lugs, rack_bar, *rack_teeth]))
 
 
 def build_platform() -> trimesh.Trimesh:
@@ -589,7 +581,7 @@ def build_forearm_output_gear() -> trimesh.Trimesh:
     return clean(difference(body, [retainer_hole]))
 
 
-def build_forearm(length: float = 34.0) -> trimesh.Trimesh:
+def build_forearm(length: float = FOREARM_LENGTH) -> trimesh.Trimesh:
     """Bone-color radius and ulna with a keyed removable hinge socket."""
     shafts = [
         *bone((-7.0, 0.0, 6.0), (-4.5, 0.0, length - 6.0), 4.2, 6.2),

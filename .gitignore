@@ -10,3 +10,5 @@ web/public/models/models.json
 web/public/build-info.json
 
 web/public/models/*.3mf
+build/
+*.log

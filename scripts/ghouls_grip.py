@@ -184,6 +184,9 @@ def write_3mf(path: Path, objects) -> None:
         "filamentUsageGrams": "unknown",
         "filamentUsageMillimeters": "unknown",
         "filamentUsageCubicMillimeters": "unknown",
+        "supportFilamentGrams": "unknown",
+        "supportFilamentMillimeters": "unknown",
+        "supportFilamentCubicMillimeters": "unknown",
         "printerProfile": "unknown",
         "nozzleDiameterMm": "unknown",
         "processProfile": "unknown",
@@ -235,7 +238,7 @@ PART_MATERIAL = {
     "lid-follower-rack": MECH, "lid-crank": MECH,
     "scissor-drive-gear": MECH, "idler-gear": MECH,
     "forearm-output-gear": MECH,
-    "pivot-pin-3": MECH, "pivot-pin-4": MECH,
+    "pivot-pin-3": MECH,
     "drive-skull-knob": ACCENT,
     "forearm": BONE, "hand-palm": BONE,
 }
@@ -244,7 +247,6 @@ PRINT_QUANTITIES = {
     "scissor-arm": 4,
     "idler-gear": 3,
     "pivot-pin-3": 10,
-    "pivot-pin-4": 4,
 }
 
 
@@ -253,7 +255,6 @@ def build_parts() -> dict:
     for name, fn in mechanism.PARTS.items():
         parts[name] = fn()
     parts["pivot-pin-3"] = mechanism.build_pin(3.0, 26.0)
-    parts["pivot-pin-4"] = mechanism.build_pin(4.0, 34.0)
     parts["drive-skull-knob"] = build_drive_knob(
         shaft_d=mechanism.DRIVE_SHAFT_D)
     skeleton = load_skeleton()
@@ -278,13 +279,35 @@ def expand_print_parts(parts: dict) -> dict:
     for name, mesh in parts.items():
         printable = mesh.copy()
         if name == "lid":
-            # The assembled datum leaves the broad inner roof horizontal and
-            # previously consumed almost as much tree support as model
-            # material.  Stand the lid on its straight front edge instead:
-            # the hinge axis and main loads stay in XY layers, while the large
-            # roof becomes vertical and no longer needs a support forest.
+            # Print the lid standing on its rear (hinge) edge. Measured against
+            # the upright, upside-down and front-edge candidates by
+            # scripts/audit_lid_orientation.py this is the only orientation in
+            # which neither the hollow inner ceiling nor the sculpted cartouche
+            # becomes a large overhang: 4598.9 support E versus 20336.1 upright,
+            # 20553.3 upside down and 14840.6 on the front edge. This
+            # print-only transform does not alter the assembled master or any
+            # hinge datum.
+            printable.apply_transform(trimesh.transformations.rotation_matrix(
+                -np.pi / 2.0, (1.0, 0.0, 0.0)))
+            printable.apply_translation(
+                [0.0, 0.0, -printable.bounds[0, 2]])
+        elif name == "hand-palm":
+            # Stand the palm on its wrist cut. Measured by
+            # scripts/audit_part_orientation.py: 290.0 support E versus 2958.9
+            # as built and 1970.5 flipped, because the finger sockets and the
+            # thenar undercut then run vertically instead of roofing over.
             printable.apply_transform(trimesh.transformations.rotation_matrix(
                 np.pi / 2.0, (1.0, 0.0, 0.0)))
+            printable.apply_translation(
+                [0.0, 0.0, -printable.bounds[0, 2]])
+        elif name == "drive-skull-knob":
+            # Print the skull knob face up on its flat shaft boss. Measured by
+            # scripts/audit_part_orientation.py: 968.7 support E versus 3266.5
+            # as built. The two side-laid candidates reach 655-732 E but would
+            # drag support across the sculpted face, so the flat footprint with
+            # the clean face wins.
+            printable.apply_transform(trimesh.transformations.rotation_matrix(
+                np.pi, (1.0, 0.0, 0.0)))
             printable.apply_translation(
                 [0.0, 0.0, -printable.bounds[0, 2]])
         quantity = PRINT_QUANTITIES.get(name, 1)

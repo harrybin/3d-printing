@@ -21,7 +21,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import mechanism
 from gothic_chest import HINGE_Y, HINGE_Z, LID_DROP, build_chest, build_lid
-from skeleton_hand import GRIP_POSE, assemble, load_skeleton
+from skeleton_hand import (GRIP_POSE, assemble, load_skeleton,
+                           palm_to_forearm_transform)
 from skull import build_drive_knob
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -160,6 +161,26 @@ def build_scene_at(theta: float):
             items.append((f"arm-{i}-{mirrored}",
                           lay_arm(arm, theta, y + off, mirrored), MECHANISM_COLOR))
 
+    # The master assembly includes the real removable scissor pins. Without
+    # them the aligned holes look plausible but do not communicate how the
+    # mechanism is actually retained after printing.
+    scissor_pin_points = (
+        (FLOOR_PIVOT[0], FLOOR_PIVOT[1]),
+        (slider_x, FLOOR_PIVOT[1]),
+        (slider_x / 2.0, FLOOR_PIVOT[1] + lift / 2.0),
+        (FLOOR_PIVOT[0], FLOOR_PIVOT[1] + lift),
+    )
+    for plane, y in enumerate((-SCISSOR_Y, SCISSOR_Y)):
+        for index, (x, z) in enumerate(scissor_pin_points):
+            pin = mechanism.build_pin(3.0, 26.0)
+            pin.apply_transform(rot(90.0, [1, 0, 0]))
+            pin.apply_translation([x, y + 13.0, z])
+            items.append((
+                f"pivot-pin-3-{plane}-{index}",
+                pin,
+                MECHANISM_COLOR,
+            ))
+
     platform = mechanism.build_platform()
     platform.apply_translation(plat_origin)
     items.append(("platform", platform, MECHANISM_COLOR))
@@ -202,13 +223,14 @@ def build_scene_at(theta: float):
     # The common finger flexures remain in their compact pre-curled pose.  The
     # The rigid redesign changes the box drive, lid and forearm linkage only.
     hand = grip_hand()
-    stack = trimesh.util.concatenate(list(hand.values()))
-    wrist_y = stack.bounds[0][1]
+    wrist_transform = palm_to_forearm_transform(
+        load_skeleton(),
+        mechanism.FOREARM_LENGTH + 9.0,
+        mechanism.HAND_PALM_ROLL,
+    )
     for name, mesh in hand.items():
         part = mesh.copy()
-        part.apply_transform(rot(90.0, [1, 0, 0]))
-        part.apply_translation([0.0, 0.0, -wrist_y + 38.0])
-        part.apply_transform(rot(mechanism.HAND_PALM_ROLL, [0, 0, 1]))
+        part.apply_transform(wrist_transform)
         part.apply_transform(rot(tilt, [0, 1, 0]))
         part.apply_translation(hinge)
         colour = FINGER_COLOR if name.startswith("hand-finger") else BONE_COLOR

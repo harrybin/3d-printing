@@ -42,15 +42,31 @@ test('formats verified print time and material usage for the visible summary', (
       estimatedPrintTimeSeconds: '68960',
       filamentUsageGrams: '458.16',
       filamentUsageMillimeters: '153614.51',
+      supportFilamentGrams: '12.40',
       materialType: 'PLA',
     }),
     {
       visible: true,
       printTime: '19 h 9 min',
       materialUsage: '458.16 g PLA',
+      supportUsage: '12.40 g',
       filamentLength: '153614.51 mm',
       status: 'verified',
     },
+  )
+})
+
+test('reports no support material when the slice needed none', () => {
+  const summary = formatPrintMetadataSummary({
+    status: 'verified',
+    estimatedPrintTimeSeconds: '3600',
+    filamentUsageGrams: '20.00',
+    supportFilamentGrams: '0.00',
+  })
+  assert.equal(summary.supportUsage, 'none')
+  assert.equal(
+    formatPrintMetadataSummary({ status: 'not-verified' }).supportUsage,
+    'none',
   )
 })
 

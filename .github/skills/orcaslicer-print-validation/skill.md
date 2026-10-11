@@ -64,6 +64,7 @@ Do not report comparable print estimates unless these settings are held constant
 7. Re-slice after every geometry, orientation, support, or profile change.
 
 Do not infer `support-free` from a project whose support setting is `none`.
+Generated projects keep `enable_support=1` by default for exactly this reason.
 Validate that claim with automatic support enabled at the intended threshold,
 then confirm the generated G-code contains neither support nor support-interface
 paths. Also record the analytical maximum ceiling/bridge span; zero generated
@@ -80,8 +81,14 @@ document with:
 - plate number and included objects
 - orientation and arrangement
 - layer height and layer count
+- seam position and ironing type
 - estimated print time
 - filament length, mass, and cost when configured
+- support material mass, length and volume whenever supports are generated;
+  recover the share from the G-code by summing positive extruder deltas under
+  `;TYPE:Support` and `;TYPE:Support interface` and scaling it with the
+  slicer's own mm-to-mass ratio. State `none` only for a slice that produced
+  no support path at all.
 - supports, brim/raft, bridges, and notable overhangs
 - material/color changes and purge impact when available
 - slicer warnings and their resolution
@@ -99,6 +106,9 @@ Every generated project 3MF must include a slicer-neutral metadata part named
 - `filamentUsageGrams`
 - `filamentUsageMillimeters`
 - `filamentUsageCubicMillimeters`
+- `supportFilamentGrams`
+- `supportFilamentMillimeters`
+- `supportFilamentCubicMillimeters`
 - printer, nozzle, process/layer height, filament/material, bed, supports,
   infill, wall loops, and plate count
 
@@ -116,6 +126,9 @@ patch the same metadata entry with the exact slicer-reported values and set
 - no unresolved collision, out-of-bed, empty-layer, or invalid-toolpath warning
 - removable supports where supports are used
 - acceptable bridges, first layer, seams, and color/material transitions
+- random seam placement, ironing on all top surfaces and enabled automatic
+  support are present unless a documented project-specific exception overrides
+  the repository default
 - recorded print time and material estimate from that successful slice
 
 Do not call a model print-ready when OrcaSlicer validation failed or was skipped.

@@ -46,8 +46,14 @@ MATERIAL_PROJECTS = {
         "bridge_no_support": True,
         "manual_gap": 20.0,
         "object_overrides": True,
-        "plate_row_pitch": 250.0,
+        # arrange() places the 129 mm-deep lid on the second row at y≈150 mm.
+        # A 140 mm row pitch converts that row into a separate Orca plate.
+        "plate_row_pitch": 140.0,
         "plate_x_pitch": 300.0,
+        "plate_names": (
+            "Schatulle",
+            "Deckel auf Hinterkante stehend",
+        ),
     },
     "bone-pla": {
         "match": "Knochen - beiges PLA",
@@ -69,6 +75,10 @@ MATERIAL_PROJECTS = {
         # The 240 mm split preserves a 10 mm edge margin on both plates.
         "plate_row_pitch": 240.0,
         "plate_x_pitch": 300.0,
+        "plate_names": (
+            "Mechanik-Hauptteile",
+            "Zahnraeder und Verbinder",
+        ),
     },
     "accent-pla": {
         "match": "Totenkopf-Ausloeser - graues PLA",
@@ -88,7 +98,6 @@ OBJECT_OVERRIDES = {
     },
     "scissor-arm": {
         "wall_loops": "5", "sparse_infill_density": "100%",
-        "enable_support": "0",
     },
     "slider": {
         "wall_loops": "5", "sparse_infill_density": "25%",
@@ -100,7 +109,6 @@ OBJECT_OVERRIDES = {
     },
     "drive-pinion": {
         "wall_loops": "5", "sparse_infill_density": "30%",
-        "enable_support": "0",
     },
     "lid-rack": {
         "wall_loops": "5", "sparse_infill_density": "25%",
@@ -112,15 +120,12 @@ OBJECT_OVERRIDES = {
     },
     "lid-crank": {
         "wall_loops": "5", "sparse_infill_density": "100%",
-        "enable_support": "0",
     },
     "scissor-drive-gear": {
         "wall_loops": "5", "sparse_infill_density": "50%",
-        "enable_support": "0",
     },
     "idler-gear": {
         "wall_loops": "5", "sparse_infill_density": "50%",
-        "enable_support": "0",
     },
     "forearm-output-gear": {
         "wall_loops": "6", "sparse_infill_density": "50%",
@@ -128,17 +133,11 @@ OBJECT_OVERRIDES = {
     },
     "pivot-pin-3": {
         "wall_loops": "6", "sparse_infill_density": "100%",
-        "enable_support": "0",
-    },
-    "pivot-pin-4": {
-        "wall_loops": "6", "sparse_infill_density": "100%",
-        "enable_support": "0",
     },
     "forearm": {"wall_loops": "4", "sparse_infill_density": "25%"},
     "hand-palm": {"wall_loops": "4", "sparse_infill_density": "25%"},
     "drive-skull-knob": {
         "wall_loops": "5", "sparse_infill_density": "40%",
-        "enable_support": "0",
     },
     "hand-finger": {
         "wall_loops": "2", "sparse_infill_density": "15%",
@@ -165,7 +164,15 @@ def _process_settings(spec: dict) -> dict:
         "wall_loops": spec["wall_loops"],
         "sparse_infill_density": spec["infill"],
         "sparse_infill_pattern": "gyroid",
-        "enable_support": "0",
+        "seam_position": "random",
+        "ironing_type": "top",
+        # Repo default: automatic support stays enabled in every generated
+        # project so a slice that reports zero support is a geometry result
+        # rather than a disabled setting.
+        "enable_support": "1",
+        "support_type": "tree(auto)",
+        "support_on_build_plate_only": "1",
+        "support_threshold_angle": "30",
         "enable_prime_tower": "0",
         "xy_hole_compensation": "0.1",
         "xy_contour_compensation": "0",
@@ -328,11 +335,16 @@ def _assign_row_plates(path: Path, spec: dict) -> None:
         settings.remove(old_plate)
     assemble = settings.find("assemble")
     insert_at = list(settings).index(assemble) if assemble is not None else len(settings)
+    plate_names = spec.get("plate_names", ())
     for plate_index, object_ids in sorted(plate_objects.items()):
         plate = ET.Element("plate")
         for key, value in (
             ("plater_id", str(plate_index + 1)),
-            ("plater_name", ""),
+            (
+                "plater_name",
+                plate_names[plate_index]
+                if plate_index < len(plate_names) else "",
+            ),
             ("locked", "false"),
             ("filament_map_mode", "Auto For Flush"),
             ("gcode_file", ""),
@@ -370,6 +382,9 @@ def _write_project_metadata(path: Path, spec: dict, checks: dict) -> None:
         "filamentUsageGrams": "unknown",
         "filamentUsageMillimeters": "unknown",
         "filamentUsageCubicMillimeters": "unknown",
+        "supportFilamentGrams": "unknown",
+        "supportFilamentMillimeters": "unknown",
+        "supportFilamentCubicMillimeters": "unknown",
         "printerProfile": checks["printer"],
         "nozzleDiameterMm": "0.4",
         "processProfile": checks["process"],

@@ -6,10 +6,21 @@ import sys
 import unittest
 from pathlib import Path
 
+import numpy as np
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from gothic_chest import build_chest, build_lid  # noqa: E402
+from gothic_chest import (  # noqa: E402
+    CREATURE_RELIEF_DEPTH,
+    LID_H,
+    _dragon,
+    _rib_cage,
+    _serpent,
+    build_chest,
+    build_lid,
+)
+from ghouls_grip import expand_print_parts  # noqa: E402
 
 
 class LightweightEnclosureTests(unittest.TestCase):
@@ -24,12 +35,80 @@ class LightweightEnclosureTests(unittest.TestCase):
         self.assertLess(self.chest.volume, 200_000.0)
         self.assertAlmostEqual(self.chest.extents[2], 98.0, delta=0.05)
 
+    def test_undecorated_control_preserves_functional_envelope(self) -> None:
+        control = build_chest(include_decoration=False)
+        self.assertTrue(control.is_watertight)
+        self.assertEqual(len(control.split(only_watertight=False)), 1)
+        self.assertTrue(
+            all(abs(a - b) < 0.05
+                for a, b in zip(control.extents, self.chest.extents))
+        )
+        self.assertLess(control.volume, self.chest.volume)
+
+    def test_creature_reliefs_have_organic_anatomical_layering(self) -> None:
+        serpent = _serpent(1.0)
+        tail = serpent.vertices[
+            (serpent.vertices[:, 1] > -24.5)
+            & (serpent.vertices[:, 1] < -23.0)
+        ]
+        torso = serpent.vertices[
+            (serpent.vertices[:, 1] > -8.0)
+            & (serpent.vertices[:, 1] < 0.0)
+        ]
+        self.assertLess(np.ptp(tail[:, 0]), np.ptp(torso[:, 0]))
+        textured_torso = serpent.vertices[
+            (serpent.vertices[:, 1] > -15.0)
+            & (serpent.vertices[:, 1] < 22.0)
+        ]
+        serpent_layers = {
+            round(abs(float(value)), 2)
+            for value in textured_torso[:, 2]
+        }
+        self.assertGreaterEqual(len(serpent_layers), 5)
+
+        dragon = _dragon(1.0)
+        membranes = [
+            component
+            for component in dragon.split(only_watertight=False)
+            if component.extents[2] <= 0.65
+            and component.extents[0] >= 8.0
+            and component.extents[1] >= 8.0
+        ]
+        self.assertGreaterEqual(len(membranes), 2)
+
+        rib_cage = _rib_cage(1.0)
+        vertebral_column = rib_cage.vertices[
+            (abs(rib_cage.vertices[:, 0]) < 2.0)
+            & (rib_cage.vertices[:, 1] > -20.0)
+            & (rib_cage.vertices[:, 1] < 18.0)
+        ]
+        vertebral_depths = {
+            round(abs(float(value)), 2)
+            for value in vertebral_column[:, 2]
+        }
+        self.assertGreaterEqual(len(vertebral_depths), 4)
+
     def test_lid_keeps_connected_truss_and_seating_guides(self) -> None:
         self.assertTrue(self.lid.is_watertight)
         self.assertEqual(len(self.lid.split(only_watertight=False)), 1)
         self.assertLess(self.lid.volume, 140_000.0)
         self.assertAlmostEqual(self.lid.bounds[0, 2], 0.0, delta=0.01)
-        self.assertAlmostEqual(self.lid.extents[2], 24.0, delta=0.05)
+        # The sculpted cartouche grows out of the LID_H shell, so the total
+        # height is the shell plus however much relief stands proud of it.
+        self.assertGreaterEqual(self.lid.extents[2], LID_H - 0.05)
+        self.assertLessEqual(
+            self.lid.extents[2], LID_H + CREATURE_RELIEF_DEPTH + 0.05)
+
+    def test_print_lid_stands_on_its_rear_edge(self) -> None:
+        """The measured lowest-support orientation (4598.9 vs 20336.1 E)."""
+        printable = expand_print_parts({"lid": self.lid})["lid"]
+        self.assertAlmostEqual(printable.bounds[0, 2], 0.0, delta=0.01)
+        # Rotating -90 deg about X swaps the lid depth into the build height.
+        self.assertAlmostEqual(
+            printable.extents[2], self.lid.extents[1], delta=0.05)
+        self.assertAlmostEqual(
+            printable.extents[1], self.lid.extents[2], delta=0.05)
+        self.assertLess(printable.extents[2], 250.0)
 
 
 if __name__ == "__main__":

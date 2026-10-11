@@ -38,6 +38,8 @@ MCP_END_INSET = 4.0
 SOCKET_CLEAR = 1.00
 WRIST_D = 12.0
 WRIST_SOCKET = 16.0
+WRIST_SOCKET_LEAD_IN = 2.0
+WRIST_PIN_FROM_MOUNT = WRIST_SOCKET * 0.6
 # 0.8 mm is exactly two 0.4 mm perimeters, the thinnest web that still prints
 # solid. Rigid PLA bends most reliably when this web is exactly two perimeters.
 WEB = 0.8          # dorsal hinge web left standing at every flexure joint
@@ -327,12 +329,57 @@ def build_palm(skeleton: Skeleton) -> trimesh.Trimesh:
                 pitch=0.45, bridge=1.6, smooth=0.9)
     body = simplify(body, 24000)
 
-    cutters = [cylinder(WRIST_D / 2.0, WRIST_SOCKET + 2.0,
-                        mount + forearm * (WRIST_SOCKET / 2.0 - 1.0), forearm)]
+    # Extend the bore beyond the proximal boss face. Ending the cutter exactly
+    # on that face can leave a boolean cap which looks solid in the exported
+    # 3MF even though most of the socket volume is empty.
+    socket_length = WRIST_SOCKET + WRIST_SOCKET_LEAD_IN + 2.0
+    socket_centre = mount + forearm * (
+        WRIST_SOCKET / 2.0 + WRIST_SOCKET_LEAD_IN / 2.0 - 1.0
+    )
+    cutters = [cylinder(
+        WRIST_D / 2.0,
+        socket_length,
+        socket_centre,
+        forearm,
+    )]
+    # A shallow counterbore is a visible insertion cue and absorbs minor
+    # elephant-foot or support scars without loosening the full engagement.
+    cutters.append(cylinder(
+        WRIST_D / 2.0 + 0.5,
+        WRIST_SOCKET_LEAD_IN + 0.8,
+        mount + forearm * (
+            WRIST_SOCKET + WRIST_SOCKET_LEAD_IN / 2.0
+        ),
+        forearm,
+    ))
     side = np.array([1.0, 0.0, 0.0])
     cutters.append(cylinder(1.9 / 2.0, WRIST_D + 14.0,
-                            mount + forearm * (WRIST_SOCKET * 0.6), side))
+                            mount + forearm * WRIST_PIN_FROM_MOUNT, side))
     return difference(body, cutters)
+
+
+def palm_to_forearm_transform(
+    skeleton: Skeleton,
+    pin_centre_z: float,
+    palm_roll_deg: float,
+) -> np.ndarray:
+    """Place the palm socket on the forearm spigot by its cross-pin datum."""
+    mount, forearm = wrist_frame(skeleton)
+    palm_pin = mount + forearm * WRIST_PIN_FROM_MOUNT
+    rotate_upright = trimesh.transformations.rotation_matrix(
+        np.pi / 2.0, [1.0, 0.0, 0.0]
+    )
+    roll = trimesh.transformations.rotation_matrix(
+        np.deg2rad(palm_roll_deg), [0.0, 0.0, 1.0]
+    )
+    rotation = roll @ rotate_upright
+    transformed_pin = (
+        rotation[:3, :3] @ palm_pin + rotation[:3, 3]
+    )
+    translation = np.array([0.0, 0.0, pin_centre_z]) - transformed_pin
+    result = rotation.copy()
+    result[:3, 3] += translation
+    return result
 
 
 def metacarpal_pegs(skeleton: Skeleton) -> list[trimesh.Trimesh]:

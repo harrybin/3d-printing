@@ -1,10 +1,10 @@
 """Gothic chest and lid for the Ghoul's Grip automaton.
 
-Everything decorative is modelled as real geometry rather than a texture: the
-chest is a shell with a stepped plinth and cornice, corner pilasters, sunken
-panels and lancet tracery built from annulus sectors, because a pointed arch
-cannot be hulled from two circles. Every relief stands at least 1.2 mm proud,
-well above the 0.4 mm a 0.4 mm nozzle can resolve.
+Everything decorative is modelled as real geometry rather than a texture. The
+chest is a shell with a tapered plinth and cornice, corner pilasters, and
+shallow creature reliefs built from rounded strokes. Their outward depth is
+sheared upward at 45 degrees, so the lower edges grow from the wall instead of
+forming unsupported shelves.
 
 The chest prints upright and the lid prints on its long front edge. Decorative
 features are shallow rounded engravings rather than unsupported raised shelves.
@@ -12,12 +12,15 @@ features are shallow rounded engravings rather than unsupported raised shelves.
 
 from __future__ import annotations
 
+from functools import lru_cache
+from pathlib import Path
+
 import numpy as np
 import trimesh
 
 import mechanism
-from mesh_kit import (arc_band, box, clean, cylinder, difference,
-                      intersection, rounded_box, sphere, union)
+from mesh_kit import (arc_band, box, clean, cylinder, difference, fuse,
+                      intersection, rounded_box, simplify, sphere, union)
 from skull import skull_relief
 
 CHEST_L = 200.0
@@ -36,6 +39,15 @@ PANEL_DEPTH = 2.5
 RELIEF = 2.6
 ECONOMY_SKIN = 1.2    # three-line visual shell behind internal lightening pockets
 ENGRAVING_DEPTH = 0.8
+CREATURE_RELIEF_DEPTH = 3.0   # sculpted bas relief; 0.6 mm of it is buried
+
+# Blender-sculpted relief height maps (scripts/blender_chest_reliefs.py).
+RELIEF_CACHE = Path(__file__).resolve().parents[1] / "assets" / \
+    "gothic-chest-reliefs"
+RELIEF_BASE = 0.4             # flat backing plate under the height field
+RELIEF_TARGETS = {"front": 34_000, "rear": 34_000,
+                  "side": 26_000, "lid": 32_000}
+PILASTER_ENGRAVE_DEPTH = 1.2  # into 5.0 mm of pilaster -> 3.8 mm remaining
 
 RAIL_W = 4.0           # slider rail groove, as specified in the brief
 RAIL_D = 3.0
@@ -223,6 +235,51 @@ def _rounded_stroke(points, radius: float, depth: float) -> trimesh.Trimesh:
     return union(parts)
 
 
+def _tapered_stroke(points, radii, depth: float) -> trimesh.Trimesh:
+    """Variable-width anatomical stroke made from overlapping convex capsules."""
+    points = [np.asarray(point, dtype=float) for point in points]
+    radii = [float(radius) for radius in radii]
+    if len(points) != len(radii):
+        raise ValueError("tapered stroke needs one radius per point")
+    nodes = [
+        cylinder(radius, depth, (point[0], point[1], 0.0))
+        for point, radius in zip(points, radii)
+    ]
+    segments = []
+    for start, end in zip(nodes[:-1], nodes[1:]):
+        segments.append(
+            trimesh.util.concatenate([start, end]).convex_hull
+        )
+    return clean(trimesh.util.concatenate([*nodes, *segments]))
+
+
+def _extrude_xy_polygon(points, depth: float) -> trimesh.Trimesh:
+    """Extrude a convex local-XY membrane without optional polygon packages."""
+    count = len(points)
+    vertices = np.asarray(
+        [(x, y, -depth / 2.0) for x, y in points]
+        + [(x, y, depth / 2.0) for x, y in points],
+        dtype=float,
+    )
+    faces = []
+    for index in range(1, count - 1):
+        faces.extend([
+            (0, index + 1, index),
+            (count, count + index, count + index + 1),
+        ])
+    for index in range(count):
+        nxt = (index + 1) % count
+        faces.extend([
+            (index, nxt, count + nxt),
+            (index, count + nxt, count + index),
+        ])
+    return clean(trimesh.Trimesh(
+        vertices=vertices,
+        faces=np.asarray(faces, dtype=int),
+        process=True,
+    ))
+
+
 def _bezier_points(p0, p1, p2, p3, count: int = 8):
     """Sample a cubic curve for smooth, reproducible relief vines."""
     control = [np.asarray(point, dtype=float) for point in (p0, p1, p2, p3)]
@@ -356,6 +413,578 @@ def _front_scrollwork(z: float) -> trimesh.Trimesh:
         np.pi / 2.0, (1.0, 0.0, 0.0)))
     motif.apply_translation([0.0, 0.0, z])
     return _seat_wall_cutter(motif, CHEST_W / 2.0, -1.0, False)
+
+
+def _small_skull(depth: float, scale: float = 1.0) -> trimesh.Trimesh:
+    """Compact layered skull with brow, cheek, mandible and tooth structure."""
+    cranium = _tapered_stroke([
+        (-8.0 * scale, -5.0 * scale),
+        (-10.0 * scale, 3.0 * scale),
+        (-7.0 * scale, 11.0 * scale),
+        (0.0, 14.0 * scale),
+        (7.0 * scale, 11.0 * scale),
+        (10.0 * scale, 3.0 * scale),
+        (8.0 * scale, -5.0 * scale),
+        (-8.0 * scale, -5.0 * scale),
+    ], [
+        1.15 * scale,
+        1.45 * scale,
+        1.8 * scale,
+        2.0 * scale,
+        1.8 * scale,
+        1.45 * scale,
+        1.15 * scale,
+        1.15 * scale,
+    ], depth)
+    brow = _tapered_stroke(
+        [
+            (-7.0 * scale, 5.0 * scale),
+            (0.0, 7.0 * scale),
+            (7.0 * scale, 5.0 * scale),
+        ],
+        [1.25 * scale, 1.55 * scale, 1.25 * scale],
+        depth * 0.78,
+    )
+    eyes = [
+        _leaf(6.0 * scale, 4.5 * scale, depth,
+              (side * 4.3 * scale, 3.0 * scale, 0.0),
+              np.deg2rad(12.0 * side))
+        for side in (-1.0, 1.0)
+    ]
+    nose = _leaf(
+        4.2 * scale,
+        2.6 * scale,
+        depth,
+        (0.0, -2.0 * scale, 0.0),
+        np.pi / 2.0,
+    )
+    cheeks = [
+        _tapered_stroke(
+            [
+                (side * 7.8 * scale, 0.0),
+                (side * 8.5 * scale, -5.5 * scale),
+                (side * 4.8 * scale, -8.5 * scale),
+            ],
+            [1.2 * scale, 1.45 * scale, 1.0 * scale],
+            depth * 0.82,
+        )
+        for side in (-1.0, 1.0)
+    ]
+    mandible = _tapered_stroke(
+        [
+            (-5.5 * scale, -8.0 * scale),
+            (-4.5 * scale, -12.0 * scale),
+            (0.0, -13.2 * scale),
+            (4.5 * scale, -12.0 * scale),
+            (5.5 * scale, -8.0 * scale),
+        ],
+        [
+            1.05 * scale,
+            1.3 * scale,
+            1.45 * scale,
+            1.3 * scale,
+            1.05 * scale,
+        ],
+        depth * 0.9,
+    )
+    teeth = [
+        _rounded_stroke([
+            (x * scale, -11.8 * scale),
+            (x * scale, -8.0 * scale),
+        ], 0.5 * scale, depth * 0.65)
+        for x in (-3.4, -1.1, 1.1, 3.4)
+    ]
+    return clean(trimesh.util.concatenate([
+        cranium, brow, *eyes, nose, *cheeks, mandible, *teeth,
+    ]))
+
+
+def _serpent(depth: float, side: float = 1.0,
+             scale: float = 1.0) -> trimesh.Trimesh:
+    """Tapered serpent with overlapping scales and a structured open jaw."""
+    body_points = [
+        (side * 5.0 * scale, -24.0 * scale),
+        (side * 10.0 * scale, -20.0 * scale),
+        (side * 18.0 * scale, -14.0 * scale),
+        (side * 20.0 * scale, -4.0 * scale),
+        (side * 17.0 * scale, 4.0 * scale),
+        (side * 9.0 * scale, 10.0 * scale),
+        (side * 12.0 * scale, 18.0 * scale),
+        (side * 22.0 * scale, 23.0 * scale),
+        (side * 27.0 * scale, 25.0 * scale),
+    ]
+    body = _tapered_stroke(
+        body_points,
+        [
+            0.8 * scale,
+            1.15 * scale,
+            2.0 * scale,
+            2.7 * scale,
+            2.8 * scale,
+            2.45 * scale,
+            2.1 * scale,
+            1.75 * scale,
+            1.4 * scale,
+        ],
+        depth,
+    )
+    scales = []
+    for index, (x, y, angle) in enumerate((
+        (18.8, -11.5, 68.0),
+        (20.0, -7.0, 82.0),
+        (19.2, -2.5, 102.0),
+        (17.2, 2.0, 122.0),
+        (13.7, 6.0, 142.0),
+        (10.8, 10.5, 62.0),
+        (11.8, 15.0, 72.0),
+        (15.2, 19.0, 42.0),
+        (19.2, 21.7, 25.0),
+    )):
+        offset = -0.75 if index % 2 else 0.75
+        scales.append(_leaf(
+            4.2 * scale,
+            2.2 * scale,
+            depth * (0.52 if index % 2 else 0.62),
+            (
+                side * (x + offset) * scale,
+                y * scale,
+                0.0,
+            ),
+            np.deg2rad(angle if side > 0 else 180.0 - angle),
+        ))
+    head = _leaf(
+        12.5 * scale,
+        8.2 * scale,
+        depth,
+        (side * 32.0 * scale, 26.0 * scale, 0.0),
+        np.deg2rad(10.0 if side > 0 else 170.0),
+    )
+    muzzle = _tapered_stroke(
+        [
+            (side * 31.0 * scale, 25.5 * scale),
+            (side * 38.0 * scale, 25.0 * scale),
+        ],
+        [2.5 * scale, 1.55 * scale],
+        depth * 0.86,
+    )
+    jaw = _tapered_stroke(
+        [
+            (side * 29.0 * scale, 23.5 * scale),
+            (side * 34.5 * scale, 21.2 * scale),
+            (side * 39.0 * scale, 22.5 * scale),
+        ],
+        [1.25 * scale, 1.05 * scale, 0.75 * scale],
+        depth * 0.72,
+    )
+    eye = cylinder(
+        1.0 * scale,
+        depth * 0.62,
+        (side * 33.0 * scale, 28.0 * scale, 0.0),
+    )
+    brow = _tapered_stroke(
+        [
+            (side * 29.5 * scale, 29.0 * scale),
+            (side * 34.0 * scale, 29.5 * scale),
+            (side * 36.5 * scale, 27.8 * scale),
+        ],
+        [0.75 * scale, 0.95 * scale, 0.6 * scale],
+        depth * 0.7,
+    )
+    nostril = cylinder(
+        0.55 * scale,
+        depth * 0.55,
+        (side * 37.0 * scale, 26.0 * scale, 0.0),
+    )
+    fangs = [
+        _leaf(
+            3.2 * scale,
+            1.2 * scale,
+            depth * 0.62,
+            (side * x * scale, y * scale, 0.0),
+            np.deg2rad(angle if side > 0 else 180.0 - angle),
+        )
+        for x, y, angle in ((34.5, 23.2, -68.0), (37.2, 23.0, -72.0))
+    ]
+    tongue = _rounded_stroke([
+        (side * 39.0 * scale, 22.2 * scale),
+        (side * 43.0 * scale, 20.5 * scale),
+        (side * 46.0 * scale, 21.5 * scale),
+    ], 0.5 * scale, depth * 0.55)
+    tongue_fork = [
+        _rounded_stroke([
+            (side * 45.5 * scale, 21.5 * scale),
+            (side * 48.0 * scale, y * scale),
+        ], 0.42 * scale, depth * 0.5)
+        for y in (20.2, 22.8)
+    ]
+    return clean(trimesh.util.concatenate([
+        body, *scales, head, muzzle, jaw, eye, brow, nostril,
+        *fangs, tongue, *tongue_fork,
+    ]))
+
+
+def _rib_cage(depth: float, scale: float = 1.0) -> trimesh.Trimesh:
+    """Layered axial skeleton with varied vertebrae and anatomical rib arcs."""
+    parts = [
+        _tapered_stroke(
+            [(0.0, -23.0 * scale), (0.0, 19.0 * scale)],
+            [1.3 * scale, 1.65 * scale],
+            depth,
+        ),
+        _small_skull(depth, 0.72 * scale),
+    ]
+    parts[-1].apply_translation([0.0, 27.0 * scale, 0.0])
+    for index, y in enumerate(np.linspace(-19.0, 17.0, 10)):
+        radius = (1.15 + 0.22 * np.sin(index * 1.7)) * scale
+        vertebra = cylinder(
+            radius,
+            depth * (0.66 + 0.04 * (index % 3)),
+            (0.0, y * scale, 0.0),
+        )
+        vertebra.apply_scale([1.2, 0.72, 1.0])
+        parts.append(clean(vertebra))
+    sternum = _tapered_stroke(
+        [(0.0, -9.0 * scale), (0.0, 13.0 * scale)],
+        [1.45 * scale, 1.05 * scale],
+        depth * 0.62,
+    )
+    parts.append(sternum)
+    for index, y in enumerate((-14.0, -7.5, -1.0, 5.5, 12.0)):
+        reach = (16.0 + 2.2 * np.sin(index * 0.9)) * scale
+        rise = (3.5 + index * 0.75) * scale
+        rib_radius = (1.05 - index * 0.055) * scale
+        for side in (-1.0, 1.0):
+            parts.append(_tapered_stroke(
+                [
+                    (0.0, y * scale),
+                    (side * reach * 0.42, (y + rise) * scale),
+                    (side * reach * 0.82, (y + rise * 0.7) * scale),
+                    (side * reach, (y + 0.5) * scale),
+                    (side * reach * 0.68, (y - 2.5) * scale),
+                ],
+                [
+                    rib_radius,
+                    rib_radius * 1.05,
+                    rib_radius * 0.9,
+                    rib_radius * 0.72,
+                    rib_radius * 0.58,
+                ],
+                depth,
+            ))
+    clavicles = [
+        _tapered_stroke(
+            [
+                (0.0, 16.0 * scale),
+                (side * 7.0 * scale, 19.0 * scale),
+                (side * 13.0 * scale, 17.0 * scale),
+            ],
+            [1.15 * scale, 1.0 * scale, 0.72 * scale],
+            depth * 0.85,
+        )
+        for side in (-1.0, 1.0)
+    ]
+    pelvis = [
+        _leaf(12.0 * scale, 5.5 * scale, depth,
+              (-5.5 * scale, -23.0 * scale, 0.0), np.deg2rad(155.0)),
+        _leaf(12.0 * scale, 5.5 * scale, depth,
+              (5.5 * scale, -23.0 * scale, 0.0), np.deg2rad(25.0)),
+    ]
+    return clean(trimesh.util.concatenate([*parts, *clavicles, *pelvis]))
+
+
+def _dragon(depth: float, side: float = 1.0,
+            scale: float = 1.0) -> trimesh.Trimesh:
+    """Organic dragon with layered wing membranes, joints, claws and face."""
+    torso = _tapered_stroke([
+        (side * 7.0 * scale, -18.0 * scale),
+        (side * 14.0 * scale, -14.0 * scale),
+        (side * 19.0 * scale, -7.0 * scale),
+        (side * 17.0 * scale, 2.0 * scale),
+        (side * 20.0 * scale, 10.0 * scale),
+    ], [
+        0.75 * scale,
+        1.45 * scale,
+        2.7 * scale,
+        3.4 * scale,
+        2.8 * scale,
+    ], depth)
+    tail = _tapered_stroke([
+        (side * 13.0 * scale, -13.0 * scale),
+        (side * 5.0 * scale, -18.0 * scale),
+        (side * 1.0 * scale, -25.0 * scale),
+        (side * 5.0 * scale, -29.0 * scale),
+    ], [
+        1.55 * scale,
+        1.15 * scale,
+        0.8 * scale,
+        0.48 * scale,
+    ], depth * 0.9)
+    neck = _tapered_stroke([
+        (side * 20.0 * scale, 8.0 * scale),
+        (side * 23.0 * scale, 17.0 * scale),
+        (side * 28.0 * scale, 24.0 * scale),
+        (side * 36.0 * scale, 28.0 * scale),
+    ], [
+        2.7 * scale,
+        2.25 * scale,
+        1.75 * scale,
+        1.35 * scale,
+    ], depth)
+    head = _leaf(
+        13.5 * scale,
+        8.5 * scale,
+        depth,
+        (side * 41.0 * scale, 29.0 * scale, 0.0),
+        np.deg2rad(8.0 if side > 0 else 172.0),
+    )
+    muzzle = _tapered_stroke(
+        [
+            (side * 40.0 * scale, 28.0 * scale),
+            (side * 47.0 * scale, 27.0 * scale),
+        ],
+        [2.4 * scale, 1.25 * scale],
+        depth * 0.82,
+    )
+    lower_jaw = _tapered_stroke(
+        [
+            (side * 38.5 * scale, 26.0 * scale),
+            (side * 43.5 * scale, 24.0 * scale),
+            (side * 48.0 * scale, 25.5 * scale),
+        ],
+        [1.15 * scale, 0.95 * scale, 0.58 * scale],
+        depth * 0.68,
+    )
+    wing_root = (side * 17.0 * scale, 7.0 * scale)
+    wing_knuckle = (side * 8.0 * scale, 22.0 * scale)
+    wing_tips = (
+        (side * 0.0 * scale, 32.0 * scale),
+        (side * 12.0 * scale, 35.0 * scale),
+        (side * 24.0 * scale, 31.0 * scale),
+    )
+    membranes = [
+        _extrude_xy_polygon(
+            [wing_root, wing_knuckle, wing_tips[0], wing_tips[1]],
+            depth * 0.5,
+        ),
+        _extrude_xy_polygon(
+            [wing_root, wing_tips[1], wing_tips[2]],
+            depth * 0.58,
+        ),
+    ]
+    wing_ribs = [
+        _tapered_stroke(
+            [wing_root, tip],
+            [1.35 * scale, 0.68 * scale],
+            depth * 0.9,
+        )
+        for tip in wing_tips
+    ]
+    wing_edge = _rounded_stroke([
+        wing_tips[0],
+        wing_tips[1],
+        wing_tips[2],
+    ], 1.15 * scale, depth)
+    leg_paths = (
+        [(18.0, -5.0), (28.0, -12.0), (34.0, -9.0)],
+        [(14.0, -12.0), (22.0, -23.0), (29.0, -21.0)],
+    )
+    legs = [
+        _tapered_stroke(
+            [(side * x * scale, y * scale) for x, y in path],
+            [1.65 * scale, 1.25 * scale, 0.78 * scale],
+            depth,
+        )
+        for path in leg_paths
+    ]
+    claws = []
+    for x, y in ((34.0, -9.0), (29.0, -21.0)):
+        for offset in (-1.7, 0.0, 1.7):
+            claws.append(_tapered_stroke(
+                [
+                    (side * x * scale, (y + offset * 0.35) * scale),
+                    (
+                        side * (x + 4.0) * scale,
+                        (y + offset - 1.0) * scale,
+                    ),
+                ],
+                [0.62 * scale, 0.38 * scale],
+                depth * 0.65,
+            ))
+    facial = [
+        _tapered_stroke(
+            [
+                (side * 38.0 * scale, 32.0 * scale),
+                (side * 42.0 * scale, 32.5 * scale),
+                (side * 44.0 * scale, 30.5 * scale),
+            ],
+            [0.72 * scale, 0.95 * scale, 0.52 * scale],
+            depth * 0.68,
+        ),
+        cylinder(
+            0.85 * scale,
+            depth * 0.55,
+            (side * 42.0 * scale, 31.0 * scale, 0.0),
+        ),
+        cylinder(
+            0.5 * scale,
+            depth * 0.5,
+            (side * 46.0 * scale, 28.2 * scale, 0.0),
+        ),
+        _leaf(
+            7.0 * scale,
+            2.6 * scale,
+            depth * 0.78,
+            (side * 39.0 * scale, 35.0 * scale, 0.0),
+            np.deg2rad(65.0 if side > 0 else 115.0),
+        ),
+        _leaf(
+            5.5 * scale,
+            2.2 * scale,
+            depth * 0.72,
+            (side * 43.0 * scale, 35.0 * scale, 0.0),
+            np.deg2rad(78.0 if side > 0 else 102.0),
+        ),
+    ]
+    return clean(trimesh.util.concatenate([
+        torso, tail, neck, head, muzzle, lower_jaw,
+        *membranes, *wing_ribs, wing_edge, *legs, *claws, *facial,
+    ]))
+
+
+@lru_cache(maxsize=None)
+def _relief_field(name: str):
+    """Load a cached Blender-sculpted relief height map.
+
+    The map is stored normalised (0..1) so the printed depth stays a decision
+    of this generator; see docs/gothic-chest-ornamente-quellen.md.
+    """
+    path = RELIEF_CACHE / f"{name}.npz"
+    if not path.exists():
+        raise FileNotFoundError(
+            f"missing relief cache {path}; regenerate it with "
+            f'blender --background --python scripts/blender_chest_reliefs.py'
+        )
+    data = np.load(path)
+    heights = data["heights"].astype(np.float64)
+    ny, nx = heights.shape
+    xs = np.linspace(float(data["x0"]), float(data["x1"]), nx)
+    ys = np.linspace(float(data["y0"]), float(data["y1"]), ny)
+    return xs, ys, heights
+
+
+def _heightfield_solid(name: str, depth: float) -> trimesh.Trimesh:
+    """Closed grid prism carrying a sculpted bas relief on its top face.
+
+    Stacking rounded primitive strokes is what made the old ornaments read as
+    flat ribbon graphics.  A height field keeps the organic Blender surface and
+    - just as importantly - guarantees printability: because the relief is a
+    single-valued function of (x, y), shearing it by ``y += z`` later leaves no
+    facet overhanging more than 45 degrees.
+    """
+    xs, ys, heights = _relief_field(name)
+    nx, ny = xs.size, ys.size
+    gx, gy = np.meshgrid(xs, ys)
+    top_z = heights * depth
+    # One binomial pass across the grid.  The ray-cast height map has hard
+    # single-sample cliffs at every silhouette, and a cliff sampled on an
+    # axis-aligned grid renders - and prints - as a visible staircase.
+    kernel = np.array([0.25, 0.5, 0.25])
+    for axis in (0, 1):
+        padded = np.apply_along_axis(
+            lambda row: np.convolve(np.pad(row, 1, mode="edge"), kernel,
+                                    mode="valid"),
+            axis, top_z)
+        top_z = padded
+    # The border of a cached field is already ramped to zero, so clamping the
+    # outline here only guards against a regenerated map with a live edge.
+    top_z[0, :] = top_z[-1, :] = 0.0
+    top_z[:, 0] = top_z[:, -1] = 0.0
+
+    top = np.column_stack([gx.ravel(), gy.ravel(), top_z.ravel()])
+    # Only four backing-plate corners instead of a mirrored grid: a full second
+    # grid doubled the face count and forced the decimator to eat the sculpted
+    # surface to stay inside the budget, which is what made the first
+    # height-field reliefs look faceted.
+    corners = np.array([
+        (xs[0], ys[0], -RELIEF_BASE), (xs[-1], ys[0], -RELIEF_BASE),
+        (xs[-1], ys[-1], -RELIEF_BASE), (xs[0], ys[-1], -RELIEF_BASE),
+    ])
+    vertices = np.vstack([top, corners])
+    base = nx * ny
+    idx = np.arange(base).reshape(ny, nx)
+
+    faces = [np.column_stack([idx[:-1, :-1].ravel(), idx[:-1, 1:].ravel(),
+                              idx[1:, 1:].ravel()]),
+             np.column_stack([idx[:-1, :-1].ravel(), idx[1:, 1:].ravel(),
+                              idx[1:, :-1].ravel()]),
+             np.array([[base, base + 2, base + 1],
+                       [base, base + 3, base + 2]])]
+
+    walls = ((idx[0, :], base + 0, base + 1),        # y = min
+             (idx[:, -1], base + 1, base + 2),       # x = max
+             (idx[-1, ::-1], base + 2, base + 3),    # y = max
+             (idx[::-1, 0], base + 3, base + 0))     # x = min
+    for strip, a, b in walls:
+        fan = np.column_stack([strip[:-1], strip[1:],
+                               np.full(strip.size - 1, a)])
+        faces.append(np.vstack([fan, [[strip[-1], b, a]]]))
+
+    mesh = clean(trimesh.Trimesh(vertices=vertices,
+                                 faces=np.vstack(faces), process=True))
+    mesh.fix_normals()
+    if not mesh.is_volume:
+        raise RuntimeError(f"relief {name} did not close into a volume")
+    target = RELIEF_TARGETS.get(name, 24_000)
+    if len(mesh.faces) > target:
+        mesh = clean(simplify(mesh, target))
+        mesh.fix_normals()
+    return mesh
+
+
+def _creature_panel(kind: str, depth: float) -> trimesh.Trimesh:
+    """Sculpted bas relief panel, loaded from the Blender height-map cache."""
+    return _heightfield_solid(kind, depth - RELIEF_BASE)
+
+
+def _wall_creature_reliefs(kind: str, centre,
+                           normal_x: bool,
+                           sign: float) -> list[trimesh.Trimesh]:
+    """Map rounded strokes as 45-degree-growing raised wall reliefs."""
+    depth = CREATURE_RELIEF_DEPTH
+    face = CHEST_L / 2.0 if normal_x else CHEST_W / 2.0
+    reliefs = []
+    for component in _creature_panel(kind, depth).split(
+            only_watertight=False):
+        if not component.is_volume:
+            raise RuntimeError(
+                f"{kind} relief component is not a closed volume"
+            )
+        local = component.copy()
+        local.vertices[:, 2] -= local.bounds[0, 2]
+        local.vertices[:, 1] += local.vertices[:, 2]
+        x = local.vertices[:, 0] + centre[0]
+        y = local.vertices[:, 1] + centre[2]
+        outward = face + local.vertices[:, 2] - 0.6
+        if normal_x:
+            vertices = np.column_stack([
+                sign * outward,
+                x,
+                y,
+            ])
+        else:
+            vertices = np.column_stack([
+                x,
+                sign * outward,
+                y,
+            ])
+        relief = clean(trimesh.Trimesh(
+            vertices=vertices,
+            faces=local.faces.copy(),
+            process=True,
+        ))
+        relief.fix_normals()
+        reliefs.append(clean(relief))
+    return reliefs
 
 
 def _lancet_inlay(width: float, height: float, depth: float,
@@ -505,7 +1134,47 @@ def _wall_lightening_pockets() -> list[trimesh.Trimesh]:
     return pockets
 
 
-def build_chest() -> trimesh.Trimesh:
+def _pilaster_flutes() -> list[trimesh.Trimesh]:
+    """Engraved vertical flutes in the four corner pilasters.
+
+    Recessed ornament is only honest where there is material to lose: the
+    pilaster stands PROUD beyond a 2.0 mm wall, so the outward faces carry
+    5.0 mm of stock and a 1.2 mm flute leaves 3.8 mm - far above the 1.8 mm
+    floor.  Flutes run vertically with domed ends, so the recess never forms a
+    horizontal ceiling and costs no support material.
+    """
+    depth = PILASTER_ENGRAVE_DEPTH
+    radius = 2.0
+    z0 = PLINTH_H + 4.0
+    z1 = BODY_H - CORNICE_H - 9.0
+    cutters = []
+    for sx in (-1.0, 1.0):
+        for sy in (-1.0, 1.0):
+            cx = sx * (CHEST_L / 2.0 - PILASTER / 2.0 + PROUD)
+            cy = sy * (CHEST_W / 2.0 - PILASTER / 2.0 + PROUD)
+            faces = (
+                (sx * (CHEST_L / 2.0 + PROUD + radius - depth), None, cy),
+                (None, sy * (CHEST_W / 2.0 + PROUD + radius - depth), cx),
+            )
+            for face_x, face_y, along in faces:
+                for offset in (-5.2, 0.0, 5.2):
+                    if face_x is None:
+                        centre = (along + offset, face_y)
+                    else:
+                        centre = (face_x, along + offset)
+                    cutters.append(union([
+                        cylinder(radius, z1 - z0,
+                                 (centre[0], centre[1], (z0 + z1) / 2.0),
+                                 (0.0, 0.0, 1.0)),
+                        sphere(radius, (centre[0], centre[1], z0),
+                               subdivisions=2),
+                        sphere(radius, (centre[0], centre[1], z1),
+                               subdivisions=2),
+                    ]))
+    return cutters
+
+
+def build_chest(include_decoration: bool = True) -> trimesh.Trimesh:
     """Open-topped gothic chest with internal rails and control bores."""
     shell = rounded_box(
         (CHEST_L, CHEST_W, BODY_H),
@@ -546,30 +1215,33 @@ def build_chest() -> trimesh.Trimesh:
             ])
 
     cuts, adds = _wall_lightening_pockets(), []
-    cuts.append(_front_scrollwork(40.0))
-    for normal_x, sign, length, count, skip in ((False, 1.0, CHEST_L, 3, False),
-                                                (True, -1.0, CHEST_W, 2, False),
-                                                (True, 1.0, CHEST_W, 2, False)):
-        c, a = _wall_decoration(length, sign, sign, normal_x, count, skip)
-        cuts += c
-        adds += a
+    if include_decoration:
+        cuts = cuts + _pilaster_flutes()
+        panel_z = 43.0
+        adds.extend(_wall_creature_reliefs(
+            "front", (0.0, 0.0, panel_z), False, -1.0))
+        adds.extend(_wall_creature_reliefs(
+            "rear", (0.0, 0.0, panel_z), False, 1.0))
+        adds.extend(_wall_creature_reliefs(
+            "side", (0.0, 0.0, panel_z), True, -1.0))
+        adds.extend(_wall_creature_reliefs(
+            "side", (0.0, 0.0, panel_z), True, 1.0))
 
-    # The concept art is dominated by raised acanthus scrolls.  Lancet arches
-    # alone read as plain architecture, so a deep paired curl frames the skull
-    # trigger on the front while preserving the 3 mm structural wall.
     rivet_dimples = []
-    for sign in (-1.0, 1.0):
-        for x in np.arange(-CHEST_L / 2.0 + 16.0, CHEST_L / 2.0 - 10.0, 24.0):
-            for z in (PLINTH_H - 4.0, BODY_H - CORNICE_H + 4.0):
-                rivet_dimples.append(sphere(
-                    2.4,
-                    (
-                        x,
-                        sign * (CHEST_W / 2.0 + 1.8),
-                        z,
-                    ),
-                    subdivisions=2,
-                ))
+    if include_decoration:
+        for sign in (-1.0, 1.0):
+            for x in np.arange(-CHEST_L / 2.0 + 16.0,
+                               CHEST_L / 2.0 - 10.0, 24.0):
+                for z in (PLINTH_H - 4.0, BODY_H - CORNICE_H + 4.0):
+                    rivet_dimples.append(sphere(
+                        2.4,
+                        (
+                            x,
+                            sign * (CHEST_W / 2.0 + 1.8),
+                            z,
+                        ),
+                        subdivisions=2,
+                    ))
     cuts.extend(rivet_dimples)
 
     # Keep the functional wall shell independent while cutting rails and
@@ -693,6 +1365,23 @@ def build_chest() -> trimesh.Trimesh:
     body = difference(body, [cylinder(1.9 / 2.0, CHEST_L + 20.0,
                                       (0.0, HINGE_Y, HINGE_Z),
                                       (1.0, 0.0, 0.0))])
+    components = sorted(
+        body.split(only_watertight=False),
+        key=lambda component: abs(component.volume),
+        reverse=True,
+    )
+    if len(components) != 1:
+        debris = components[1:]
+        if any(abs(component.volume) > 5.0 for component in debris):
+            details = [
+                (round(abs(component.volume), 3),
+                 np.round(component.bounds, 3).tolist())
+                for component in components
+            ]
+            raise RuntimeError(
+                f"chest has disconnected structural components: {details}"
+            )
+        body = components[0]
     return clean(body)
 
 
@@ -817,9 +1506,10 @@ def build_lid() -> trimesh.Trimesh:
     # Rounded Gothic engraving: the skull, wings and foliage are recessed by
     # less than one millimetre. This keeps the organic detail while eliminating
     # the unsupported lower shelves of a raised vertical relief.
+    # The lid prints on its long front edge, so its +y is the print-up
+    # direction and the relief depth runs along +z.  The same 45-degree shear
+    # that keeps the wall reliefs support-free therefore applies here too.
     engraving_depth = ENGRAVING_DEPTH + 0.4
-    cartouche = skull_relief(1.5, depth=engraving_depth)
-    cartouche.apply_translation([0.0, 0.0, LID_H - ENGRAVING_DEPTH])
 
     # Raised bead frame around the field plus corner bosses.
     bead = difference(
@@ -845,20 +1535,30 @@ def build_lid() -> trimesh.Trimesh:
                 ),
                 subdivisions=3,
             ))
-    bat_wings = _lid_bat_wings(
-        engraving_depth,
-        LID_H - ENGRAVING_DEPTH / 2.0 + 0.2,
-    )
     lid_engravings = [
-        cartouche,
         bead,
-        *bat_wings.split(only_watertight=False),
         *beads,
     ]
     for index, ornament in enumerate(lid_engravings):
         body = difference(body, [ornament])
         if not body.is_volume:
             raise RuntimeError(f"lid engraving {index} produced an invalid solid")
+
+    # Sculpted winged-skull cartouche, raised out of the sunken field.  The
+    # previous engraved version was the flattest part of the chest; a raised
+    # height-field relief keeps the organic Blender surface and still avoids
+    # unsupported shelves thanks to the ``y += z`` shear.
+    cartouche = _creature_panel("lid", CREATURE_RELIEF_DEPTH)
+    cartouche.vertices[:, 2] -= cartouche.bounds[0, 2]
+    cartouche.vertices[:, 1] += cartouche.vertices[:, 2]
+    cartouche.vertices[:, 2] += LID_H - ENGRAVING_DEPTH - 0.6
+    cartouche = clean(cartouche)
+    cartouche.fix_normals()
+    if not cartouche.is_volume:
+        raise RuntimeError("lid cartouche relief is not a closed volume")
+    body = union([body, cartouche])
+    if not body.is_volume:
+        raise RuntimeError("lid cartouche broke the solid")
 
     # The decorative rear frame stops at the hinge axis. Material extending
     # behind that axis would dip into the chest rim during the first degrees

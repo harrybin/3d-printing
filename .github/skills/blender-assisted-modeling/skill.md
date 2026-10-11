@@ -24,6 +24,24 @@ clearances, keyed joints, and other fit-critical geometry.
 | Mesh integrity and feature proof | `validate-stl-mesh` |
 | Final print settings and time | `orcaslicer-print-validation` |
 
+### Switch to Blender as soon as the target is "realistic"
+
+Do not keep stacking Python primitives, voxel fuses and shear tricks when the
+user asks for realistic, photorealistic, organic or sculptural results such as
+ornaments, creatures, skulls, bones, foliage, scrollwork or drapery. That is the
+signal to move the region into Blender.
+
+Before sculpting, search online for a license-compatible motif, scan, sculpt or
+relief asset that already comes close to the target, and adapt it. Run
+`research-reusable-3d-assets` and record source, author, license, modification
+and redistribution rights. Only build from scratch when no usable asset exists.
+
+Relief direction is a free choice: raised, engraved or mixed. Engraving is
+allowed wherever the remaining wall thickness keeps the part structurally sound.
+Whatever direction is chosen, slice the decorated part against a matched
+undecorated control with automatic support enabled and prove it does not add
+support paths or support extrusion.
+
 For mixed objects, export the technical geometry as frozen reference bodies. Lock or
 otherwise protect them in Blender. Sculpt only the explicitly allowed region.
 

@@ -43,21 +43,29 @@ def _masses():
              (side * 12.0, -16.0, 0.5), 3.4, 4.0),
         ])
 
-    # Maxillary/alveolar bow plus a U-shaped mandible and a modest chin.
+    # The maxillary process follows the dental arch rather than bridging the
+    # face as one straight bar. The smaller intermediate nodes keep the
+    # alveolar rim visible around the roots after the oral cavity is opened.
     face.extend(chain(
-        [(-10.0, -9.5, 5.2), (0.0, -12.0, 7.2), (10.0, -9.5, 5.2)],
-        [4.8, 5.3, 4.8],
+        [(-10.5, -9.8, 4.8), (-6.0, -12.0, 6.0),
+         (0.0, -13.0, 7.0), (6.0, -12.0, 6.0),
+         (10.5, -9.8, 4.8)],
+        [4.5, 4.6, 4.9, 4.6, 4.5],
     ))
+    # A flared angle, narrower tooth-bearing body and central mental eminence
+    # read more like a mandible than the former uniform U-shaped tube.
     jaw = chain(
-        [(-11.8, -13.0, 0.0), (-10.5, -19.0, 2.5),
-         (0.0, -22.0, 5.5), (10.5, -19.0, 2.5), (11.8, -13.0, 0.0)],
-        [4.0, 4.2, 4.7, 4.2, 4.0],
+        [(-11.8, -12.5, 0.0), (-11.0, -18.0, 1.8),
+         (-7.0, -21.0, 3.4), (0.0, -22.0, 5.4),
+         (7.0, -21.0, 3.4), (11.0, -18.0, 1.8),
+         (11.8, -12.5, 0.0)],
+        [4.1, 4.0, 3.8, 4.8, 3.8, 4.0, 4.1],
     )
     return cranium + face + jaw
 
 
 def _cutters():
-    """Orbits, nasal aperture, tooth row and the flats on the temples."""
+    """Orbits, nasal aperture, oral cavity and the flats on the temples."""
     cuts = []
     for side in (-1.0, 1.0):
         centre = (side * 8.2, 2.0, 14.0)
@@ -83,21 +91,58 @@ def _cutters():
     nose_lower.apply_translation((0.0, -8.2, 14.0))
     cuts.extend([nose_upper, nose_lower])
 
-    # Bite line plus the gaps between the teeth. The cutters run clear through
-    # the jaw - stopping them inside it leaves tangential knife edges.
-    cuts.append(box((23.0, 1.0, 34.0), (0.0, -15.4, 10.0)))
-    tooth_gaps = (-8.8, -6.4, -4.2, -2.2, 0.0, 2.2, 4.2, 6.4, 8.8)
-    for x in tooth_gaps:
-        width = 0.65 if abs(x) <= 4.2 else 0.8
-        cuts.append(box((width, 4.2, 34.0), (x, -15.4, 10.0)))
+    # Open a shallow oval oral cavity. The remaining back wall joins every
+    # tooth root to the skull, while the crowns stand free at the surface.
+    mouth = solid_sphere(1.0, subdivisions=3)
+    mouth.apply_scale([11.8, 6.2, 8.0])
+    mouth.apply_translation((0.0, -16.1, 17.0))
+    cuts.append(mouth)
 
     cuts.append(box((44.0, 14.0, 30.0), (0.0, -29.0, 6.0)))
     return cuts
 
 
+def _dental_arcade() -> list[trimesh.Trimesh]:
+    """Upper and lower permanent teeth sized for a 0.4 mm nozzle.
+
+    Each side has a central and lateral incisor, canine, premolar and visible
+    first molar. Crowns remain at least 1.45 mm wide before the final X scale,
+    and their roots overlap the alveolar backing below the opened mouth.
+    """
+    x_positions = (0.95, 2.85, 4.75, 6.75, 8.85)
+    widths = (1.55, 1.45, 1.50, 1.65, 1.90)
+    upper_heights = (3.45, 3.20, 3.80, 2.85, 2.60)
+    lower_heights = (3.05, 2.85, 3.35, 2.65, 2.45)
+    upper_y = (-13.55, -13.65, -13.90, -14.35, -14.90)
+    lower_y = (-17.65, -17.55, -17.35, -17.05, -16.80)
+    projection = (11.35, 11.20, 11.45, 10.95, 10.65)
+
+    teeth = []
+    for side in (-1.0, 1.0):
+        for index, x in enumerate(x_positions):
+            for y, height, lower in (
+                (upper_y[index], upper_heights[index], False),
+                (lower_y[index], lower_heights[index], True),
+            ):
+                tooth = solid_sphere(1.0, subdivisions=2)
+                depth = 2.75 if index < 3 else 2.55
+                tooth.apply_scale([widths[index] / 2.0, height / 2.0, depth])
+                tooth.apply_translation(
+                    (side * x, y, projection[index] - (0.15 if lower else 0.0))
+                )
+                # Canines lean slightly toward the corners of the mouth;
+                # posterior crowns follow the turn of the dental arcade.
+                angle = side * (2.0 + index * 1.6)
+                tooth.apply_transform(trimesh.transformations.rotation_matrix(
+                    np.deg2rad(angle), [0.0, 0.0, 1.0], tooth.centroid))
+                teeth.append(tooth)
+    return teeth
+
+
 def build_skull(scale: float = 1.0, pitch: float = 0.45) -> trimesh.Trimesh:
     mesh = simplify(segment_mesh(_masses(), pitch=pitch, blend=2.6), 30000)
     mesh = difference(mesh, [union(_cutters())])
+    mesh = union([mesh, *_dental_arcade()])
     # Keep the established control envelope after adding the lateral cheekbone
     # masses; the old cranium needed more X stretch because it had no zygoma.
     mesh.apply_scale([1.208, 0.94, 1.0])
