@@ -1287,10 +1287,6 @@ def build_chest(include_decoration: bool = True) -> trimesh.Trimesh:
         box((CHEST_L, RAIL_D * 2.0, RAIL_W),
             (0.0, CHEST_W / 2.0 - FUNCTIONAL_WALL_DATUM, RAIL_Z + RAIL_W / 2.0)),
         cylinder(8.8 / 2.0, 44.0, mechanism.DRIVE_AXIS, (0.0, 1.0, 0.0)),
-        box(
-            (14.0, 12.0, 24.0),
-            (-mechanism.DRIVE_PITCH_R, 58.0, 75.0),
-        ),
     ]
     body = difference(body, service)
 
@@ -1325,7 +1321,26 @@ def build_chest(include_decoration: bool = True) -> trimesh.Trimesh:
     # The decorative courses overlap the lower rail band and rear cornice.
     # Re-open only those frozen functional envelopes after the partial rebuild;
     # the outer rail cover begins at the nominal y=60 wall plane and remains.
-    body = difference(body, [service[0], service[1], service[3]])
+    body = difference(body, [service[0], service[1]])
+
+    # The lid rack now remains inboard. Two stationary journals transfer its
+    # rotation above the unbroken rear rim to the original hinge-axis gear.
+    transfer_mounts = []
+    for y in (mechanism.LID_TRANSFER_Y, mechanism.LID_IDLER_Y):
+        mount = union([
+            box((4.0, 6.0, 14.0),
+                (mechanism.LID_TRANSFER_BEARING_X, y, 89.0)),
+            box((4.0, CHEST_W / 2.0 - y + 3.0, 4.0),
+                (mechanism.LID_TRANSFER_BEARING_X,
+                 (CHEST_W / 2.0 + y - 3.0) / 2.0, BODY_H - 4.0)),
+        ])
+        mount = difference(mount, [
+            cylinder(1.6, 8.0,
+                     (mechanism.LID_TRANSFER_BEARING_X, y, HINGE_Z),
+                     (1.0, 0.0, 0.0)),
+        ])
+        transfer_mounts.append(mount)
+    body = union([body, *transfer_mounts])
 
     # Fixed scissor pivots. The scissor pivot sits at x = 0 so the compact platform stays inside
     # the chest over the whole stroke (see docs, kinematics table).
@@ -1605,8 +1620,10 @@ def build_lid() -> trimesh.Trimesh:
     # Narrow service channel for the rigid lid rack and hinge sector.  It
     # replaces a slice of one lid knuckle without weakening the other three.
     clearance_pockets.append(box(
-        (18.0, 20.0, 26.0),
-        (-mechanism.DRIVE_PITCH_R, mechanism.LID_RACK_Y, 13.0),
+        (25.0, 20.0 + 2.0 * mechanism.LID_TRANSFER_STEP, 26.0),
+        (-mechanism.DRIVE_PITCH_R - 3.5,
+         mechanism.LID_HINGE_Y - mechanism.LID_SECTOR_R
+         - mechanism.LID_TRANSFER_STEP, 13.0),
     ))
     for index, cutter in enumerate(clearance_pockets):
         body = difference(body, [cutter])
@@ -1619,20 +1636,23 @@ def build_lid() -> trimesh.Trimesh:
     # shell stay unchanged, while a 2 mm roof and side walls hide the mechanism.
     # The inner cutter extends below the hood, so the cavity remains open only
     # toward the box interior and cannot trap support or block assembly.
+    hood_shift = 2.0 * mechanism.LID_TRANSFER_STEP
     hood_outer = rounded_box(
-        (22.0, 22.6, 11.2),
+        (29.0, 22.6 + hood_shift, 11.2),
         4.0,
         (
-            -mechanism.DRIVE_PITCH_R,
-            mechanism.LID_RACK_Y - 1.8,
+            -mechanism.DRIVE_PITCH_R - 3.5,
+            mechanism.LID_HINGE_Y - mechanism.LID_SECTOR_R - 1.8
+            - hood_shift / 2.0,
             SERVICE_HOOD_TOP - 5.6,
         ),
     )
     hood_inner = box(
-        (20.0, 20.8, 16.2),
+        (25.0, 20.8 + hood_shift, 16.2),
         (
-            -mechanism.DRIVE_PITCH_R,
-            mechanism.LID_RACK_Y - 1.7,
+            -mechanism.DRIVE_PITCH_R - 3.5,
+            mechanism.LID_HINGE_Y - mechanism.LID_SECTOR_R - 1.7
+            - hood_shift / 2.0,
             SERVICE_HOOD_TOP - 10.1,
         ),
     )
@@ -1643,7 +1663,7 @@ def build_lid() -> trimesh.Trimesh:
         (8.0, 3.2, 4.4),
         (
             -mechanism.DRIVE_PITCH_R,
-            mechanism.LID_RACK_Y + 9.5,
+            mechanism.LID_HINGE_Y - mechanism.LID_SECTOR_R + 9.5,
             18.6,
         ),
     )
@@ -1654,6 +1674,9 @@ def build_lid() -> trimesh.Trimesh:
     if not service_hood.is_volume:
         raise RuntimeError("lid service hood is not a closed shell")
     body = union([body, service_hood])
+    socket = box((7.0, 8.0, 12.2), (-17.5, 49.0, 22.1))
+    socket_slot = box((14.0, 18.4, 5.4), (-22.8, 54.0, 19.0))
+    body = difference(union([body, socket]), [socket_slot])
     if not body.is_volume:
         raise RuntimeError("lid service hood broke the solid")
 
