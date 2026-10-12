@@ -59,6 +59,9 @@ Im Workflow werden die Modell-Dateien vor dem Vite-Build mit
 Die Pages-App bietet:
 
 - 3D-Vorschau für STL- und 3MF-Dateien aus `models/`
+- direkt erreichbare Support-Vorschaubilder je 3MF-Platte; ein Klick öffnet das
+  Bild groß im Viewer-Dialog. Die Sidecars kommen aus `docs/images/` und fehlen
+  ohne Screenshot wird der betreffende Button deaktiviert und erklärt den Grund.
 - Vorschau einzelner ungemergter PR-/Branch-Modelle über URL-Parameter wie
   `?repo=harrybin/3d-printing&ref=<branch>&model=<datei.stl>` oder
   `?url=<oeffentliche-datei-url>&label=<anzeige-name>`
