@@ -31,6 +31,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .action-status { max-width: 32ch; color: var(--text-color-muted, #57606a); white-space: normal; overflow-wrap: anywhere; }
 .print-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 22px; min-height: 32px; padding: 3px 12px; border-bottom: 1px solid var(--border-color-default, #d1d9e0); background: var(--background-color-muted, rgba(175, 184, 193, .12)); }
 .print-summary[hidden] { display: none; }
+.print-summary-heading { flex: 1 0 100%; color: var(--text-color-muted, #57606a); font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 .print-card { min-width: 0; display: flex; align-items: baseline; gap: 5px; }
 .print-card span { color: var(--text-color-muted, #57606a); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
 .print-card strong { overflow-wrap: anywhere; font-size: 12px; color: var(--text-color-default, #1f2328); }
@@ -48,6 +49,16 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .meta-panel[open] > summary::after { transform: rotate(180deg); }
 #meta { max-height: calc(min(42vh, 360px) - 33px); overflow: auto; padding: 8px 10px 10px; border-top: 1px solid #30363d; font-size: 12px; line-height: 1.45; color: #b1bac4; display: flex; flex-wrap: wrap; gap: 5px 14px; }
 #meta strong { color: #e6edf3; font-weight: 600; }
+.plate-breakdown { flex: 1 0 100%; min-width: 0; margin-top: 4px; border-top: 1px solid #30363d; }
+.plate-breakdown > summary { padding: 7px 0 3px; color: #e6edf3; font-weight: 600; cursor: pointer; }
+.plate-breakdown > summary:focus-visible { outline: 2px solid var(--color-focus-outline, #0969da); outline-offset: 2px; }
+.plate-table-scroll { max-width: 100%; overflow-x: auto; }
+.plate-breakdown-table { width: 100%; min-width: 660px; border-collapse: collapse; font-size: 11px; white-space: nowrap; }
+.plate-breakdown-table th,
+.plate-breakdown-table td { padding: 4px 8px; border-top: 1px solid #30363d; text-align: left; }
+.plate-breakdown-table thead th { color: #8c959f; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+.plate-breakdown-table tbody th { color: #e6edf3; font-weight: 600; }
+.plate-breakdown-error { margin: 4px 0 8px; color: #ff8182; }
 @media (max-width: 760px) {
   .toolbar { align-items: stretch; }
   .tool-drawer { margin-left: 0; }

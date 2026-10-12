@@ -17,7 +17,7 @@ Die Finger sind vorgekrümmte PLA-Flexuren. Sie werden nicht aktiv bewegt; beim 
 | Starre Mechanik | `scripts/mechanism.py` |
 | Totenkopf-Drehknopf | `scripts/skull.py` |
 | Anatomische Hand | `scripts/skeleton_hand.py` |
-| Projekte/Mastermodelle | `scripts/ghouls_grip.py` |
+| Ansichts-/Druckprojekte | `scripts/ghouls_grip.py` |
 | Orca-Projekte | `scripts/export_ghouls_grip_orca_projects.py` |
 | Kollisionsnachweis | `scripts/verify_ghouls_grip_mechanics.py` |
 
@@ -37,6 +37,10 @@ Die Finger sind vorgekrümmte PLA-Flexuren. Sie werden nicht aktiv bewegt; beim 
 | Schlittenweg | 53,506 mm |
 | Hub des Jochs | 48,177 mm |
 | Deckelöffnung | 108° |
+| Deckel-Zahnstange, neue Y-Pitch-Linie | 42,432 mm (vorher 57,286 mm) |
+| Deckel-Transferachsen Y / Z | 46,146 und 53,573 mm / 93,000 mm |
+| Transferzahnräder | 2 zusätzliche Teile, 6 Zähne, 4 mm Zahnbreite |
+| Transferjournal / Lagerbohrung | Ø2,8 / Ø3,2 mm; 0,4 mm Durchmesserspiel |
 | Totenkopf-Drehweg | 113,544° |
 | Totenkopfknopf | 48,5 × 55,1 × 27,0 mm |
 | Totenkopf-Schaft | Ø8 mm Presssitz, 0,2 mm Untermaß im Knopf |
@@ -44,6 +48,44 @@ Die Finger sind vorgekrümmte PLA-Flexuren. Sie werden nicht aktiv bewegt; beim 
 | Fingerspitzen ausgefahren | 246,7 mm über Aufstellfläche |
 
 Die Hand ist mit `HAND_SCALE = 0.72` aus einem anatomischen CT-Datensatz abgeleitet. Die größere Handfläche gegenüber der ursprünglichen 50 × 45-mm-Idee ist erforderlich, um Handwurzel- und Mittelhandknochen erkennbar zu erhalten.
+
+### Korrektur der hinteren Mechanikaussparung
+
+Die bisherige 14 × 12 × 24-mm-Aussparung bei X=-27, Y=58, Z=75 mm ist
+ersatzlos entfernt. Ursache waren der tiefe hintere Querträger der
+Deckelzahnstange und der nach unten gerichtete Deckelkurbel-Schlüssel.
+Die Zahnstange liegt jetzt um 14,854 mm weiter innen. Zwei zusätzliche
+gleich große Zahnräder übertragen mit zwei Drehsinnwechseln 1:1 auf das
+Deckelsegment an der unveränderten Scharnierachse. Der Kurbel-Schlüssel
+zeigt nach innen, oberhalb des Kistenrands, und greift in eine passende
+Unterseiten-Stecktasche im Deckel. Die Lagerzapfen bleiben innerhalb der
+verbreiterten, geschlossenen Deckelhaube; die Kiste wurde nicht vergrößert.
+
+Die Positionen sind aus dem bestehenden Radius
+`LID_SECTOR_R = 7 mm / radians(108°)` abgeleitet: zwei Achsabstände von jeweils
+`2 * LID_SECTOR_R`. Quelle/Vertrauen: bestehender parametrisierter
+Bewegungsvertrag, rechnerisch exakt; keine aus Screenshots geschätzten Maße.
+Die Ø2,8-/Ø3,2-mm-Journale übernehmen das vorhandene 0,4-mm-Laufspiel;
+Zahnbreite 4 mm, Zahnstangen-Zahnbreite 1,6 mm, Zahnphase 15° und
+2-mm-Haubendach und X-Seitenwände sind neue Konstruktionswerte, durch Mesh-/Bewegungsproben
+geprüft, aber noch nicht durch einen PLA-Passungstest bestätigt.
+Die Lager stehen auf kurzen, 4 mm dicken, von innen an die unveränderte
+Hinterwand angeschlossenen Kragträgern bei Z=80–84 mm; die Lagerköpfe reichen
+von Z=82 bis 96 mm. Das vermeidet zusätzliche hohe Bodenpfosten und erhält
+die bestehende Leichtbaugrenze von 200.000 mm³ Schatullenvolumen.
+Die asymmetrische Haube ist in X 29 mm breit und bei X=-30,5 mm zentriert:
+Sie wächst ausschließlich nach links/innen, nicht in den mittleren Scharnierbock.
+Die innere Servicekavität ist 25 mm breit; ihr Cutter bleibt innerhalb der
+Haubenfläche. Die vollständige Dachhaut wurde mit einer Volumenprobe geprüft.
+Diese Werte sind Konstruktionsentscheidungen, keine neuen gemessenen Gehäusedatums.
+
+Der vollständige konservative Translations-Hüllkörper der Folge-Zahnstange
+schneidet die Kiste nicht. 109 aktive Deckelstellungen prüfen zusätzlich
+Zahnrad-/Zahnstangenfreiheit und Montage; der gekoppelte Gesamtvergleich
+enthält 61 Scherenstellungen einschließlich 18°, 48° und 78°.
+Siehe [Mechanik-Verifikation](ghouls-grip-mechanik-verifikation.md), auch
+für den dort ausdrücklich getrennt dokumentierten Bestandsfehler an den
+unveränderten Scheren-Bodenlagern.
 
 ## Verbindliche Konstruktionsentscheidungen
 
@@ -94,7 +136,14 @@ Der Deckel erreicht 108° bereits bei etwa 32° Scherenwinkel und bleibt währen
 
 ## Stückliste
 
-Vier Orca-Projekte enthalten **22 Teiltypen / 35 physische Druckobjekte**.
+Das konsolidierte Orca-Druckprojekt enthält **22 Teiltypen / 37 physische
+Druckobjekte** auf fünf Platten, einschließlich der beiden neuen
+Transferzahnräder. Alle 35 bisherigen
+Objektpositionen, fünf Plattengruppen und Nutzereinstellungen bleiben erhalten.
+Die 31 nicht betroffenen ursprünglichen Mesh-Payloads bleiben byteidentisch.
+Bei den vier geänderten Teilen bleibt die ursprüngliche transformierte
+Bettkontakt-Ebene erhalten; die höhere neue Kurbel wird nicht unter das Bett
+zentriert. Die beiden Zusatzräder liegen in freiem Raum auf der Verbinderplatte.
 
 | Teil | Anzahl | Maße ungefähr | Farbe |
 | --- | ---: | --- | --- |
@@ -105,8 +154,9 @@ Vier Orca-Projekte enthalten **22 Teiltypen / 35 physische Druckobjekte**.
 | Hubjoch | 1 | 82 × 92 × 51 mm | Naturweiß |
 | Hauptantriebsritzel | 1 | 57,4 × 57,4 × 24 mm | Naturweiß |
 | Deckel-Hauptzahnstange | 1 | 73 × 22 × 8,7 mm | Naturweiß |
-| Deckel-Folgejoch/Zahnstange | 1 | 32 × 103 × 14 mm | Naturweiß |
-| Deckelsegment | 1 | 22 × 11,5 × 8 mm | Naturweiß |
+| Deckel-Folgejoch/Zahnstange | 1 | 32 × 85,932 × 14 mm | Naturweiß |
+| Deckelsegment mit Innenschlüssel | 1 | 9,2 × 20,6 × 11 mm in Drucklage | Naturweiß |
+| Deckel-Transferzahnrad mit Journal | 2 | ca. Ø9 × 18 mm | Naturweiß |
 | Scheren-Eingangszahnrad | 1 | 27,4 × 27,5 × 10 mm | Naturweiß |
 | Zwischenrad | 3 | ca. 17 × 17 × 6 mm | Naturweiß |
 | Unterarm-Ausgangszahnrad mit D-Welle | 1 | 27,4 × 65 × 27,5 mm | Naturweiß |
@@ -143,7 +193,20 @@ Handgelenkaufnahme; sie ist kein massiver Block. Die Einführsenkung macht die
 3. Das offene Hubjoch montieren: pro Scherenpaar ein oberes Ende ins feste Auge, das andere in die Kulisse. Der mittlere Handraum bleibt frei.
 4. Hauptantriebsritzel von innen in das Frontlager einsetzen. Die integrierte Welle muss außen frei herausstehen und das Ritzel vollständig in die Schlittenzahnstange greifen.
 5. Totenkopfknopf außen mit der Blindbohrung auf die Ø8-mm-Welle pressen. Vor endgültigem Einpressen die geschlossene Stellung so ausrichten, dass das Gesicht senkrecht und gut greifbar steht.
-6. Deckel-Hauptzahnstange am Antrieb einsetzen. Den Zapfen des Folgejochs vollständig im Lost-Motion-Schlitz fangen. Das hintere Zahnsegment muss ohne Klemmen mit dem Deckelsegment kämmen.
+6. Deckel-Hauptzahnstange am Antrieb einsetzen. Den Zapfen des Folgejochs
+   vollständig im Lost-Motion-Schlitz fangen. Die beiden neuen
+   Transferzahnräder bei geschlossenem Deckel ausrichten und von der positiven
+   X-Seite in die Innenlager einschieben. Der freie axiale Einführweg beträgt
+   8,5 mm; nicht durch den benachbarten mittleren Scharnierbock führen.
+   Mit je einem 1,75-mm-Filamentstift durch die rückseitigen Journal-Querlöcher
+   sichern. Das hintere Zahnsegment des Folgejochs greift in das innere
+   Transferzahnrad, dieses in das Zwischenrad und dieses in das Deckelsegment.
+   Dessen nach innen gerichteten Schlüssel vor der Scharniermontage axial in
+   die offene Unterseiten-Stecktasche des Deckels einschieben: Kurbel zunächst
+   6 mm links ihrer Endposition von unten in die Haube setzen, dann axial
+   6 mm in die Tasche verschieben. Das ist auch an der exakten gelieferten
+   3MF geprüft; ±5° Relativdrehung trifft beide Taschenflanken und belegt die
+   formschlüssige Drehmomentübertragung.
 7. Das Scheren-Eingangszahnrad auf den formschlüssigen Zapfen eines Scherenarms setzen. Die drei Zwischenräder bleiben bis nach der Unterarmmontage noch ausgebaut.
 8. Den knochenfarbenen Unterarm **ohne Zahnrad** senkrecht von oben
    zwischen die beiden Lagerohren des Jochs setzen. Die runden Lagerbohrungen
@@ -167,13 +230,12 @@ Handgelenkaufnahme; sie ist kein massiver Block. Die Einführsenkung macht die
 
 ## Druckprojekte
 
-- `models/ghouls-grip-master.3mf` – ausgefahrene Montageansicht.
-- `models/ghouls-grip-master-retracted.3mf` – geschlossene Einbaukontrolle.
+- `models/ghouls-grip-view.3mf` – zusammengesetzte Ansichten auf drei Platten:
+  vollständig ausgefahren (78°), Zwischenzustand (48°) und eingefahren (18°).
+- `models/ghouls-grip-print.3mf` – ein Orca-Projekt für alle 37 Druckobjekte
+  mit vier Filament-/Farbzuordnungen auf fünf nach Farbe und Baugruppe
+  gruppierten Druckplatten.
 - `models/ghouls-grip-preview.stl` – Canvas-Vorschau.
-- `models/ghouls-grip-print-black-pla.3mf` – Platte 1 „Schatulle“ stehend, Platte 2 „Deckel auf Hinterkante stehend“; Baumstützen bleiben aktiviert und sind im Druckbericht quantifiziert.
-- `models/ghouls-grip-print-bone-pla.3mf` – Unterarm, Hand und Finger, eine Platte.
-- `models/ghouls-grip-print-mechanism-pla.3mf` – starre Mechanik, zwei Platten.
-- `models/ghouls-grip-print-accent-pla.3mf` – Totenkopf-Drehknopf, eine Platte.
 
 Im geschlossenen Zustand liegt die vollständige interne Deckelmechanik unter
 einer mit dem Deckel vereinigten schwarzen Schutzhaube. Der Montagekanal ist
@@ -185,8 +247,8 @@ Alle Projekte verwenden PLA, Anycubic Kobra S1 0.4, Textured PEI, 0,20 mm Schich
 
 ### Gespeicherte OrcaSlicer-Defaults
 
-Diese Optionen werden beim Generieren aller vier Materialprojekte gesetzt und
-durch `tests/test_ghouls_grip_orca_settings.py` abgesichert:
+Diese Optionen werden im konsolidierten Mehrfarben-Projekt gesetzt und durch
+`tests/test_ghouls_grip_orca_settings.py` abgesichert:
 
 | Option | Gespeicherter Wert |
 | --- | --- |
@@ -199,10 +261,10 @@ durch `tests/test_ghouls_grip_orca_settings.py` abgesichert:
 | XY-Lochkompensation | +0,10 mm |
 | XY-Konturkompensation | 0,00 mm |
 | Elephant-Foot-Kompensation | 0,15 mm |
-| Prime Tower | aus, da jedes Projekt genau eine Farbe/Spule enthält |
+| Prime Tower | aus, da jede Druckplatte nur einer Farbe/Spule zugeordnet ist |
 
-Schwarz, Knochen und Grau verwenden automatische Baumstützen. Das
-Mechanikprojekt verwendet `normal(auto)` mit `snug`, weil Zahnstangen,
+Schwarz, Knochen und Grau verwenden automatische Baumstützen. Die
+naturweißen Mechanikplatten verwenden `normal(auto)` mit `snug`, weil Zahnstangen,
 Rahmenöffnungen und Verbinder damit reproduzierbarer abgestützt werden.
 Objekt-Overrides steuern Wände, Infill, Geschwindigkeit und Beschleunigung;
 kein Override deaktiviert Support.
@@ -214,6 +276,9 @@ kein Override deaktiviert Support.
 - Vor dem Gesamtdruck einen Arm, einen kleinen/großen Pin und ein Zahnrad als Passungsmuster drucken.
 - Gedruckte Pins und 0,8-mm-PLA-Flexuren sind Verschleißteile.
 - Die Konstruktion ist kein geprüftes Kinderspielzeug.
+- Die separate Bestandskollision `scissors_chest` an den ursprünglichen
+  Bodenlagern ist unverändert vorhanden. Die Wandkorrektur ist deshalb keine
+  Freigabe der vollständigen Mechanik für einen Funktionsdruck.
 
 ## Lizenz der Handgeometrie
 

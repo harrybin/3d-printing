@@ -5,8 +5,10 @@ import {
   APP_HTML,
   createOrcaLaunchRequest,
   createOrcaSlicerOpenUrl,
+  formatPlateBreakdown,
   formatPrintMetadataSummary,
   layoutPlateOverview,
+  renderPlateBreakdown,
   selectDefaultPlate,
 } from '../../.github/extensions/stl-canvas/viewer-app.mjs'
 
@@ -148,21 +150,99 @@ test('lays overlapping plates side by side without mutating individual plates', 
 test('all-plates summary retains whole-project totals and exposes plate count', () => {
   const metadata = {
     status: 'verified',
-    estimatedPrintTimeSeconds: '49988',
-    filamentUsageGrams: '330.96',
-    supportFilamentGrams: '17.98',
-    filamentUsageMillimeters: '110966.48',
+    estimatedPrintTimeSeconds: '88554',
+    filamentUsageGrams: '521.72',
+    supportFilamentGrams: '55.09',
+    filamentUsageMillimeters: '174923.38',
     materialType: 'PLA',
     plateCount: '2',
   }
   assert.deepEqual(formatPrintMetadataSummary(metadata), {
     visible: true,
-    printTime: '13 h 53 min',
-    materialUsage: '330.96 g PLA',
-    supportUsage: '17.98 g',
-    filamentLength: '110966.48 mm',
+    printTime: '24 h 36 min',
+    materialUsage: '521.72 g PLA',
+    supportUsage: '55.09 g',
+    filamentLength: '174923.38 mm',
     status: 'verified',
   })
+  assert.match(APP_HTML, /All plates · project total/)
   assert.match(APP_HTML, /value="all">All plates<\/option>/)
   assert.match(APP_HTML, /id="summaryPlates"/)
+})
+
+test('formats every plate from project metadata independently of plate selection', () => {
+  const metadata = {
+    plateDetails: JSON.stringify([
+      {
+        name: 'Black shells',
+        status: 'verified',
+        estimatedPrintTimeSeconds: '3600',
+        filamentUsageGrams: '45.50',
+        filamentUsageMillimeters: '15000',
+        supportFilamentGrams: '2.25',
+        supportFilamentMillimeters: '700',
+      },
+      {
+        name: 'Bone parts',
+        status: 'verified',
+        estimatedPrintTimeSeconds: '90',
+        filamentUsageGrams: '0',
+        filamentUsageMillimeters: '0',
+        supportFilamentGrams: '0',
+        supportFilamentMillimeters: '0',
+      },
+    ]),
+  }
+  assert.deepEqual(formatPlateBreakdown(metadata), {
+    visible: true,
+    error: '',
+    plates: [
+      {
+        name: 'Black shells',
+        status: 'verified',
+        printTime: '1 h 0 min',
+        filament: '45.50 g',
+        support: '2.25 g',
+        filamentLength: '15000.00 mm',
+        supportLength: '700.00 mm',
+      },
+      {
+        name: 'Bone parts',
+        status: 'verified',
+        printTime: '2 min',
+        filament: 'none',
+        support: 'none',
+        filamentLength: '0.00 mm',
+        supportLength: '0.00 mm',
+      },
+    ],
+  })
+  const html = renderPlateBreakdown(metadata)
+  assert.match(html, /Print data per plate \(2\)/)
+  assert.match(html, /Black shells/)
+  assert.match(html, /Bone parts/)
+  assert.match(html, /Filament length/)
+})
+
+test('reports malformed plate metadata visibly and escapes plate names', () => {
+  assert.match(
+    renderPlateBreakdown({ plateDetails: '{invalid' }),
+    /Plate data is invalid:/,
+  )
+  assert.match(
+    renderPlateBreakdown({ plateDetails: '[]' }),
+    /No per-plate print data is available\./,
+  )
+  assert.match(
+    renderPlateBreakdown({
+      plateDetails: JSON.stringify([{ name: '<script>alert(1)<\/script>' }]),
+    }),
+    /&lt;script&gt;alert\(1\)&lt;\/script&gt;/,
+  )
+  assert.doesNotMatch(
+    renderPlateBreakdown({
+      plateDetails: JSON.stringify([{ name: '<script>alert(1)<\/script>' }]),
+    }),
+    /<script>/,
+  )
 })

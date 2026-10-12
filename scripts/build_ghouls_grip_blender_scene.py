@@ -18,7 +18,7 @@ from mathutils import Vector
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_3MF = ROOT / "models" / "ghouls-grip-master.3mf"
+SOURCE_3MF = ROOT / "models" / "ghouls-grip-view.3mf"
 BLEND_PATH = ROOT / "model-sources" / "ghouls-grip" / "ghouls-grip-master.blend"
 RENDER_PATH = ROOT / "docs" / "images" / "ghouls-grip-blender-master.png"
 
@@ -114,7 +114,10 @@ def _import_master() -> list[bpy.types.Object]:
     imported = []
     for item in root.findall(".//m:build/m:item", NS):
         node = objects[item.get("objectid")]
-        name = node.get("name", f"object-{item.get('objectid')}")
+        plate_name = node.get("name", f"object-{item.get('objectid')}")
+        if not plate_name.startswith("deployed-"):
+            continue
+        name = plate_name.removeprefix("deployed-")
         mesh_node = node.find("m:mesh", NS)
         if mesh_node is None:
             continue

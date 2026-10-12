@@ -34,7 +34,7 @@
     {
       "id": "multimaterial-assembly-packaging",
       "name": "multimaterial-assembly-packaging",
-      "description": "Package complex models as an assembled master 3MF and printable plate 3MFs, preferring separately printed keyed color parts to reduce purge waste.",
+      "description": "Package complex models as an assembled multi-state view 3MF and one consolidated printable 3MF, preferring separately printed keyed color parts to reduce purge waste.",
       "source": ".github/skills/multimaterial-assembly-packaging/skill.md"
     },
     {
@@ -54,6 +54,12 @@
       "name": "orcaslicer-project-workflow",
       "description": "Slice and inspect this repository's STL/3MF outputs with standard OrcaSlicer through the pinned local MCP server.",
       "source": ".github/skills/orcaslicer-project-workflow/SKILL.md"
+    },
+    {
+      "id": "orcaslicer-support-minimization",
+      "name": "orcaslicer-support-minimization",
+      "description": "Minimize supports in delivered STL/3MF print projects by comparing controlled OrcaSlicer orientation candidates while preserving project semantics; use when a final print project needs support-focused orientation and placement review without source-geometry edits.",
+      "source": ".github/skills/orcaslicer-support-minimization/SKILL.md"
     },
     {
       "id": "partial-rebuild-instead-of-mutate",
@@ -78,6 +84,12 @@
       "name": "research-reusable-3d-assets",
       "description": "Search for reusable 3D model assets before building from scratch, verify licensing and attribution, and choose reuse, hybrid rebuild, or original construction.",
       "source": ".github/skills/research-reusable-3d-assets/skill.md"
+    },
+    {
+      "id": "reversible-fdm-joints",
+      "name": "reversible-fdm-joints",
+      "description": "Select, design, and validate strong glue-free FDM assembly joints, preferring serviceable removable connections and checking load paths and insertion sweeps.",
+      "source": ".github/skills/reversible-fdm-joints/SKILL.md"
     },
     {
       "id": "stl-create-edit-interview",

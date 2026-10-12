@@ -1,59 +1,154 @@
 # The Ghoul's Grip – OrcaSlicer-Druckvalidierung
 
-Status: **VERIFIED**
+Slice-Ergebnis: **erfolgreich** mit OrcaSlicer CLI 2.4.2; Profilkonformität: **nicht verifiziert**.
 
-Geometrie-Optimierung: 2026-10-10
+Die korrigierte Druckdatei hat fünf Plates und 37 Objekte. Der frische Slice
+wurde am 2026-10-12 aus `models/ghouls-grip-print.3mf` erzeugt.
+SHA-256 der Slice-Eingabe:
+`ECBBEF59149898DD2EF6E12B4B6D6452004245496125DD89904A31550C9F7AB2`.
+Nach Ergänzung der Druckmetadaten lautet der SHA-256 der Ausgabedatei:
+`770BD97BD47C1F17CB70FB96AE29FC918638C7142442921230E31DBBA5BAAD74`.
+Geometrie, Plate-Anordnung und Druckeinstellungen wurden dabei nicht geändert.
 
-OrcaSlicer-Basisprofil: **2.4.3 GUI / 2.4.2 CLI**
+Die Wandkorrektur ersetzt ausschließlich Schatulle, Deckel, Folgejoch/Zahnstange
+und Deckelkurbel; die übrigen 31 ursprünglichen Mesh-Payloads bleiben byteidentisch.
+Alle 35 ursprünglichen Build-Transforms, Objekt-Overrides, fünf Plattengruppen
+und `project_settings.config` bleiben erhalten. Zwei Transferzahnräder ergänzen
+die bestehende Verbinderplatte in freiem Raum.
+Die exakte finale Druckdatei wurde unabhängig geladen: 37 geschlossene,
+orientierungskonsistente Einzelkörper, null degenerierte Dreiecke, alle innerhalb
+ihres 250-mm-Betts, Z-Bettkontakt mit 0,01-mm-Rundtoleranz; größtes Bauteil-/Bauteil-Schnittvolumen
+auf einer Druckplatte 0,000 mm³. Das betrifft die Druckanordnung, nicht die
+unten ausdrücklich eingeschränkte montierte Gesamtmechanik.
 
-![Übersicht](images/ghouls-grip-slice-overview.png)
+![Aktuelle Fünf-Platten-Übersicht](images/ghouls-grip-print-preview.png)
 
-## Profilvertrag
+## Sichtbare Stützstrukturen
 
-- Drucker: `Anycubic Kobra S1 0.4 nozzle`
-- Düse/Schicht: 0,4 mm / 0,20 mm
-- Prozess: `0.20mm Standard @Anycubic Kobra S1 0.4 nozzle`
-- Filament: `Anycubic PLA @Anycubic Kobra S1 0.4 nozzle`
-- Bett: `Textured PEI Plate`
-- Starttemperaturen: 55/215 °C
-- Eine reale Spule/Farbe je Projekt, kein Prime Tower
-- Farben: Schwarz `#202124`, Knochenbeige `#D8C6A5`, Naturweiß `#F1EBDD`, Grau `#777777`
-- Nahtposition: `random`
-- Bügeln: `top` (**Alle oberen Oberflächen**)
-- Support: in jedem Projekt aktiviert (`enable_support=1`)
-- Support-Auflage: nur Druckplatte
-- XY-Lochkompensation: +0,10 mm
-- Elephant-Foot-Kompensation: 0,15 mm
+**Orange zeigt tatsächlich extrudierte Support- und Support-Interface-Bahnen**
+aus den fünf frischen G-Codes; transparentes Grau zeigt die zugehörigen
+Bauteile. Es ist ein G-Code-Bahnrender, kein OrcaSlicer-UI-Screenshot.
 
-Alle sechs Druckplatten wurden nach der Geometrie- und Orientierungsoptimierung
-neu gesliced. Die Werte stammen aus den finalen G-Codes; die vier ausgelieferten
-Material-3MFs enthalten dieselben Summen mit `status=verified`.
+![Alle fünf Plates mit tatsächlichen Stützbahnen](images/ghouls-grip-print-support-overview.png)
 
-Orca meldet ausschließlich den nicht blockierenden Profilhinweis, dass
-`precise wall` bei der gespeicherten Wandreihenfolge ignoriert wird.
+Einzelansichten: [Platte 1 – Schwarz](images/ghouls-grip-print-plate-1-supports.png),
+[Platte 2 – Knochenbeige](images/ghouls-grip-print-plate-2-supports.png),
+[Platte 3 – Naturweiß](images/ghouls-grip-print-plate-3-supports.png),
+[Platte 4 – Naturweiß](images/ghouls-grip-print-plate-4-supports.png),
+[Platte 5 – Grau](images/ghouls-grip-print-plate-5-supports.png).
 
-## Ergebnisse
+Die Screenshots basieren exakt auf der aktuellen Nutzerdatei und den am
+2026-10-12 neu erzeugten G-Codes in `build/ghoul-final-slices/print/`.
+Reproduktion:
+`.\.venv\Scripts\python.exe scripts\render_ghouls_grip_print_projects.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf`
+und
+`.\.venv\Scripts\python.exe scripts\render_ghouls_grip_supports.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf`.
+Canvas/Webview zeigen die Modellgeometrie und Metadaten, aber keine Supportpfade.
+## Profilvertrag und tatsächliche Nutzereinstellungen
 
-| Projekt / Platte | Inhalt | Schichten | Filament | davon Stützen | Zeit | Vorschau |
+Das Druckprojekt wurde vom Nutzer in OrcaSlicer geändert. Die aktuellen
+Einstellungen werden hier dokumentiert und nicht stillschweigend auf frühere
+Vorgaben zurückgesetzt:
+
+- Drucker: `Anycubic Kobra S1 0.4 nozzle`; Düse/Schichthöhe: 0,4 mm / 0,20 mm
+- Ein separat benannter Prozessprofilname ist in der 3MF nicht gespeichert;
+  die Prozesswerte sind in `Metadata/project_settings.config` eingebettet.
+- Filamentprofil: `Anycubic PLA @Anycubic Kobra S1 0.4 nozzle` für vier PLA-Slots
+- Im gespeicherten Projekt: Bett `High Temp Plate`, Naht `aligned`, Bügeln
+  `no ironing`, global `enable_support=0`, globale Basiswerte 2 Wandlinien und
+  15 % Infill.
+- Bauteil-Overrides aktivieren Support (`enable_support=1`) für die betreffenden
+  Objekte; alle fünf frischen G-Codes enthalten echte Supportbahnen, auch
+  0,54 g auf Platte 4 für die ergänzten Transferzahnräder.
+- Support nur auf Druckplatte, globaler Typ `tree(auto)`; Objekt-Overrides
+  verwenden teils `normal(auto)`.
+
+Diese Datei weicht damit vom Projektstandard `Textured PEI Plate`, `seam=random`,
+`ironing=top` und global aktiviertem Support ab. Der Slice war erfolgreich, aber
+Profilkonformität und Druckbereitschaft sind **nicht verifiziert**. OrcaSlicer
+CLI gab wiederholt die Diagnose `Not precalculated Placeable areas requested`
+aus, erzeugte aber Exit-Code 0 und alle fünf G-Codes. Diese Meldung wurde nicht
+im OrcaSlicer-GUI nachbewertet.
+
+## Korrektur, Reproduktion und Freigabegrenze
+
+Der ursprüngliche Wandcutter (14 × 12 × 24 mm bei X=-27, Y=58, Z=75)
+ist entfernt. Der Folgejoch-Rack liegt 14,854 mm weiter innen; zwei gleiche
+Transferzahnräder erhalten 1:1-Übersetzung, 7-mm-Hub und 108° Deckelbewegung.
+Die neue Journalhalterung und die asymmetrische Haube schneiden weder Wand
+noch mittleren Scharnierbock. Die Dach-/Wandproben zeigen durchgängiges Material.
+
+Beim Print-Refresh verursachte reine Bounds-Zentrierung der höheren neuen Kurbel
+einen Boden unter Z=0; OrcaSlicer 2.4.2 brach dabei mit Access Violation ab.
+Der Export erhält jetzt die originale transformierte Bettkontakt-Ebene.
+Die 31 unbetroffenen Payloads werden nicht neu gerundet. Sowohl fünf einzelne
+Platten-Slices als auch der abschließende `--slice=0`-Kontrolllauf waren danach
+erfolgreich: Exit-Code 0, fünf echte G-Codes, keine Layout-/Profiländerung.
+Die externen Mesh-Relationships sind ohne XML-Namenspräfix serialisiert, wie
+Orcas Importer es erwartet.
+
+| Befehl / Nachweis | Ergebnis |
+| --- | --- |
+| `.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_ghouls_grip*.py` | 26 Tests bestanden; Wand-/Dachhaut, 109 aktive Deckelstellungen, Journaleinführung, Deckelschlüssel-Einführung und ±5° Kraftschluss, Datums und gespeicherte Plate-Einstellungen |
+| `.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_ghouls_grip_print_refresh.py -v` | nach finaler Bettkontakt-Korrektur erneut bestanden; Originaltransforms, Overrides, Plate-Zuordnung, unveränderte Payloads und Idempotenz |
+| `.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_slice_support_usage.py -v` | 3 Tests bestanden; M82/M83/G92 und Rückstellungen |
+| `.\.venv\Scripts\python.exe scripts\verify_ghouls_grip_mechanics.py` | Wandkorrektur PASS; 61 Scherenstellungen von 18° bis 78° inkl. 48°, alle korrigierten Kontaktpaare 0,000 mm³; Bestandsfehler separat |
+| `powershell -File scripts\slice_ghouls_grip.ps1` | fünf G-Codes nach einzelplattenweiser Diagnose; abschließend gleiche Eingabe mit `orca-slicer.exe --slice=0 --outputdir=build\slice-all-fixed` ebenfalls Exit 0 und fünf G-Codes; das Skript verwendet wieder `--slice=0` |
+| `.\.venv\Scripts\python.exe scripts\update_ghouls_grip_slice_metadata.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf` | neue reale Kennzahlen gespeichert; Status weiter `not-verified` |
+| `.\.venv\Scripts\python.exe scripts\render_3mf_previews.py models\ghouls-grip-view.3mf models\ghouls-grip-print.3mf` | beide finalen Standard-Sidecars aus den exakten 3MFs regeneriert |
+| Renderbefehle oben und `.\.venv\Scripts\python.exe scripts\render_ghouls_grip_wall.py` | fünf neue Support-Sidecars, Supportübersicht und beleuchtetes Wanddetail |
+
+**Keine Freigabe der gesamten Mechanik:** Die unveränderten Paare
+`arm-0-False / chest (Bodenlager)` und `arm-1-False / chest (Bodenlager)`
+überschneiden sich weiterhin. Gesamtvolumen: 496,131 mm³ bei 18°,
+519,274 mm³ bei 48° und 554,635 mm³ bei 78°. Die Differenz zur Baseline
+`f396e7a` ist in allen 61 geprüften Stellungen 0,000000 mm³.
+Einzelpaarvolumina stehen in der
+[Mechanik-Verifikation](ghouls-grip-mechanik-verifikation.md).
+Arm-/Bodenlagerdatums bleiben auf Nutzeranweisung unverändert. Dafür ist eine
+separate Reparaturentscheidung erforderlich; außerdem stehen PLA-Passungstest,
+Journalspiel, kleine Zahnprofile und Belastbarkeit der Kragträger noch aus.
+
+![Exakter Endstand, durchgehende Wand und innenliegender Deckelantrieb](images/ghouls-grip-continuous-wall.png)
+
+## Ergebnisse des aktuellen Slices
+
+| Plate | Inhalt | Schichten | Filament | davon Stützen | Zeit | Ansicht |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
-| Schwarz, Platte 1 | Leichtbau-Schatulle stehend mit organisch skulptierten Kreaturenreliefs | 490 | 196,55 g | 0,33 g (0,2 %) | 8 h 15 min 57 s | [PNG](images/ghouls-grip-slice-black-plate-1.png) |
-| Schwarz, Platte 2 | Gerippter, vollständig geschlossener Deckel auf seiner Hinterkante stehend | 649 | 134,41 g | 17,64 g (13,1 %) | 5 h 37 min 11 s | [PNG](images/ghouls-grip-slice-black-plate-2.png) |
-| Knochenbeige | Unterarm, Handfläche hochkant, fünf Finger | 482 | 42,82 g | 12,51 g (29,2 %) | 3 h 12 min 04 s | [PNG](images/ghouls-grip-slice-bone.png) |
-| Mechanik, Platte 1 | 4 gelochte Arme, offener Schlitten/Plattformrahmen, Zahnstangen und Speichenritzel | 464 | 111,88 g | 15,44 g (13,8 %) | 5 h 25 min 27 s | [PNG](images/ghouls-grip-slice-mechanism-plate-1.png) |
-| Mechanik, Platte 2 | 3 Zwischenräder, Ausgangszahnrad/D-Welle, Pins und Splinte | 177 | 10,88 g | 1,24 g (11,4 %) | 0 h 52 min 46 s | [PNG](images/ghouls-grip-slice-mechanism-plate-2.png) |
-| Grau | Anatomischer Totenkopf-Drehknopf, Gesicht nach oben | 135 | 20,30 g | 8,21 g (40,4 %) | 1 h 16 min 03 s | [PNG](images/ghouls-grip-slice-accent.png) |
-| **Gesamt** | **35 Druckobjekte / 6 Platten** | – | **516,84 g** | **55,39 g (10,7 %)** | **24 h 39 min 28 s** | – |
+| 1 – Schwarz | Schatulle und Deckel (2) | 649 | 338,50 g | 7,16 g (2,1 %) | 12 h 06 min 03 s | [Supportbild](images/ghouls-grip-print-plate-1-supports.png) |
+| 2 – Knochenbeige | Unterarm, Handfläche und Finger (7) | 482 | 43,51 g | 5,90 g (13,6 %) | 3 h 04 min 12 s | [Supportbild](images/ghouls-grip-print-plate-2-supports.png) |
+| 3 – Naturweiß | Mechanik-Hauptteile (11) | 492 | 112,23 g | 12,78 g (11,4 %) | 4 h 17 min 14 s | [Supportbild](images/ghouls-grip-print-plate-3-supports.png) |
+| 4 – Naturweiß | Zahnräder und Verbinder (16) | 424 | 10,67 g | 0,54 g (5,1 %) | 1 h 01 min 26 s | [Supportbild](images/ghouls-grip-print-plate-4-supports.png) |
+| 5 – Grau | Totenkopf-Auslöser (1) | 135 | 24,05 g | 3,40 g (14,1 %) | 1 h 11 min 05 s | [Supportbild](images/ghouls-grip-print-plate-5-supports.png) |
+| **Gesamt** | **37 Druckobjekte / 5 Plates** | – | **528,96 g** | **29,78 g (5,6 %)** | **21 h 40 min 00 s** | [Übersicht](images/ghouls-grip-print-support-overview.png) |
 
-Projektmetadaten (`status=verified` in den ausgelieferten 3MF-Dateien):
-
-| Projekt | Zeit | Masse | Stützmaterial | Länge | Volumen | Platten |
+| Farbgruppe | Zeit | Masse | Stützmaterial | Länge | Volumen | Plates |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Schwarz | 49.988 s | 330,96 g | 17,98 g | 110.966,48 mm | 266.910 mm³ | 2 |
-| Knochenbeige | 11.524 s | 42,82 g | 12,51 g | 14.356,12 mm | 34.530 mm³ | 1 |
-| Mechanik | 22.693 s | 122,76 g | 16,69 g | 41.157,86 mm | 99.000 mm³ | 2 |
-| Grau | 4.563 s | 20,30 g | 8,21 g | 6.805,82 mm | 16.370 mm³ | 1 |
+| Schwarz | 43.563 s | 338,50 g | 7,16 g | 113.494,95 mm | 272.990 mm³ | 1 |
+| Knochenbeige | 11.052 s | 43,51 g | 5,90 g | 14.587,15 mm | 35.090 mm³ | 1 |
+| Naturweiß | 19.120 s | 122,90 g | 13,32 g | 41.203,95 mm | 99.100 mm³ | 2 |
+| Grau | 4.265 s | 24,05 g | 3,40 g | 8.063,74 mm | 19.400 mm³ | 1 |
+| **Gesamt** | **78.000 s** | **528,96 g** | **29,78 g** | **177.349,79 mm** | **426.580 mm³** | **5** |
 
-### Orientierungsoptimierung (gemessen, nicht geschätzt)
+Die Supportanteile werden aus positiven Extrusionen der Support-/Interface-
+Bewegungen berechnet; `M82`, `M83` und `G92` werden berücksichtigt,
+Extruder-only-Rückstellungen nicht als gedruckter Support gezählt.
+Die vorherige absolute-E-Auswertung der relativen Orca-Extrusion war falsch.
+Masse und Volumen werden mit dem jeweiligen Slice-Verhältnis umgerechnet:
+
+| Plate | Supportlänge | Supportvolumen |
+| --- | ---: | ---: |
+| 1 | 2.400,96 mm | 5.775 mm³ |
+| 2 | 1.977,14 mm | 4.756 mm³ |
+| 3 | 4.285,33 mm | 10.307 mm³ |
+| 4 | 180,25 mm | 433 mm³ |
+| 5 | 1.140,98 mm | 2.745 mm³ |
+| **Gesamt** | **9.984,66 mm** | **24.016 mm³** |
+
+Die Summen und fünf Einzelergebnisse sind in `models/ghouls-grip-print.3mf`
+als slicer-neutrale Metadaten gespeichert. Der Metadatenstatus bleibt
+`not-verified`, bis Profilabweichungen und CLI-Diagnose geprüft sind.
+### Historische Orientierungsoptimierung (A/B-gemessen, nicht aktueller Slice)
 
 Alle Druckorientierungen sind durch echte A/B-Slices belegt. Die Audit-Skripte
 klonen dieselbe Projektvorlage und tauschen nur das Build-Item aus, sodass
@@ -69,7 +164,8 @@ ausschließlich die Orientierung variiert:
 Skripte: `scripts/audit_lid_orientation.py`, `scripts/audit_part_orientation.py`,
 `scripts/audit_chest_support.py`.
 
-Gegenüber dem zuvor verifizierten Stand (528,22 g / 138,60 g Support) sinkt der
+Historischer Vergleich vor dieser Wandkorrektur: Gegenüber dem damals
+verifizierten Stand (528,22 g / 138,60 g Support) sank der
 Stützbedarf um **83,21 g / 60,0 %** und die Gesamtmasse um 11,38 g. Die
 gemessenen Orientierungswechsel tragen den Hauptteil der Einsparung; die
 zusätzliche geschlossene Deckelhaube erhöht das schwarze Projekt nur um 1,59 g.
@@ -77,13 +173,10 @@ Gegenüber dem ursprünglichen 629,66-g-Entwurf beträgt die Materialeinsparung
 **112,82 g / 17,9 %**, gegenüber der Vor-Leichtbau-Schatulle (455,96 g schwarz)
 **125,00 g / 27,4 %**.
 
-Wichtig: Kein Projekt wird als „supportfrei“ bezeichnet. In allen vier Projekten
-ist automatische, bettgebundene Support-Erzeugung aktiv. Schwarz, Knochen und
-Grau verwenden `tree(auto)`; die Mechanik verwendet `normal(auto)` mit
-`snug`. Der Standardwinkel beträgt 30°, beim schwarzen Projekt 45°. Die
-angegebenen Stützmengen stammen aus den `;TYPE:Support`- und
-`;TYPE:Support interface`-Extrusionswegen des G-Codes, skaliert mit dessen
-Gesamtmasse/-länge.
+Der Nutzerstand vor der Wandkorrektur lag bei 77.721 s, 527,20 g Filament und
+28,42 g Support. Die aktuelle Änderung erhöht das um 279 s, 1,76 g Filament
+und 1,36 g Support. Diese Differenz stammt aus echten Slices; die historischen
+Werte ersetzen nicht die oben aufgeführten neuen Ergebnisse.
 
 ## Stützen und Objekt-Overrides
 
@@ -98,7 +191,7 @@ Gesamtmasse/-länge.
 - Totenkopfknopf: 5 Wände, 40 %, Gesicht nach oben, damit keine Stützstruktur
   die skulptierte Fläche berührt.
 
-## Aktuelle Support-/Materialoptimierung
+## Beibehaltene Support-/Materialoptimierung und Wandkorrektur
 
 - Der Deckel besitzt eine 2,4-mm-Deckhaut, offene Unterseiten-Träger,
   fünf gerippte Längstraversen und fünf kurze hintere Anschlagpads statt eines
@@ -112,8 +205,9 @@ Gesamtmasse/-länge.
   jedes interne Mechanikteil unter dieser Deckelgeometrie; der vollständige
   18°–78°-Sweep ergibt für `lid_crank_lid`, `lid_yoke_lid`, `lid_chest` und
   die jeweiligen Brustkontakte jeweils **0,000 mm³**.
-- Schatulle und Deckel liegen auf zwei getrennten Platten desselben schwarzen
-  Projekts, weil der stehende Deckel 129 mm hoch baut.
+- In der aktuellen Nutzerdatei teilen sich Schatulle und stehender Deckel
+  dieselbe schwarze Platte; beide passen nebeneinander innerhalb des 250-mm-Betts.
+  Die vorherige Sechs-Platten-Aufteilung hatte dafür zwei separate Schwarz-Platten.
 - Der Sockel und der obere Kranz der Schatulle wurden von horizontalen Stufen
   auf zwei geneigte, selbsttragende Kurse umgebaut. Die Pilasterkapitelle und
   die Unterseiten der Scharnierlager sind ebenfalls geneigt.
@@ -121,13 +215,14 @@ Gesamtmasse/-länge.
   3,0-mm-Funktionsdatums an Schienen, Lagern und Führungen bleiben erhalten.
   Gerundete Außenkanten sowie vertiefte statt aufgesetzte Reliefs wirken
   organischer und vermeiden zusätzliche massive Zierkörper.
-- Das Schatullen-Volumen sank von 295.062 auf 184.056 mm³
+- Historischer Leichtbauschritt: Das Schatullen-Volumen sank von 295.062 auf 184.056 mm³
   (**−37,6 %**), das Deckelvolumen von 252.068 auf 124.903 mm³
   (**−50,5 %**). Zusammen sind das **−43,5 % Modellvolumen**.
 - Acht überarbeitete Mechanikteile sanken durch offene Rahmen, Fenster und
   Speichen von 118.567 auf 82.649 mm³ (**−30,3 %**).
 - Der Deckel bleibt ein einzelner watertight/manifold Körper:
-  27.796 Facetten, 206 × 129,786 × 28,2 mm. Die lokale Schutzhaube ist nur
+  27.868 Facetten, 206 × 129,786 × 28,2 mm. Die aktuelle Schatulle hat
+  199.297,757 mm³, der Deckel 134.466,876 mm³. Die lokale Schutzhaube ist nur
   2,6 mm höher als das skulptierte Kartuschenrelief und enthält keine
   getrennten oder eingeschlossenen Körper.
 - Die Schienen- und Lagerbooleans werden zuerst in der bewährten Kernschale
@@ -144,10 +239,14 @@ in `Metadata/ghouls_grip_print_metadata.xml`. Der gemeinsame Web-/Canvas-
 Renderer zeigt daraus:
 
 - eine kompakte Zeile mit Druckzeit, Gesamtmaterial, Supportmaterial,
-  Filamentlänge und Validierungsstatus;
+  Filamentlänge und Validierungsstatus für **alle Plates**, unabhängig von
+  der ausgewählten Ansicht;
 - ein einklappbares Detail-Overlay rechts unten mit Maschine, Düse, Prozess,
   Filamentprofil, Material, Farbe, Bett, Wandzahl, Infill, Support und
   Plattenzahl;
+- im Detail-Overlay eine separat aufklappbare Tabelle **Print data by plate**
+  mit Druckzeit, Material, Supportmaterial, Filamentlänge und Status pro Plate.
+  Fehlende oder fehlerhafte Plate-Metadaten werden ausdrücklich angezeigt;
 - die korrekte einzelne Platte oder alle Platten unter Berücksichtigung von
   3MF-Komponenten-Transformationen und OrcaSlicer-`plater_id`;
 - ein einklappbares Werkzeugmenü für Reload, Auto-Reload, Zoom, Wireframe,
@@ -162,11 +261,11 @@ Plattenzahl. Einzelplatten bleiben über **Plate** auswählbar. Reload derselben
 Datei behält die Auswahl; beim Öffnen einer anderen Datei wird wieder
 **All plates** gewählt. Einzelplatten-3MF und STL bleiben unverändert.
 
-Viewer-Prüfung (2026-10-12): `node --test web\tests\*.test.mjs` bestanden
-(22 Tests); `npm run build` in `web` bestanden. Browser-Screenshots des lokalen
+Viewer-Prüfung (2026-10-12): `npm test --prefix web` bestanden
+(22 Tests); `npm run build --prefix web` bestanden. Browser-Screenshots des lokalen
 Canvas und der gebauten Web-SPA bestätigen beide schwarzen Druckplatten in
 der Übersicht und die Projekt-Gesamtwerte. Einzelplattenwahl, Reload,
-Dateiwechsel zur Master-3MF und Auto-Reload einer anderen Mehrplatten-Datei
+Dateiwechsel zur View-3MF und Auto-Reload einer anderen Mehrplatten-Datei
 wurden ebenfalls geprüft.
 
 In der lokalen Copilot-Canvas-Erweiterung öffnet **Open in OrcaSlicer** die
@@ -178,23 +277,21 @@ die öffentliche Web-SPA nicht als Desktop-Startweg angeboten.
 
 1. 3MF-Build- und Komponenten-Transformationen sowie Orcas `plater_id` werden vom Canvas berücksichtigt; Objekte liegen nicht mehr übereinander.
 2. Die interne Führung besitzt eine 1,8-mm-Außenabdeckung; außen bleibt die Kiste geschlossen.
-3. Die Mechanikplatte wurde kompakt in zwei vollständige 250-mm-Platten gepackt. Alle 29 naturweißen Mechanikobjekte sind genau einmal zugeordnet.
+3. Die naturweiße Mechanik ist kompakt auf zwei vollständige 250-mm-Platten
+   verteilt; alle 25 Mechanikobjekte sind genau einmal zugeordnet.
 4. Der frühere Hebel, Rastschieber, die Spule, Schlüssel, Bandanker, Seile, Gummibänder und Federn sind entfernt. Der graue Totenkopf dreht direkt die Ritzelwelle.
-5. `scripts/render_ghouls_grip_print_projects.py` rendert die fünf
-   farbcodierten Plattenvorschauen direkt aus den ausgelieferten 3MF-Szenen.
-   Der im Export verwendete Plattenabstand von 300 mm wird dabei wieder in
-   einzelne Druckplatten aufgelöst.
+5. `scripts/render_ghouls_grip_print_projects.py` rendert alle fünf
+   farbcodierten Plattenvorschauen direkt aus der aktuellen 3MF-Datei.
+   Der Export platziert die Platten entsprechend dem OrcaSlicer-3-Spaltenraster;
+   der Renderer löst dessen 300-mm-X- und -Y-Abstände für Einzelplattenbilder
+   aus den tatsächlichen Plattenzuordnungen auf.
 
 ## Dateibelege
 
 | Datei | SHA-256 |
 | --- | --- |
-| `ghouls-grip-master.3mf` | `8BDA068705130408D9A91B6AABF8AF1AE575472CB5A1F3AD9F74C0815C7B76B5` |
-| `ghouls-grip-master-retracted.3mf` | `905067CECDFA3E5DDB6CF00E15F4CD3330636D0CF336590BA7260929F32776F1` |
-| `ghouls-grip-print-black-pla.3mf` | `5DBD4F49BDE80D10FDCAA41947862FD63827E318532E97D2FD8395489BA2DAF5` |
-| `ghouls-grip-print-bone-pla.3mf` | `95E424893539C2F9D2AAD413214473E2F68BB06D82E800A66842C6821ECF8613` |
-| `ghouls-grip-print-mechanism-pla.3mf` | `51478FAC1719AB7FB046616012DFEC29D6075A15809737D38AE457578064CDA0` |
-| `ghouls-grip-print-accent-pla.3mf` | `03556A2356C72CEAB3E4491530B20DEA5D7E58D42DE23F058FDB7C8B8496FD49` |
+| `ghouls-grip-view.3mf` | `D6118D9AEB4C5EF3A2D55BBBD36EE7B69EBAB049599845D8CD11A3AB75BD1592` |
+| `ghouls-grip-print.3mf` | `84EEC93E8FBA6A276A6385F135E9928F35C2031E312A0D25E114F9DA00DC1564` |
 
 ## Physische Restrisiken
 

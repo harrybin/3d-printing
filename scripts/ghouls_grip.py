@@ -44,11 +44,13 @@ from skeleton_hand import FLAT_POSE, RAYS, assemble, load_skeleton
 from skull import build_drive_knob
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT_3MF = ROOT / "models" / "ghouls-grip-master.3mf"
-OUT_RETRACTED_3MF = ROOT / "models" / "ghouls-grip-master-retracted.3mf"
+OUT_VIEW_3MF = ROOT / "models" / "ghouls-grip-view.3mf"
+OUT_PRINT_3MF = ROOT / "models" / "ghouls-grip-print.3mf"
 OUT_PREVIEW = ROOT / "models" / "ghouls-grip-preview.stl"
 
 LEGACY_OUTPUTS = (
+    ROOT / "models" / "ghouls-grip-master.3mf",
+    ROOT / "models" / "ghouls-grip-master-retracted.3mf",
     ROOT / "models" / "ghouls-grip.3mf",
     ROOT / "models" / "ghouls-grip-retracted.3mf",
     ROOT / "models" / "ghouls-grip-black-pla.3mf",
@@ -56,9 +58,19 @@ LEGACY_OUTPUTS = (
     ROOT / "models" / "ghouls-grip-mechanism-pla.3mf",
     ROOT / "models" / "ghouls-grip-accent-pla.3mf",
     ROOT / "models" / "ghouls-grip-fingers-pla.3mf",
+    ROOT / "models" / "ghouls-grip-print-black-pla.3mf",
+    ROOT / "models" / "ghouls-grip-print-bone-pla.3mf",
+    ROOT / "models" / "ghouls-grip-print-mechanism-pla.3mf",
+    ROOT / "models" / "ghouls-grip-print-accent-pla.3mf",
 )
 
 BED = 250.0
+VIEW_PLATE_PITCH = 300.0
+VIEW_POSES = (
+    ("deployed", mechanism.THETA_MAX, "Fully deployed"),
+    ("intermediate", 48.0, "Intermediate - 48 degree scissor angle"),
+    ("retracted", mechanism.THETA_MIN, "Retracted"),
+)
 
 
 @dataclass(frozen=True)
@@ -109,7 +121,13 @@ def write_ascii(mesh: trimesh.Trimesh, path: Path) -> None:
             time.sleep(0.5)
 
 
-def write_3mf(path: Path, objects) -> None:
+def write_3mf(
+    path: Path,
+    objects,
+    plate_names: list[str] | None = None,
+    object_plates: dict[str, int] | None = None,
+    material_slots: dict[Material, int] | None = None,
+) -> None:
     core = "http://schemas.microsoft.com/3dmanufacturing/core/2015/02"
     ET.register_namespace("", core)
     model = ET.Element(
@@ -194,7 +212,7 @@ def write_3mf(path: Path, objects) -> None:
         "filamentProfile": "unknown",
         "materialType": "unknown",
         "bedType": "unknown",
-        "plateCount": "1",
+        "plateCount": str(len(plate_names) if plate_names else 1),
         "objectCount": str(len(objects)),
     }
     for name, value in neutral_values.items():
@@ -204,6 +222,60 @@ def write_3mf(path: Path, objects) -> None:
         info = ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
         info.compress_type = ZIP_DEFLATED
         archive.writestr(info, data)
+
+    model_settings = None
+    if plate_names is not None:
+        if object_plates is None or material_slots is None:
+            raise ValueError("Multi-plate 3MF needs object plate and material maps")
+        model_settings = ET.Element("config")
+        plate_objects: dict[int, list[str]] = {}
+        for object_id, (name, _mesh, material, _transform) in enumerate(
+                objects, start=2):
+            if name not in object_plates:
+                raise ValueError(f"Missing plate assignment for {name}")
+            object_id_text = str(object_id)
+            config_object = ET.SubElement(
+                model_settings, "object", id=object_id_text)
+            ET.SubElement(config_object, "metadata", key="name", value=name)
+            ET.SubElement(
+                config_object, "metadata", key="extruder",
+                value=str(material_slots[material] + 1),
+            )
+            part = ET.SubElement(
+                config_object, "part", id=str(object_id + 1),
+                subtype="normal_part",
+            )
+            ET.SubElement(part, "metadata", key="name", value=name)
+            ET.SubElement(
+                part, "metadata", key="matrix",
+                value="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1",
+            )
+            ET.SubElement(part, "metadata", key="source_file", value=path.name)
+            ET.SubElement(part, "metadata", key="source_object_id",
+                          value=object_id_text)
+            ET.SubElement(part, "metadata", key="source_volume_id", value="0")
+            for key in ("source_offset_x", "source_offset_y", "source_offset_z"):
+                ET.SubElement(part, "metadata", key=key, value="0")
+            plate_objects.setdefault(object_plates[name], []).append(
+                object_id_text)
+        for index, plate_name in enumerate(plate_names):
+            plate = ET.SubElement(model_settings, "plate")
+            for key, value in (
+                ("plater_id", str(index + 1)),
+                ("plater_name", plate_name),
+                ("locked", "false"),
+                ("filament_map_mode", "Auto For Flush"),
+                ("gcode_file", ""),
+            ):
+                ET.SubElement(plate, "metadata", key=key, value=value)
+            for object_id in plate_objects.get(index, []):
+                instance = ET.SubElement(plate, "model_instance")
+                for key, value in (
+                    ("object_id", object_id),
+                    ("instance_id", "0"),
+                    ("identify_id", object_id),
+                ):
+                    ET.SubElement(instance, "metadata", key=key, value=value)
 
     with ZipFile(path, "w", ZIP_DEFLATED) as archive:
         member(archive, "[Content_Types].xml", content_types)
@@ -218,6 +290,13 @@ def write_3mf(path: Path, objects) -> None:
             "Metadata/ghouls_grip_print_metadata.xml",
             ET.tostring(metadata, encoding="utf-8", xml_declaration=True),
         )
+        if model_settings is not None:
+            member(
+                archive,
+                "Metadata/model_settings.config",
+                ET.tostring(model_settings, encoding="utf-8",
+                            xml_declaration=True),
+            )
 
 
 def place(mesh: trimesh.Trimesh, translation, rotations=()) -> trimesh.Trimesh:
@@ -236,6 +315,7 @@ PART_MATERIAL = {
     "scissor-arm": MECH, "slider": MECH, "platform": MECH,
     "drive-pinion": MECH, "lid-rack": MECH,
     "lid-follower-rack": MECH, "lid-crank": MECH,
+    "lid-transfer-gear": MECH,
     "scissor-drive-gear": MECH, "idler-gear": MECH,
     "forearm-output-gear": MECH,
     "pivot-pin-3": MECH,
@@ -247,6 +327,7 @@ PRINT_QUANTITIES = {
     "scissor-arm": 4,
     "idler-gear": 3,
     "pivot-pin-3": 10,
+    "lid-transfer-gear": 2,
 }
 
 
@@ -337,6 +418,130 @@ def assembly_objects(pose: str) -> list:
     return [(name, mesh, assembly_material(name), None)
             for name, mesh, _colour in render_ghouls_grip.build_scene(pose)]
 
+
+def view_assembly_objects() -> tuple[list, list[str], dict[str, int], dict[Material, int]]:
+    import render_ghouls_grip
+
+    materials = (BLACK, BONE, MECH, ACCENT)
+    material_slots = {material: index for index, material in enumerate(materials)}
+    objects = []
+    plate_names = []
+    object_plates = {}
+    for plate_index, (pose, theta, plate_name) in enumerate(VIEW_POSES):
+        scene = render_ghouls_grip.build_scene_at(theta)
+        minimum = np.min(
+            [mesh.bounds[0][:2] for _, mesh, _ in scene], axis=0)
+        maximum = np.max(
+            [mesh.bounds[1][:2] for _, mesh, _ in scene], axis=0)
+        footprint = maximum - minimum
+        if np.any(footprint > BED):
+            raise RuntimeError(
+                f"{pose} assembly footprint does not fit the view plate: "
+                f"{footprint.tolist()}"
+            )
+        offset = np.array([20.0, 20.0]) - minimum
+        for name, mesh, _colour in scene:
+            placed = mesh.copy()
+            placed.apply_translation([
+                offset[0] + plate_index * VIEW_PLATE_PITCH,
+                offset[1],
+                0.0,
+            ])
+            object_name = f"{pose}-{name}"
+            objects.append((
+                object_name,
+                placed,
+                assembly_material(name),
+                None,
+            ))
+            object_plates[object_name] = plate_index
+        plate_names.append(plate_name)
+    return objects, plate_names, object_plates, material_slots
+
+
+def render_view_3mf(path: Path) -> Path:
+    from PIL import Image, ImageDraw
+    import vedo
+
+    scene = trimesh.load(path, force="scene")
+    by_plate: dict[int, list[tuple[str, trimesh.Trimesh]]] = {}
+    for node in scene.graph.nodes_geometry:
+        transform, geometry_name = scene.graph.get(node)
+        mesh = scene.geometry[geometry_name].copy()
+        mesh.apply_transform(transform)
+        plate_index = int(mesh.centroid[0] // VIEW_PLATE_PITCH)
+        mesh.apply_translation([-plate_index * VIEW_PLATE_PITCH, 0.0, 0.0])
+        by_plate.setdefault(plate_index, []).append((node, mesh))
+    if sorted(by_plate) != [0, 1, 2]:
+        raise RuntimeError(f"{path.name}: expected three view plates")
+
+    def material_color(name: str) -> str:
+        part_name = name.split("-", 1)[1]
+        if part_name in {"chest", "lid"}:
+            return "#202124"
+        if (part_name in {"forearm", "hand-palm"}
+                or part_name.startswith("hand-finger")):
+            return "#D8C6A5"
+        if part_name == "drive-skull-knob":
+            return "#777777"
+        return "#F1EBDD"
+
+    thumbnails = []
+    for plate_index, plate_name in enumerate(VIEW_POSES):
+        entries = by_plate[plate_index]
+        meshes = [mesh for _, mesh in entries]
+        actors = [
+            vedo.Box(
+                pos=(BED / 2.0, BED / 2.0, -0.6),
+                length=BED,
+                width=BED,
+                height=1.0,
+            ).color("#343840"),
+        ]
+        actors.extend(
+            vedo.Mesh([mesh.vertices, mesh.faces])
+            .c(material_color(name))
+            .lighting("glossy")
+            for name, mesh in entries
+        )
+        upper = max(mesh.bounds[1, 2] for mesh in meshes)
+        plotter = vedo.Plotter(
+            offscreen=True,
+            size=(760, 720),
+            bg="#17191f",
+        )
+        plotter.show(
+            *actors,
+            axes=0,
+            camera={
+                "pos": (365.0, -440.0, upper + 230.0),
+                "focal_point": (125.0, 125.0, upper * 0.42),
+                "viewup": (0.0, 0.0, 1.0),
+            },
+        )
+        thumbnail = ROOT / "build" / f"ghouls-grip-view-plate-{plate_index + 1}.png"
+        thumbnail.parent.mkdir(parents=True, exist_ok=True)
+        plotter.screenshot(str(thumbnail))
+        plotter.close()
+        thumbnails.append((plate_name[2], Image.open(thumbnail).convert("RGB")))
+
+    margin, label_height, width, height = 24, 42, 760, 720
+    output = ROOT / "docs" / "images" / "ghouls-grip-view.png"
+    canvas = Image.new(
+        "RGB",
+        (3 * width + 4 * margin, height + label_height + 2 * margin),
+        "#111318",
+    )
+    draw = ImageDraw.Draw(canvas)
+    for index, (label, image) in enumerate(thumbnails):
+        x = margin + index * (width + margin)
+        y = margin
+        canvas.paste(image, (x, y))
+        draw.text((x, y + height + 10), label, fill="#f3f4f6")
+    canvas.save(output)
+    return output
+
+
 def arrange(parts: dict, gap: float = 6.0, margin: float = 0.0) -> list:
     """Lay every part out on the 250 x 250 bed, in rows, nothing overlapping."""
     items, x, y, row = [], margin, margin, 0.0
@@ -355,31 +560,39 @@ def arrange(parts: dict, gap: float = 6.0, margin: float = 0.0) -> list:
 
 
 def main() -> None:
-    for path in LEGACY_OUTPUTS:
-        path.unlink(missing_ok=True)
-    for path in (ROOT / "models").glob("ghouls-grip-print-*.3mf"):
-        path.unlink()
-
     parts = build_parts()
     for name, mesh in parts.items():
         validate(name, mesh)
 
     print_parts = expand_print_parts(parts)
-    # OrcaSlicer project 3MFs retain the Kobra S1 machine, filament and
-    # process settings and contain the full repeated-part quantities.
-    from export_ghouls_grip_orca_projects import export_material_projects
-    material_projects = export_material_projects(
-        print_parts, write_3mf, arrange, material_for)
+    if OUT_PRINT_3MF.exists():
+        from refresh_ghouls_grip_print_geometry import refresh
+        refresh(OUT_PRINT_3MF, print_parts,
+                {"chest", "lid", "lid-follower-rack", "lid-crank"})
+        print_projects = [OUT_PRINT_3MF]
+    else:
+        from export_ghouls_grip_orca_projects import export_print_project
+        print_projects = export_print_project(
+            print_parts, write_3mf, arrange, material_for)
 
+    view_objects, view_plates, object_plates, material_slots = (
+        view_assembly_objects()
+    )
+    write_3mf(
+        OUT_VIEW_3MF,
+        view_objects,
+        plate_names=view_plates,
+        object_plates=object_plates,
+        material_slots=material_slots,
+    )
+    presentation = render_view_3mf(OUT_VIEW_3MF)
     deployed = assembly_objects("deployed")
-    retracted = assembly_objects("retracted")
-    write_3mf(OUT_3MF, deployed)
-    write_3mf(OUT_RETRACTED_3MF, retracted)
     preview = trimesh.util.concatenate([m for _, m, _, _ in deployed])
     write_ascii(clean(preview), OUT_PREVIEW)
-    print(f"files: {len(parts)} validated part types, {OUT_3MF}, "
-          f"{OUT_RETRACTED_3MF}, {OUT_PREVIEW}, "
-          f"material projects={len(material_projects)}")
+    for path in LEGACY_OUTPUTS:
+        path.unlink(missing_ok=True)
+    print(f"files: {len(parts)} validated part types, {OUT_VIEW_3MF}, "
+          f"{OUT_PREVIEW}, render={presentation}, print projects={print_projects}")
 
 
 if __name__ == "__main__":

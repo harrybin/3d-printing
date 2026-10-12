@@ -1,6 +1,6 @@
 ---
 name: multimaterial-assembly-packaging
-description: Package complex models as an assembled master 3MF and printable plate 3MFs, preferring separately printed keyed color parts to reduce purge waste.
+description: Package complex models as an assembled multi-state view 3MF and one consolidated printable 3MF, preferring separately printed keyed color parts to reduce purge waste.
 ---
 
 # Multimaterial assembly packaging
@@ -10,27 +10,23 @@ that need different print orientations.
 
 ## Required deliverables
 
-For new complex models or substantial revisions, produce:
+For a new complex model or substantial revision with an assembled deliverable,
+produce exactly two 3MF files:
 
-- `models/<model>-master.3mf`: the complete assembled object with named, separate
-  bodies and intended material/color semantics
-- `models/<model>-print-<plate-or-material>.3mf`: one or more project files arranged
-  for actual printing
-- `models/<model>-part-<name>.stl`: optional per-body interchange or validation
-  meshes
+- `models/<model>-view.3mf`: the complete assembled object, with named bodies and
+  intended material/color semantics. For a mechanism, use additional plates in
+  this same file to show meaningful assembly states (for example, deployed,
+  intermediate and retracted).
+- `models/<model>-print.3mf`: one settings-bearing OrcaSlicer project containing
+  the complete print BOM, every material/color/spool assignment and all print
+  plates. Parts of the same material and color share a plate when safe; use
+  additional plates for bed size, orientation, support or print-risk isolation.
 
-The master file is the overview and assembly source. Print files optimize
-orientation, plate use, supports, material, and print order. A collection of STL
-files does not replace the master 3MF.
-
-Create exactly one printable OrcaSlicer project 3MF for each actual
-material/color/spool combination. Put every part using that spool in this project;
-do not split one spool into separate 3MF files merely because parts need different
-orientations, supports, or process overrides. Use multiple plates inside the same
-project when the bed, support clearance, or print-risk isolation requires it.
-Parts sharing both material and color should share a plate when they fit safely;
-for example, bone-colored fingers and bone parts belong on one plate rather than
-in separate files.
+Do not split a project's print BOM into separate per-material 3MF files. The
+print project must carry each filament profile and object-to-filament mapping,
+plus material-tuned process settings and object-specific overrides. Optional
+part STLs are useful for interchange or validation but do not replace either
+project.
 
 ## Purge-minimizing color strategy
 
@@ -90,12 +86,12 @@ design when a part can reach its final pose only by passing through another soli
 
 ## Packaging checks
 
-- Names and transforms are stable across master and print files.
-- Master assembly has the correct final relative positions.
+- Names and transforms are stable across view and print files.
+- Each view plate has the correct relative positions for its documented state.
 - Print plates contain every required body exactly once unless duplicates are
   intentional.
-- Every material/color/spool combination has one and only one printable project
-  3MF; plate boundaries must not create duplicate project files.
+- The one print project contains every material/color/spool combination and the
+  correct object-to-filament mapping; plate boundaries do not create extra files.
 - Material and color assignments match the documentation.
 - Every body passes mesh validation independently.
 - Mating pairs preserve their measured clearance after export.
@@ -114,7 +110,7 @@ decision. Record the chosen strategy and evidence.
 
 Provide:
 
-- a rendered assembled view of the master 3MF
+- a rendered assembled view showing the view-3MF states
 - a slicer preview of every print plate
 - the bill of parts and assembly order
 - any required hardware, adhesive, or post-processing

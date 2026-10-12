@@ -1,5 +1,12 @@
 # OrcaSlicer support-minimization report
 
+> Historical audit record from 2026-10-10. Its single-color project paths and
+> slice measurements refer to the former per-material file layout and are not
+> the current delivered projects. The current assembled view and consolidated
+> print project are `models/ghouls-grip-view.3mf` and
+> `models/ghouls-grip-print.3mf`; current six-plate evidence is in
+> `docs/ghouls-grip-druckvalidierung.md`.
+
 ## Status
 
 - Result: `verified`

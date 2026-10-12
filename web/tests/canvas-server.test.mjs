@@ -9,8 +9,8 @@ import {
 
 test('model API payload preserves project print metadata for the canvas', () => {
   const payload = createModelApiPayload({
-    requested: 'ghouls-grip-print-black-pla.3mf',
-    resolved: String.raw`D:\models\ghouls-grip-print-black-pla.3mf`,
+    requested: 'ghouls-grip-print.3mf',
+    resolved: String.raw`D:\models\ghouls-grip-print.3mf`,
     parsed: {
       format: '3mf',
       facets: 12,
@@ -18,8 +18,8 @@ test('model API payload preserves project print metadata for the canvas', () => 
       triangleColors: ['#202124'],
       plates: [],
       projectMetadata: {
-        estimatedPrintTimeSeconds: '68960',
-        filamentUsageGrams: '458.16',
+        estimatedPrintTimeSeconds: '88554',
+        filamentUsageGrams: '521.72',
       },
     },
     content: '',
@@ -27,10 +27,10 @@ test('model API payload preserves project print metadata for the canvas', () => 
   })
 
   assert.deepEqual(payload.projectMetadata, {
-    estimatedPrintTimeSeconds: '68960',
-    filamentUsageGrams: '458.16',
+    estimatedPrintTimeSeconds: '88554',
+    filamentUsageGrams: '521.72',
   })
-  assert.equal(payload.modelPath, String.raw`D:\models\ghouls-grip-print-black-pla.3mf`)
+  assert.equal(payload.modelPath, String.raw`D:\models\ghouls-grip-print.3mf`)
 })
 
 test('model API keeps every plate with its baked grid transforms and project totals', () => {
@@ -40,10 +40,10 @@ test('model API keeps every plate with its baked grid transforms and project tot
   ]
   const projectMetadata = {
     plateCount: '2',
-    estimatedPrintTimeSeconds: '49988',
-    filamentUsageGrams: '330.96',
-    supportFilamentGrams: '17.98',
-    filamentUsageMillimeters: '110966.48',
+    estimatedPrintTimeSeconds: '88554',
+    filamentUsageGrams: '521.72',
+    supportFilamentGrams: '55.09',
+    filamentUsageMillimeters: '174923.38',
   }
   const payload = createModelApiPayload({
     requested: 'project.3mf',

@@ -103,9 +103,12 @@ If behavior around print constraints, validation policy, or coordinate targeting
   `ironing_type=top`, `enable_support=1`) unless a documented part-specific reason
   requires an exception. Support stays on so that a zero-support slice is proven
   geometry, never a disabled setting.
-- New complex assemblies use `models/<name>-master.3mf` for the complete assembled
-  object and one or more `models/<name>-print-<plate-or-material>.3mf` files for
-  print-optimized jobs. Optional part STLs do not replace these files.
+- New complex assemblies use exactly two 3MF deliverables:
+  `models/<name>-view.3mf` contains the fully assembled object, with separate
+  plates for other meaningful mechanism states; `models/<name>-print.3mf`
+  contains the complete print BOM. Group parts of each material/color together
+  and use multiple plates as needed instead of splitting the project into
+  per-material files. Optional part STLs do not replace these files.
 - Prefer separately printed, keyed color bodies over purge-heavy in-place
   multicolor when assembly, strength, and appearance remain acceptable.
 - Material-separated parts must be physically assemblable after printing. Define
@@ -134,13 +137,19 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Verify both end states: the deployed state must clear the enclosure and lid; the retracted state must fit wholly inside the usable cavity with explicit minimum margins. Render both states.
 - Replace any solid tray, bridge or decorative body that crosses the swept volume with an open yoke/frame or another structurally bounded rebuild; never hide a collision in the closed render.
 - Put hinges on the physically correct edge and verify their rotation axis against the reference image before detailing the shell.
-- Keep `models/<name>.3mf` as the assembled presentation model when assembly is the user-visible deliverable; never substitute a print layout for an assembly preview.
-- For complex multi-part projects, also deliver one **printable OrcaSlicer project 3MF per actual material/spool group** (and multiple plates inside that project when the 250 mm bed requires it). Each material project must contain the complete BOM quantities, the Anycubic Kobra S1 0.4 mm machine profile, explicit Textured PEI bed selection, the matching filament profile, material-tuned global process settings, and object-specific overrides for walls, infill, supports, speeds or brim where function differs. Neutral geometry-only 3MF files do not satisfy this requirement.
-- Never split one material/color/spool group into several printable 3MF files
-  solely to isolate supports or orientations. Keep one project per spool and add
-  as many internal plates as needed. Parts sharing material and color should
-  share a plate whenever they fit safely; Ghoul's Grip fingers and bones are the
-  reference example.
+- Keep assembly and manufacturing separate: the `-view.3mf` is the assembled
+  presentation model, never a print layout. For mechanisms, include a plate for
+  each meaningful assembly state in the view project.
+- The single complex-project `-print.3mf` must contain the complete BOM, the
+  Anycubic Kobra S1 0.4 mm machine profile, explicit Textured PEI bed selection,
+  each matching filament/spool profile and object-to-filament mapping, plus
+  object-specific overrides for walls, infill, supports, speeds or brim where
+  function differs. Neutral geometry-only 3MF files do not satisfy this
+  requirement.
+- Do not split a complex project's print BOM into separate material/color
+  projects. Group parts with the same material and color on shared plates when
+  they fit safely; use additional internal plates for bed size, orientation,
+  supports or print-risk isolation.
 - For ornate reference designs, use real raised/recessed geometry (scrolls, tracery, leaves, ribs, cartouches), not a few generic arches or a texture. Validate minimum stroke and relief depth for the nozzle. Raised and engraved relief may be mixed; engraving requires enough remaining wall thickness to stay structurally sound.
 
 ## Common Pitfalls
@@ -191,7 +200,7 @@ If behavior around print constraints, validation policy, or coordinate targeting
 | Rebuild-vs-mutate decision | stable local boundary plus frozen trusted geometry | `partial-rebuild-instead-of-mutate` | `photo-anchor-candidate-fit`, `visual-hull-envelope-fit`, `create-ascii-stl` | If a local region is structurally wrong, rebuild that region from the script instead of continuing STL mutation. |
 | Source of geometry edits | parametric scripts in `scripts/` | `create-ascii-stl` | `edit-stl-transform`, `photo-anchor-candidate-fit` | Regenerate from script instead of hand-editing STL facets. |
 | STL vs 3MF decision | confirmed material/color semantics | `stl-create-edit-interview` | `create-ascii-stl`, `stl-from-image-measurements`, `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Distinct material/color regions require a 3MF deliverable; STL is only for merged single-region output. |
-| Complex-project print handoff | complete BOM plus material/object process intent | `orcaslicer-project-workflow` | `create-ascii-stl`, `anycubic-kobra-s1-ace-pro-profile` | Keep assembly and manufacturing projects separate; deliver one Kobra-S1 settings-bearing Orca project per material/spool, using multiple plates as needed. |
+| Complex-project print handoff | complete BOM plus material/object process intent | `orcaslicer-project-workflow` | `multimaterial-assembly-packaging`, `anycubic-kobra-s1-ace-pro-profile` | Deliver an assembled `-view.3mf` and one Kobra-S1 settings-bearing `-print.3mf` with all filament mappings; group same-color parts on shared plates and use multiple plates as needed. |
 | Coordinate convention | mesh coordinates and user intent | `validate-stl-mesh` | `edit-stl-transform`, `optimize-stl-for-print` | Auto-detect center-origin vs corner-origin unless the user specifies it. |
 | Mesh proof and feature existence | `scripts/mesh_tool.py` checks | `validate-stl-mesh` | `stl-from-image-measurements`, `photo-anchor-candidate-fit` | Prove ambiguous internal features with probes/slices, not screenshots alone. |
 | Final model image in chat | exact final STL/3MF output | `create-ascii-stl` | `edit-stl-transform`, `stl-from-image-measurements`, `optimize-stl-for-print` | Post an inline rendered image in the final chat response; a canvas preview or path alone is not enough. |
@@ -201,7 +210,7 @@ If behavior around print constraints, validation policy, or coordinate targeting
 | Python vs Blender routing | feature type and frozen datums | `blender-assisted-modeling` | `create-ascii-stl`, `stl-from-image-measurements`, `research-reusable-3d-assets` | Python owns fit geometry; Blender owns approved organic/visual regions, and realistic or sculptural requests move to Blender with a prior license-compatible asset search instead of more primitives. |
 | Delivered-project support minimization | exact final STL/3MF plus fixed Kobra S1 profiles | `orcaslicer-support-minimization` | `orcaslicer-project-workflow`, `optimize-stl-for-print`, `orcaslicer-print-validation` | Compare bounded absolute datum rotations sequentially, preserve material/plate semantics, save orientation in 3MF, and leave geometry changes as suggestions until separately approved at the source model. |
 | Final slice evidence | successful OrcaSlicer project slice | `orcaslicer-print-validation` | `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Never claim print time or final print readiness without a successful slice. |
-| Complex 3MF packaging | assembled master plus print plates | `multimaterial-assembly-packaging` | `stl-create-edit-interview`, `optimize-stl-for-print` | Deliver a master 3MF and print-optimized 3MFs; prefer keyed color parts when practical. |
+| Complex 3MF packaging | assembled view plus complete print BOM | `multimaterial-assembly-packaging` | `stl-create-edit-interview`, `optimize-stl-for-print` | Deliver exactly one multi-state `-view.3mf` and one settings-bearing `-print.3mf`; group same-color parts on shared plates and add plates as needed. |
 
 ## Session-Learned Friction To Avoid
 
