@@ -42,6 +42,11 @@ CHEST_W = 120.0
 WALL = 3.0
 
 SCISSOR_Y = 40.0        # twin scissor planes flank the folded hand
+# Floor yoke estimates, not measured fits: keep the unchanged arm planes
+# (y +/-3, thickness 4) inside an open 12 mm channel. Confirm in PLA.
+FLOOR_BEARING_OFFSET = 8.0
+FLOOR_BEARING_T = 4.0
+FLOOR_BEARING_R = 4.6  # 3 mm radial ligament; cap clears rack underside by 0.4
 FLOOR_PIVOT_X = 0.0
 PLATFORM_PIN_X = -28.0
 PLATFORM_L = 78.0

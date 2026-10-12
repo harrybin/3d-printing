@@ -5,21 +5,38 @@ Slice-Ergebnis: **erfolgreich** mit OrcaSlicer CLI 2.4.2; Profilkonformität: **
 Die korrigierte Druckdatei hat fünf Plates und 37 Objekte. Der frische Slice
 wurde am 2026-10-12 aus `models/ghouls-grip-print.3mf` erzeugt.
 SHA-256 der Slice-Eingabe:
-`ECBBEF59149898DD2EF6E12B4B6D6452004245496125DD89904A31550C9F7AB2`.
+`73F59FEFE014F88E5A0DD24E39FBBE41B7FA591F8720C5D2F20CDC9CFAE6548D`.
 Nach Ergänzung der Druckmetadaten lautet der SHA-256 der Ausgabedatei:
-`770BD97BD47C1F17CB70FB96AE29FC918638C7142442921230E31DBBA5BAAD74`.
+`431FE7B9F0A8F34DEDEEF9978213A1DB927D92FFFCDB25213555E0877A53B0DC`.
 Geometrie, Plate-Anordnung und Druckeinstellungen wurden dabei nicht geändert.
 
-Die Wandkorrektur ersetzt ausschließlich Schatulle, Deckel, Folgejoch/Zahnstange
-und Deckelkurbel; die übrigen 31 ursprünglichen Mesh-Payloads bleiben byteidentisch.
-Alle 35 ursprünglichen Build-Transforms, Objekt-Overrides, fünf Plattengruppen
-und `project_settings.config` bleiben erhalten. Zwei Transferzahnräder ergänzen
-die bestehende Verbinderplatte in freiem Raum.
+Weitere finale SHA-256:
+
+| Datei | SHA-256 |
+| --- | --- |
+| `models/ghouls-grip-view.3mf` | `CB85E2165306EC2D6FD7822CD920C051E1BF797FA82047FFE94D0A2D02DB0D05` |
+| `models/ghouls-grip-preview.stl` | `9E9BE5D9588FD4CBFC6F4070ABD03F1C5582CCB854913564BF42C2616860992F` |
+
+Schatulle: 76.418 Facetten, 209 × 130,5 × 98 mm, 198.615,666 mm³,
+ein geschlossener Einzelkörper, konsistente Normalen, keine degenerierten
+Dreiecke. Das komplette ASCII-STL ist bewusst eine montierte
+35-Körper-Vorschau, kein Drucklayout; 37 Druckobjekte inklusive Reservepins
+sind im fünfplattigen Print-Projekt.
+In dieser Session ist kein STL-Canvas deklariert; die exakte Datei wurde
+stattdessen gelesen, validiert und als Farb-3MF-Bild gerendert, ohne UI-Workaround.
+
+Diese Bodenlagerreparatur ersetzt ausschließlich die Schatullen-Geometrie;
+die übrigen **36 Mesh-Payloads bleiben byteidentisch** zur übernommenen
+Nutzerdatei (`HEAD`). Alle 37 Build-Transforms, Objekt-Overrides, fünf
+Plattengruppen, Farben, Materialien und `project_settings.config` bleiben
+erhalten. Die beiden Transferzahnräder der vorherigen Wandkorrektur sind
+weiterhin Bestandteil der vollständigen Stückliste.
 Die exakte finale Druckdatei wurde unabhängig geladen: 37 geschlossene,
 orientierungskonsistente Einzelkörper, null degenerierte Dreiecke, alle innerhalb
 ihres 250-mm-Betts, Z-Bettkontakt mit 0,01-mm-Rundtoleranz; größtes Bauteil-/Bauteil-Schnittvolumen
-auf einer Druckplatte 0,000 mm³. Das betrifft die Druckanordnung, nicht die
-unten ausdrücklich eingeschränkte montierte Gesamtmechanik.
+auf einer Druckplatte 0,000 mm³. Auch die Arm-/Bodenlagerpaare der montierten
+Mechanik bestehen jetzt den 61-Zustands-Nachweis; das ist keine Lastfreigabe.
+Prüfartefakt: `build/ghoul-floor-bearing-delivery.json`.
 
 ![Aktuelle Fünf-Platten-Übersicht](images/ghouls-grip-print-preview.png)
 
@@ -59,7 +76,7 @@ Vorgaben zurückgesetzt:
   15 % Infill.
 - Bauteil-Overrides aktivieren Support (`enable_support=1`) für die betreffenden
   Objekte; alle fünf frischen G-Codes enthalten echte Supportbahnen, auch
-  0,54 g auf Platte 4 für die ergänzten Transferzahnräder.
+  0,55 g auf Platte 4 für die vorhandenen Transferzahnräder.
 - Support nur auf Druckplatte, globaler Typ `tree(auto)`; Objekt-Overrides
   verwenden teils `normal(auto)`.
 
@@ -70,7 +87,17 @@ CLI gab wiederholt die Diagnose `Not precalculated Placeable areas requested`
 aus, erzeugte aber Exit-Code 0 und alle fünf G-Codes. Diese Meldung wurde nicht
 im OrcaSlicer-GUI nachbewertet.
 
-## Korrektur, Reproduktion und Freigabegrenze
+## Bodenlagerkorrektur, Reproduktion und Freigabegrenze
+
+Die zentralen kollidierenden Bodenpfosten sind als kurze Doppelwangen um
+die unveränderten Armhüllen neu aufgebaut. Der 12-mm-Kanal gibt 1 mm
+Axialabstand; die 4-mm-Wangen haben 3 mm radiale Bohrungsstege und direkt
+angebundene 9,2 × 4 mm Bodenwurzeln. Alle neuen Maße sind
+Konstruktionsschätzungen/Default-Freiräume und brauchen einen PLA-Passungs-
+und Lasttest, keine neu behaupteten Messwerte.
+Die bestehenden 26-mm-Pins werden von der Kistenmitte eingeführt;
+der Kopf des positiven Bodenpins ist im Ansichtsprojekt entsprechend
+gespiegelt. Der Print-Pin und die komplette Stückliste bleiben unverändert.
 
 Der ursprüngliche Wandcutter (14 × 12 × 24 mm bei X=-27, Y=58, Z=75)
 ist entfernt. Der Folgejoch-Rack liegt 14,854 mm weiter innen; zwei gleiche
@@ -81,54 +108,68 @@ noch mittleren Scharnierbock. Die Dach-/Wandproben zeigen durchgängiges Materia
 Beim Print-Refresh verursachte reine Bounds-Zentrierung der höheren neuen Kurbel
 einen Boden unter Z=0; OrcaSlicer 2.4.2 brach dabei mit Access Violation ab.
 Der Export erhält jetzt die originale transformierte Bettkontakt-Ebene.
-Die 31 unbetroffenen Payloads werden nicht neu gerundet. Sowohl fünf einzelne
+Historischer Befund der Wandkorrektur: Die 31 damals unbetroffenen Payloads
+wurden nicht neu gerundet. Sowohl fünf einzelne
 Platten-Slices als auch der abschließende `--slice=0`-Kontrolllauf waren danach
-erfolgreich: Exit-Code 0, fünf echte G-Codes, keine Layout-/Profiländerung.
+erfolgreich. Der **aktuelle finale** Kontrolllauf am 2026-10-12 mit
+`scripts/slice_ghouls_grip.ps1` hat ebenfalls Exit-Code 0, fünf echte G-Codes
+und keine Layout-/Profiländerung. Die Kopfzeile jedes frischen G-Codes
+bestätigt OrcaSlicer 2.4.2. Die tatsächliche Installation wurde unter
+`C:\Program Files\OrcaSlicer\orca-slicer.exe` gefunden;
+`--help` endete mit Exit 0 ohne Konsolentext, daher wurden die bereits
+funktionierenden Optionen des vorhandenen Slice-Skripts verwendet.
 Die externen Mesh-Relationships sind ohne XML-Namenspräfix serialisiert, wie
 Orcas Importer es erwartet.
 
 | Befehl / Nachweis | Ergebnis |
 | --- | --- |
-| `.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_ghouls_grip*.py` | 26 Tests bestanden; Wand-/Dachhaut, 109 aktive Deckelstellungen, Journaleinführung, Deckelschlüssel-Einführung und ±5° Kraftschluss, Datums und gespeicherte Plate-Einstellungen |
+| `.\.venv\Scripts\python.exe -m unittest discover -s tests -p 'test_ghouls_grip*.py'` | 36 Tests bestanden; zusätzlich 244 individuelle Arm-/Kistenpaare, beidseitige Pin-Eingriffslängen, 24-mm-Pinmontage auch an allen drei exakten 3MF-Ansichtszuständen, Arm-Einsetzen, 0,4-mm-Reserve, Bodenwurzeln und 3-mm-Bohrungsstege, exakter Quell-/Printvergleich und byteidentische unbetroffene Payloads |
 | `.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_ghouls_grip_print_refresh.py -v` | nach finaler Bettkontakt-Korrektur erneut bestanden; Originaltransforms, Overrides, Plate-Zuordnung, unveränderte Payloads und Idempotenz |
 | `.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_slice_support_usage.py -v` | 3 Tests bestanden; M82/M83/G92 und Rückstellungen |
-| `.\.venv\Scripts\python.exe scripts\verify_ghouls_grip_mechanics.py` | Wandkorrektur PASS; 61 Scherenstellungen von 18° bis 78° inkl. 48°, alle korrigierten Kontaktpaare 0,000 mm³; Bestandsfehler separat |
-| `powershell -File scripts\slice_ghouls_grip.ps1` | fünf G-Codes nach einzelplattenweiser Diagnose; abschließend gleiche Eingabe mit `orca-slicer.exe --slice=0 --outputdir=build\slice-all-fixed` ebenfalls Exit 0 und fünf G-Codes; das Skript verwendet wieder `--slice=0` |
+| `.\.venv\Scripts\python.exe scripts\verify_ghouls_grip_mechanics.py` | Gesamt-Nachweis PASS; 61 Scherenstellungen von 18° bis 78° inkl. 48°, alle vier individuellen Arm-/Kistenpaare jetzt hartes Fail-Gate bei >0,001 mm³; übrige geprüfte Paare 0 mm³; JSON in `build/ghoul-floor-bearing-verification.json` |
+| `powershell -File scripts\slice_ghouls_grip.ps1` | frische Slice-Eingabe mit `--slice=0`, Exit 0 und fünf echten G-Codes; kein Reset und keine Umordnung |
 | `.\.venv\Scripts\python.exe scripts\update_ghouls_grip_slice_metadata.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf` | neue reale Kennzahlen gespeichert; Status weiter `not-verified` |
 | `.\.venv\Scripts\python.exe scripts\render_3mf_previews.py models\ghouls-grip-view.3mf models\ghouls-grip-print.3mf` | beide finalen Standard-Sidecars aus den exakten 3MFs regeneriert |
-| Renderbefehle oben und `.\.venv\Scripts\python.exe scripts\render_ghouls_grip_wall.py` | fünf neue Support-Sidecars, Supportübersicht und beleuchtetes Wanddetail |
+| Renderbefehle oben, `scripts\render_ghouls_grip_wall.py`, `scripts\render_ghouls_grip_floor_bearings.py` | fünf G-Code-Support-Sidecars, Supportübersicht, Wanddetail und exaktes Bodenlagerdetail (Kiste transparent zur Sichtbarkeit) |
+| `.\.venv\Scripts\python.exe scripts\mesh_tool.py validate models\ghouls-grip-preview.stl --allow-multibody` | PASS: 254.492 Facetten, 35 absichtlich getrennte montierte Körper, geschlossen/orientiert, null degenerierte Dreiecke; Zentrierwarnung der nicht druckbaren Assembly-Vorschau, nicht verschoben |
 
-**Keine Freigabe der gesamten Mechanik:** Die unveränderten Paare
-`arm-0-False / chest (Bodenlager)` und `arm-1-False / chest (Bodenlager)`
-überschneiden sich weiterhin. Gesamtvolumen: 496,131 mm³ bei 18°,
-519,274 mm³ bei 48° und 554,635 mm³ bei 78°. Die Differenz zur Baseline
-`f396e7a` ist in allen 61 geprüften Stellungen 0,000000 mm³.
-Einzelpaarvolumina stehen in der
+**Die dokumentierte Arm-/Bodenlagerkollision ist beseitigt:** Baseline
+496,131 / 519,274 / 554,635 mm³ bei 18° / 48° / 78°; aktuell
+0,000 mm³ bei drei Nachkommastellen in allen 61 Zuständen.
+Maximaler numerischer Rest je Einzelarm: 0,000020464 mm³ an der
+tangentialen Bodenberührung, unter 0,001 mm³ Boolean-Toleranz.
+Das ist ausdrücklich kein mathematisch exakt nuller Floating-Point-Wert.
+Alle anderen im Vollnachweis geprüften Paare sind 0 mm³ und die
+Wandfüllung bleibt 100 %. Einzelpaarvolumina stehen in der
 [Mechanik-Verifikation](ghouls-grip-mechanik-verifikation.md).
-Arm-/Bodenlagerdatums bleiben auf Nutzeranweisung unverändert. Dafür ist eine
-separate Reparaturentscheidung erforderlich; außerdem stehen PLA-Passungstest,
-Journalspiel, kleine Zahnprofile und Belastbarkeit der Kragträger noch aus.
+Weiterhin keine physische Druck-/Lastfreigabe: PLA-Passung,
+Supportentfernung aus kleinen Querbohrungen, Axialwanderung der bisherigen
+unverriegelten Bodenpins, Journalspiel, Zahnprofile, Bodeneinleitung und
+Dauerfestigkeit müssen getestet werden. Der Slice enthält echte Supports,
+deren Entfernbarkeit im kleinen Lagerbereich noch physisch zu prüfen ist.
 
 ![Exakter Endstand, durchgehende Wand und innenliegender Deckelantrieb](images/ghouls-grip-continuous-wall.png)
+
+![Exakte Doppelwangen und unveränderte Arme, Kiste transparent](images/ghouls-grip-floor-bearings.png)
 
 ## Ergebnisse des aktuellen Slices
 
 | Plate | Inhalt | Schichten | Filament | davon Stützen | Zeit | Ansicht |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
-| 1 – Schwarz | Schatulle und Deckel (2) | 649 | 338,50 g | 7,16 g (2,1 %) | 12 h 06 min 03 s | [Supportbild](images/ghouls-grip-print-plate-1-supports.png) |
+| 1 – Schwarz | Schatulle und Deckel (2) | 649 | 338,28 g | 7,16 g (2,1 %) | 12 h 10 min 35 s | [Supportbild](images/ghouls-grip-print-plate-1-supports.png) |
 | 2 – Knochenbeige | Unterarm, Handfläche und Finger (7) | 482 | 43,51 g | 5,90 g (13,6 %) | 3 h 04 min 12 s | [Supportbild](images/ghouls-grip-print-plate-2-supports.png) |
-| 3 – Naturweiß | Mechanik-Hauptteile (11) | 492 | 112,23 g | 12,78 g (11,4 %) | 4 h 17 min 14 s | [Supportbild](images/ghouls-grip-print-plate-3-supports.png) |
-| 4 – Naturweiß | Zahnräder und Verbinder (16) | 424 | 10,67 g | 0,54 g (5,1 %) | 1 h 01 min 26 s | [Supportbild](images/ghouls-grip-print-plate-4-supports.png) |
+| 3 – Naturweiß | Mechanik-Hauptteile (11) | 492 | 112,23 g | 12,78 g (11,4 %) | 4 h 17 min 16 s | [Supportbild](images/ghouls-grip-print-plate-3-supports.png) |
+| 4 – Naturweiß | Zahnräder und Verbinder (16) | 424 | 10,68 g | 0,55 g (5,1 %) | 1 h 01 min 28 s | [Supportbild](images/ghouls-grip-print-plate-4-supports.png) |
 | 5 – Grau | Totenkopf-Auslöser (1) | 135 | 24,05 g | 3,40 g (14,1 %) | 1 h 11 min 05 s | [Supportbild](images/ghouls-grip-print-plate-5-supports.png) |
-| **Gesamt** | **37 Druckobjekte / 5 Plates** | – | **528,96 g** | **29,78 g (5,6 %)** | **21 h 40 min 00 s** | [Übersicht](images/ghouls-grip-print-support-overview.png) |
+| **Gesamt** | **37 Druckobjekte / 5 Plates** | – | **528,75 g** | **29,79 g (5,6 %)** | **21 h 44 min 36 s** | [Übersicht](images/ghouls-grip-print-support-overview.png) |
 
 | Farbgruppe | Zeit | Masse | Stützmaterial | Länge | Volumen | Plates |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Schwarz | 43.563 s | 338,50 g | 7,16 g | 113.494,95 mm | 272.990 mm³ | 1 |
+| Schwarz | 43.835 s | 338,28 g | 7,16 g | 113.419,56 mm | 272.810 mm³ | 1 |
 | Knochenbeige | 11.052 s | 43,51 g | 5,90 g | 14.587,15 mm | 35.090 mm³ | 1 |
-| Naturweiß | 19.120 s | 122,90 g | 13,32 g | 41.203,95 mm | 99.100 mm³ | 2 |
-| Grau | 4.265 s | 24,05 g | 3,40 g | 8.063,74 mm | 19.400 mm³ | 1 |
-| **Gesamt** | **78.000 s** | **528,96 g** | **29,78 g** | **177.349,79 mm** | **426.580 mm³** | **5** |
+| Naturweiß | 19.124 s | 122,91 g | 13,33 g | 41.208,25 mm | 99.110 mm³ | 2 |
+| Grau | 4.265 s | 24,05 g | 3,40 g | 8.063,84 mm | 19.400 mm³ | 1 |
+| **Gesamt** | **78.276 s** | **528,75 g** | **29,79 g** | **177.278,80 mm** | **426.410 mm³** | **5** |
 
 Die Supportanteile werden aus positiven Extrusionen der Support-/Interface-
 Bewegungen berechnet; `M82`, `M83` und `G92` werden berücksichtigt,
@@ -141,13 +182,17 @@ Masse und Volumen werden mit dem jeweiligen Slice-Verhältnis umgerechnet:
 | 1 | 2.400,96 mm | 5.775 mm³ |
 | 2 | 1.977,14 mm | 4.756 mm³ |
 | 3 | 4.285,33 mm | 10.307 mm³ |
-| 4 | 180,25 mm | 433 mm³ |
-| 5 | 1.140,98 mm | 2.745 mm³ |
-| **Gesamt** | **9.984,66 mm** | **24.016 mm³** |
+| 4 | 184,55 mm | 444 mm³ |
+| 5 | 1.141,08 mm | 2.745 mm³ |
+| **Gesamt** | **9.989,06 mm** | **24.027 mm³** |
 
 Die Summen und fünf Einzelergebnisse sind in `models/ghouls-grip-print.3mf`
 als slicer-neutrale Metadaten gespeichert. Der Metadatenstatus bleibt
 `not-verified`, bis Profilabweichungen und CLI-Diagnose geprüft sind.
+G-Code-, Mesh- und Modellhashes sowie ausgeführte Befehle stehen zusammen
+in `build/ghoul-floor-bearing-quality.json`; Vollsweep und Print-Prüfung in
+`build/ghoul-floor-bearing-verification.json` und
+`build/ghoul-floor-bearing-delivery.json`.
 ### Historische Orientierungsoptimierung (A/B-gemessen, nicht aktueller Slice)
 
 Alle Druckorientierungen sind durch echte A/B-Slices belegt. Die Audit-Skripte

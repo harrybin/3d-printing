@@ -15,6 +15,17 @@ This repository contains parametric STL generation workflows for FDM printing on
 
 ## Build And Validation Commands
 
+### Batch model changes before the final quality phase
+
+When several requested tasks change model geometry or assembly objects, complete
+all related source changes first. Then optimize the combined result and run the
+final mesh/mechanism validation, slicing, metadata updates and presentation
+renders as one consolidated quality phase, rather than repeating this expensive
+pipeline after each task. During construction, use only targeted, inexpensive
+checks needed to catch defects or choose the next geometry change. Re-run final
+checks only when subsequent changes invalidate their evidence; never deliver
+stale slices or previews.
+
 - Create environment:
   - `python -m venv .venv`
   - `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`

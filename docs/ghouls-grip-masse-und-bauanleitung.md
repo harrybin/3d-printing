@@ -33,6 +33,9 @@ Die Finger sind vorgekrümmte PLA-Flexuren. Sie werden nicht aktiv bewegt; beim 
 | Innenraum | 194 × 114 × 80 mm |
 | Scherenarm | 72 mm Pivotabstand, 12 × 4 mm |
 | Scherenbohrung | 3,2 mm |
+| Bodenlager-Doppelwangen (neue Konstruktionsschätzung) | Y=±40±8 mm; 4 mm dick; Außenradius 4,6 mm |
+| Offener Armkanal / Arm-Axialspiel | 12 mm / 1,0 mm je Außenseite |
+| Bodenlager-Bohrungssteg / Wurzel | 3,0 mm radial / 9,2 × 4,0 mm je Wange |
 | Scherenwinkel | 18° bis 78° |
 | Schlittenweg | 53,506 mm |
 | Hub des Jochs | 48,177 mm |
@@ -48,6 +51,48 @@ Die Finger sind vorgekrümmte PLA-Flexuren. Sie werden nicht aktiv bewegt; beim 
 | Fingerspitzen ausgefahren | 246,7 mm über Aufstellfläche |
 
 Die Hand ist mit `HAND_SCALE = 0.72` aus einem anatomischen CT-Datensatz abgeleitet. Die größere Handfläche gegenüber der ursprünglichen 50 × 45-mm-Idee ist erforderlich, um Handwurzel- und Mittelhandknochen erkennbar zu erhalten.
+
+### Reparatur der Bodenlager
+
+Der alte 6–6,8 mm breite zentrale Pfosten passte nicht in den nur 2 mm
+breiten Zwischenraum der unveränderten 4-mm-Arme bei Y=±40±3 mm.
+Er ist durch zwei kurze, direkt mit dem Boden verschmolzene Lagerwangen
+je Scherenpaar ersetzt, nicht durch beschnittene Arme.
+X=0 mm, Pivot-Z=8 mm, Scherenabstand, alle Armbohrungen, Schlittenweg,
+Hub, Deckelantrieb und die geschlossene Wandkorrektur bleiben unverändert.
+Die vorhandenen zehn Pins und die vollständige 37-Objekt-Stückliste bleiben erhalten.
+
+**Neue Werte sind Konstruktionsschätzungen/Default-Freiräume, keine Messwerte:**
+Wangenmitten ±8 mm relativ zur Scherenebene, Dicke 4 mm, Kopf-Radius 4,6 mm.
+Das ergibt einen offenen 12-mm-Kanal, 1 mm Abstand zur äußeren Armfläche,
+3 mm radialen Reststeg um Ø3,2 mm und 36,8 mm² Fußquerschnitt je Wange.
+Die Füße überlappen den 2-mm-Boden um 0,6 mm; die Kopfoberkante Z=12,6 mm
+bleibt 0,4 mm unter der Zahnstangen-Unterseite Z=13 mm.
+Lastpfad: Arm → unveränderter Pin → beide kurzen Wangen → Boden.
+Die beidseitige Lagerung vermeidet einen einseitigen dünnen Kragzapfen.
+Das belegt tragfähige **Geometrie**, nicht eine zulässige Nutzlast oder PLA-Dauerfestigkeit.
+
+Die tatsächlich gedruckten Pins haben Ø2,7 mm Schaft (bisheriger Generator),
+26 mm Länge und 1,6 mm Kopf; nicht Ø3,0 mm Schaft trotz der Teilebezeichnung.
+Sie greifen über die vollen 4 mm beider Wangen, mit 0,5 mm nominalem
+Durchmesserspiel. Der Prüfkörper belegt mindestens 0,2 mm radialen Freiraum.
+Beide Bodenpins werden **von der Kistenmitte nach außen** eingesetzt;
+der Kopf des positiven Y-Scherenpaars wurde in der exakten Ansicht nach innen
+gespiegelt. Ein Einführen durch die geschlossene Außenwand ist unmöglich.
+24 mm axialer Einführweg, senkrechtes Einsetzen der Arme und 0,4 mm
+zusätzlich aufgeweitete Armhüllen wurden per Mesh-Boolean geprüft.
+Zuerst die Bodenpins einsetzen, solange der mittlere Mechanikraum frei ist.
+Die bisherigen gedruckten Pins besitzen keine neue Verriegelung:
+Axialwanderung prüfen; optional vorhandene M3-Verbindung für Dauerbetrieb
+mit passenden Muttern verwenden, nicht unbeaufsichtigt belasten.
+
+Alle vier **einzelnen** Arme gegen die dekorierte Kiste in sämtlichen
+61 Winkeln 18–78° einschließlich 48°: 0,000 mm³ bei drei Nachkommastellen;
+maximal 0,000020464 mm³ numerischer Mesh-Rest je Arm an der tangentialen
+Bodenberührung, deutlich unter der dokumentierten 0,001-mm³-Boolean-Toleranz.
+Die Baseline bis 554,635 mm³ ist damit beseitigt. Wandfüllung weiterhin 100 %.
+PLA-Passung, Loch-/Supportnacharbeit, Axialsicherung, belasteter Hub und
+Verschleiß erfordern einen physischen Trocken-/Lasttest.
 
 ### Korrektur der hinteren Mechanikaussparung
 
@@ -83,9 +128,9 @@ Der vollständige konservative Translations-Hüllkörper der Folge-Zahnstange
 schneidet die Kiste nicht. 109 aktive Deckelstellungen prüfen zusätzlich
 Zahnrad-/Zahnstangenfreiheit und Montage; der gekoppelte Gesamtvergleich
 enthält 61 Scherenstellungen einschließlich 18°, 48° und 78°.
-Siehe [Mechanik-Verifikation](ghouls-grip-mechanik-verifikation.md), auch
-für den dort ausdrücklich getrennt dokumentierten Bestandsfehler an den
-unveränderten Scheren-Bodenlagern.
+Siehe [Mechanik-Verifikation](ghouls-grip-mechanik-verifikation.md), einschließlich
+des jetzt bestandenen Einzelarm-/Bodenlager-Nachweises und des historischen
+Baseline-Vergleichs.
 
 ## Verbindliche Konstruktionsentscheidungen
 
@@ -189,7 +234,11 @@ Handgelenkaufnahme; sie ist kein massiver Block. Die Einführsenkung macht die
 ## Montage
 
 1. Je zwei Scherenarme zu einem X verbinden und zwei parallele Paare bauen. Zuerst gedruckte Pins trocken testen; für Dauerbetrieb M3-Schrauben verwenden.
-2. Untere Festpunkte auf die Bodenlager stecken. Die gegenüberliegenden unteren Enden mit dem Schlitten verbinden. Der Schlitten muss frei zwischen den beiden Endlagen laufen.
+2. Untere Festpunkte von oben in die offenen Doppelwangen setzen, die Bodenpins
+   aus der Kistenmitte nach außen durch beide Wangen und die Armbohrung schieben.
+   Köpfe bleiben zur Kistenmitte; erst danach mittlere Baugruppen einsetzen.
+   Die gegenüberliegenden unteren Enden mit dem Schlitten verbinden.
+   Der Schlitten muss frei zwischen den beiden Endlagen laufen.
 3. Das offene Hubjoch montieren: pro Scherenpaar ein oberes Ende ins feste Auge, das andere in die Kulisse. Der mittlere Handraum bleibt frei.
 4. Hauptantriebsritzel von innen in das Frontlager einsetzen. Die integrierte Welle muss außen frei herausstehen und das Ritzel vollständig in die Schlittenzahnstange greifen.
 5. Totenkopfknopf außen mit der Blindbohrung auf die Ø8-mm-Welle pressen. Vor endgültigem Einpressen die geschlossene Stellung so ausrichten, dass das Gesicht senkrecht und gut greifbar steht.
@@ -243,11 +292,16 @@ nur zur Boxinnenseite offen; von oben besteht eine durchgehende 2,0-mm-Dachhaut.
 Deckelkurbel und Yoke wurden zusätzlich als eigene Kollisionspaare über den
 gesamten Hub geprüft und schneiden weder Deckel noch Schatulle.
 
-Alle Projekte verwenden PLA, Anycubic Kobra S1 0.4, Textured PEI, 0,20 mm Schichthöhe und eingebettete Farben. Die exakten Slice-Ergebnisse stehen in [`ghouls-grip-druckvalidierung.md`](ghouls-grip-druckvalidierung.md).
+Das erhaltene Nutzerprojekt verwendet PLA, Anycubic Kobra S1 0.4,
+0,20 mm Schichthöhe und vier eingebettete Farben. Seine tatsächlichen
+Werte sind High Temp Plate, aligned seam, kein Bügeln und global Support aus
+(Objekt-Overrides aktivieren Support). Sie wurden nicht zurückgesetzt;
+Profilkonformität bleibt `not-verified`. Die exakten Slice-Ergebnisse stehen in
+[`ghouls-grip-druckvalidierung.md`](ghouls-grip-druckvalidierung.md).
 
-### Gespeicherte OrcaSlicer-Defaults
+### Generator-Defaults (nicht die erhaltenen Nutzereinstellungen)
 
-Diese Optionen werden im konsolidierten Mehrfarben-Projekt gesetzt und durch
+Diese Optionen gelten für neu angelegte Mehrfarben-Projekte und werden durch
 `tests/test_ghouls_grip_orca_settings.py` abgesichert:
 
 | Option | Gespeicherter Wert |
