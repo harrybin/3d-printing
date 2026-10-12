@@ -156,6 +156,13 @@ final print readiness from analytical estimates alone.
   labeled `not verified`.
 - For STL outputs: the finished STL was opened in the STL canvas and the previewed path is reported.
 - For 3MF outputs: the written 3MF path is reported, and an STL counterpart preview is shown when available.
+- For every delivered 3MF, create the full-project preview
+  `docs/images/<3mf-stem>-preview.png`. For each successfully sliced plate,
+  also create a support-path screenshot from actual G-code at
+  `docs/images/<3mf-stem>-plate-<n>-supports.png`; show no-support explicitly
+  and do not fabricate images for unsliced plates. Both viewers expose these
+  sidecars through project and per-plate buttons, including expandable print
+  details.
 
 ## Mandatory canvas preview after writing the output
 

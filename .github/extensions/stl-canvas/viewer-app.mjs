@@ -8,6 +8,10 @@ export const APP_HTML = `
     <label for="plateChooser">Plate</label>
     <select id="plateChooser"><option value="all">All plates</option></select>
   </div>
+  <div class="field image-actions" id="imageActions" hidden>
+    <button type="button" id="projectPreviewBtn" hidden>Project preview</button>
+    <button type="button" id="plateSupportPreviewBtn" hidden>Plate support preview</button>
+  </div>
   <div class="field" id="orcaField" hidden>
     <button type="button" id="openInOrcaBtn" title="Open the current 3MF project in OrcaSlicer">Open in OrcaSlicer</button>
     <span id="orcaStatus" class="action-status" role="status" aria-live="polite" hidden></span>
@@ -70,6 +74,7 @@ export const APP_HTML = `
   </details>
 </div>
 <section id="printSummary" class="print-summary" aria-label="Print project summary" hidden>
+  <div class="print-card print-scope"><strong>All plates</strong></div>
   <div class="print-card"><span>Print time</span><strong id="summaryPrintTime">—</strong></div>
   <div class="print-card"><span>Material usage</span><strong id="summaryMaterial">—</strong></div>
   <div class="print-card"><span>Support material</span><strong id="summarySupport">—</strong></div>
@@ -86,6 +91,13 @@ export const APP_HTML = `
     <div id="meta">Loading model…</div>
   </details>
 </div>
+<dialog id="projectImageDialog" class="project-image-dialog" aria-labelledby="projectImageCaption">
+  <div class="project-image-dialog-header">
+    <strong id="projectImageCaption"></strong>
+    <button type="button" id="closeProjectImageBtn" aria-label="Close image preview">Close</button>
+  </div>
+  <img id="projectImage" alt="">
+</dialog>
 
 `
 
@@ -103,7 +115,7 @@ export function createOrcaSlicerOpenUrl(file, accessibleUrl, baseUrl = globalThi
 export function formatPrintMetadataSummary(projectMetadata = {}) {
   const metadataValue = (key, fallback = 'not available') => {
     const value = projectMetadata[key]
-    return value && value !== 'unknown' ? value : fallback
+    return value !== undefined && value !== null && value !== '' && value !== 'unknown' ? value : fallback
   }
   const metadataWithUnit = (key, unit) => {
     const value = metadataValue(key)
@@ -112,16 +124,18 @@ export function formatPrintMetadataSummary(projectMetadata = {}) {
   const seconds = Number(projectMetadata.estimatedPrintTimeSeconds)
   let printTime = 'not available'
   if (Number.isFinite(seconds) && seconds >= 0) {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.round((seconds % 3600) / 60)
+    const totalMinutes = Math.round(seconds / 60)
+    const hours = Math.floor(totalMinutes / 60)
+    const minutes = totalMinutes % 60
     printTime = hours ? `${hours} h ${minutes} min` : `${minutes} min`
   }
   const grams = metadataWithUnit('filamentUsageGrams', 'g')
   const material = metadataValue('materialType', '')
   const supportGrams = Number(projectMetadata.supportFilamentGrams)
-  const supportUsage = Number.isFinite(supportGrams) && supportGrams > 0
-    ? `${supportGrams.toFixed(2)} g`
-    : 'none'
+  const supportUsage = metadataValue('supportFilamentGrams') === 'not available'
+    || !Number.isFinite(supportGrams) || supportGrams < 0
+    ? 'not available'
+    : supportGrams === 0 ? 'none' : `${supportGrams.toFixed(2)} g`
   return {
     visible: Object.keys(projectMetadata).length > 0,
     printTime,
@@ -130,6 +144,70 @@ export function formatPrintMetadataSummary(projectMetadata = {}) {
     filamentLength: metadataWithUnit('filamentUsageMillimeters', 'mm'),
     status: metadataValue('status'),
   }
+}
+
+function modelBasename(file) {
+  return String(file || '').split(/[\\/]/).pop() || ''
+}
+
+export function projectPreviewImagePath(file) {
+  const name = modelBasename(file)
+  if (!/\.3mf$/i.test(name)) return ''
+  return `docs/images/${name.replace(/\.3mf$/i, '')}-preview.png`
+}
+
+export function plateSupportImagePath(file, plateNumber) {
+  const previewPath = projectPreviewImagePath(file)
+  if (!previewPath || !Number.isInteger(Number(plateNumber)) || Number(plateNumber) < 1) return ''
+  const stem = modelBasename(file).replace(/\.3mf$/i, '')
+  return `docs/images/${stem}-plate-${Number(plateNumber)}-supports.png`
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
+export function renderPlatePrintDetails(projectMetadata = {}, { file = '' } = {}) {
+  if (!Object.keys(projectMetadata).length) return ''
+  let plates
+  try {
+    plates = typeof projectMetadata.plateDetails === 'string'
+      ? JSON.parse(projectMetadata.plateDetails)
+      : projectMetadata.plateDetails
+  } catch {
+    return '<p class="plate-data-notice">Per-plate print data could not be read: invalid plateDetails metadata.</p>'
+  }
+  if (plates === undefined) {
+    return '<p class="plate-data-notice">Per-plate print data is not available in this file.</p>'
+  }
+  if (!Array.isArray(plates) || plates.some((plate) => !plate || typeof plate !== 'object' || Array.isArray(plate))) {
+    return '<p class="plate-data-notice">Per-plate print data could not be read: expected plate records.</p>'
+  }
+  if (!plates.length) return '<p class="plate-data-notice">No per-plate print data is stored in this file.</p>'
+  const rows = plates.map((plate, index) => {
+    const summary = formatPrintMetadataSummary(plate)
+    const name = typeof plate.name === 'string' && plate.name.trim() ? plate.name : `Plate ${index + 1}`
+    const supportImagePath = plateSupportImagePath(file, index + 1)
+    const supportPreview = supportImagePath
+      ? `<button type="button" class="plate-support-preview" data-project-image="${escapeHtml(supportImagePath)}" data-project-image-caption="${escapeHtml(`${name} support preview`)}" disabled title="Checking screenshot availability">View supports</button>`
+      : ''
+    return `<tr><th scope="row">${escapeHtml(name)}</th>` +
+      [summary.printTime, summary.materialUsage, summary.supportUsage, summary.filamentLength, summary.status]
+        .map((value) => `<td>${escapeHtml(value)}</td>`).join('') +
+      `<td>${supportPreview}</td></tr>`
+  }).join('')
+  return '<details class="plate-print-details"><summary>Print data by plate (' + plates.length + ')</summary>' +
+    '<div class="plate-table-scroll" tabindex="0" role="region" aria-label="Print data by plate">' +
+    '<table class="plate-print-table"><caption>Per-plate slice results; the top bar always shows all-plate totals.</caption>' +
+    '<thead><tr><th scope="col">Plate</th><th scope="col">Print time</th><th scope="col">Material</th>' +
+    '<th scope="col">Support</th><th scope="col">Filament length</th><th scope="col">Validation</th>' +
+    '<th scope="col">Support preview</th></tr></thead>' +
+    `<tbody>${rows}</tbody></table></div></details>`
 }
 
 export function createOrcaLaunchRequest(url, modelPath, nonce) {
@@ -214,19 +292,20 @@ export function layoutPlateOverview(plates, bedSize = 250, spacing = 50) {
       height: Math.max(bedSize, bounds.size.y),
     }
   })
-  // Orca's plate-grid offsets are already baked into build/component transforms.
+  // Reposition only the overview; individual plate geometry retains its transforms.
   const overlaps = envelopes.some((left, index) => envelopes.slice(index + 1).some((right) => (
     Math.abs(left.x - right.x) < (left.width + right.width) / 2 &&
     Math.abs(left.y - right.y) < (left.height + right.height) / 2
   )))
-  if (!overlaps) return plates
+  if (!overlaps && plates.length <= 2) return plates
 
-  let nextX = envelopes[0].x - envelopes[0].width / 2
+  const columns = Math.ceil(Math.sqrt(plates.length))
+  const cellWidth = Math.max(...envelopes.map((envelope) => envelope.width)) + spacing
+  const cellHeight = Math.max(...envelopes.map((envelope) => envelope.height)) + spacing
   return plates.map((plate, index) => {
     const envelope = envelopes[index]
-    const dx = nextX + envelope.width / 2 - envelope.x
-    const dy = envelopes[0].y - envelope.y
-    nextX += envelope.width + spacing
+    const dx = envelopes[0].x + (index % columns) * cellWidth - envelope.x
+    const dy = envelopes[0].y - Math.floor(index / columns) * cellHeight - envelope.y
     const triangles = plate.triangles.map((triangle) => triangle.map(([x, y, z]) => [x + dx, y + dy, z]))
     return {
       ...plate,
@@ -234,6 +313,40 @@ export function layoutPlateOverview(plates, bedSize = 250, spacing = 50) {
       stats: { ...plate.stats, bounds: computeBounds(triangles) },
     }
   })
+}
+
+function childrenByLocalName(node, name) {
+  return [...(node?.children || [])].filter((child) => child.localName === name)
+}
+
+function normalizeColor(value) {
+  if (typeof value !== 'string') return null
+  const match = value.trim().match(/^#([0-9a-f]{6}|[0-9a-f]{8})$/i)
+  if (!match) return null
+  return `#${match[1].slice(0, 6)}`.toLowerCase()
+}
+
+export function orcaMaterialAssignments(settingsDoc, projectSettings) {
+  const palette = projectSettings.filament_colour || projectSettings.filament_color || []
+  const assignments = new Map()
+  const extruder = (node) => childrenByLocalName(node, 'metadata')
+    .find((entry) => entry.getAttribute('key') === 'extruder')?.getAttribute('value')
+  const colorFor = (slot) => {
+    const index = Number(slot) - 1
+    return Number.isInteger(index) && index >= 0 ? normalizeColor(palette[index]) : null
+  }
+  for (const object of childrenByLocalName(settingsDoc.documentElement, 'object')) {
+    const objectSlot = extruder(object)
+    const objectColor = colorFor(objectSlot)
+    const partColors = new Map()
+    for (const part of childrenByLocalName(object, 'part')) {
+      const partSlot = extruder(part)
+      const color = colorFor(Number(partSlot) > 0 ? partSlot : objectSlot)
+      if (color) partColors.set(part.getAttribute('id'), color)
+    }
+    assignments.set(object.getAttribute('id'), { color: objectColor, parts: partColors })
+  }
+  return assignments
 }
 
 export function initStlCanvas(options = {}) {
@@ -249,6 +362,7 @@ const viewApiUrl = options.viewApiUrl || '/api/view'
 const modelsApiUrl = options.modelsApiUrl || '/api/models'
 const modelApiUrl = options.modelApiUrl || '/api/model'
 const modelDownloadApiUrl = options.modelDownloadApiUrl || '/api/model-file'
+const projectImageApiUrl = options.projectImageApiUrl || '/api/project-image'
 const openInOrcaApiUrl = options.openInOrcaApiUrl || ''
 const openInOrcaNonce = options.openInOrcaNonce || ''
 const pollIntervalMs = Number.isFinite(options.pollIntervalMs) ? options.pollIntervalMs : 1500
@@ -431,23 +545,12 @@ async function inflateDeflateRaw(bytes) {
   return new Uint8Array(buffer)
 }
 
-function childrenByLocalName(node, name) {
-  return [...(node?.children || [])].filter((child) => child.localName === name)
-}
-
 function firstChildByLocalName(node, name) {
   return childrenByLocalName(node, name)[0] || null
 }
 
 function descendantsByLocalName(node, name) {
   return [...(node?.getElementsByTagName('*') || [])].filter((child) => child.localName === name)
-}
-
-function normalizeColor(value) {
-  if (typeof value !== 'string') return null
-  const match = value.trim().match(/^#([0-9a-f]{6}|[0-9a-f]{8})$/i)
-  if (!match) return null
-  return `#${match[1].slice(0, 6)}`.toLowerCase()
 }
 
 function averageHexColors(colors) {
@@ -602,6 +705,7 @@ function resolveColor(resourceLookup, pid, ...indices) {
   const palette = resourceLookup.get(pid)
   if (!palette?.length) return null
   const colors = indices
+    .filter((index) => index != null && String(index).trim() !== '')
     .map((index) => Number(index))
     .filter((index) => Number.isInteger(index) && index >= 0 && index < palette.length)
     .map((index) => palette[index])
@@ -688,7 +792,7 @@ function parse3mfComponentTarget(documentPath, objectId, explicitPath) {
   }
 }
 
-async function collect3mfObject(buffer, documents, documentPath, objectId, parentTransform, inheritedColor, triangles, triangleColors, resourceCache, objectCache, unitCache, stats, activeObjects) {
+async function collect3mfObject(buffer, documents, documentPath, objectId, parentTransform, inheritedColor, triangles, triangleColors, resourceCache, objectCache, unitCache, stats, activeObjects, orcaAssignment) {
   const activeKey = `${documentPath}#${objectId}`
   if (activeObjects.has(activeKey)) throw new Error(`3MF component cycle detected at ${activeKey}`)
   activeObjects.add(activeKey)
@@ -703,7 +807,8 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
     const object = objects.get(String(objectId))
     if (!object) throw new Error(`3MF object not found: ${documentPath}#${objectId}`)
 
-    const objectColor = resolveColor(resourceLookup, object.getAttribute('pid'), object.getAttribute('pindex')) || inheritedColor
+    const orcaColor = orcaAssignment?.parts.get(String(objectId)) || orcaAssignment?.color
+    const objectColor = orcaColor || resolveColor(resourceLookup, object.getAttribute('pid'), object.getAttribute('pindex')) || inheritedColor
     const components = firstChildByLocalName(object, 'components')
     if (components) {
       for (const component of childrenByLocalName(components, 'component')) {
@@ -731,6 +836,7 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
           unitCache,
           stats,
           activeObjects,
+          orcaAssignment ? { ...orcaAssignment, color: orcaColor } : undefined,
         )
       }
       return
@@ -748,14 +854,13 @@ async function collect3mfObject(buffer, documents, documentPath, objectId, paren
       triangles.push(triangleVertices)
       add3mfTriangle(stats, triangleVertices)
       triangleColors.push(
-        resolveColor(
+        orcaColor || resolveColor(
           resourceLookup,
           triangle.getAttribute('pid') || object.getAttribute('pid'),
           triangle.getAttribute('p1'),
           triangle.getAttribute('p2'),
           triangle.getAttribute('p3'),
           triangle.getAttribute('pindex'),
-          object.getAttribute('pindex'),
         ) || objectColor || '#d6d9de',
       )
     }
@@ -833,6 +938,22 @@ async function parse3mfBuffer(buffer) {
   const stats = create3mfStats()
   const plateAssignments = await read3mfPlateAssignments(buffer)
   const projectMetadata = await read3mfProjectMetadata(buffer)
+  const readOptionalEntry = async (path) => {
+    try {
+      return new TextDecoder().decode(await readZipEntry(buffer, path))
+    } catch (error) {
+      if (error.message === `3MF entry not found: ${path}`) return null
+      throw error
+    }
+  }
+  const settingsXml = await readOptionalEntry('Metadata/model_settings.config')
+  const projectJson = await readOptionalEntry('Metadata/project_settings.config')
+  const orcaAssignments = settingsXml && projectJson
+    ? orcaMaterialAssignments(
+      parseXmlDocument(settingsXml, 'Metadata/model_settings.config'),
+      JSON.parse(projectJson),
+    )
+    : new Map()
   const plateGroups = new Map()
   const build = firstChildByLocalName(rootDoc.documentElement, 'build')
   if (!build) throw new Error(`3MF start model document is missing <build>: ${rootPath}`)
@@ -856,6 +977,7 @@ async function parse3mfBuffer(buffer) {
       unitCache,
       itemStats,
       new Set(),
+      orcaAssignments.get(objectId),
     )
     triangles.push(...itemTriangles)
     triangleColors.push(...itemColors)
@@ -907,15 +1029,6 @@ async function parseModelBuffer(modelPath, buffer) {
   return modelPath.toLowerCase().endsWith('.3mf') ? parse3mfBuffer(buffer) : parseStlBuffer(buffer)
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
-}
-
 let baseView = { ...configuredFallbackView };
 let reloadInFlight = false;
 const VIEW_PRESETS = {
@@ -935,11 +1048,107 @@ const ctx = canvas.getContext('2d');
 const fileChooser = document.getElementById('fileChooser');
 const plateField = document.getElementById('plateField');
 const plateChooser = document.getElementById('plateChooser');
+const imageActions = document.getElementById('imageActions')
+const projectPreviewBtn = document.getElementById('projectPreviewBtn')
+const plateSupportPreviewBtn = document.getElementById('plateSupportPreviewBtn')
+const projectImageDialog = document.getElementById('projectImageDialog')
+const projectImage = document.getElementById('projectImage')
+const projectImageCaption = document.getElementById('projectImageCaption')
 const reloadBtn = document.getElementById('reloadBtn');
 const orcaField = document.getElementById('orcaField');
 const openInOrcaBtn = document.getElementById('openInOrcaBtn');
 const orcaStatus = document.getElementById('orcaStatus');
 let orcaStatusTimer = null;
+const projectImageAvailability = new Map()
+
+function resolveProjectImageUrl(imagePath) {
+  if (!/^docs\/images\/[^/\\\u0000-\u001f]+\.png$/i.test(String(imagePath || ''))) return ''
+  if (runtimeMode === 'extension') {
+    return `${projectImageApiUrl}?path=${encodeURIComponent(imagePath)}`
+  }
+  return `./${imagePath.split('/').map(encodeURIComponent).join('/')}`
+}
+
+async function verifyProjectImageButton(button) {
+  const imageUrl = resolveProjectImageUrl(button.dataset.projectImage)
+  if (!imageUrl) {
+    button.disabled = true
+    button.title = 'Invalid project image path'
+    return
+  }
+  let availability = projectImageAvailability.get(imageUrl)
+  if (!availability) {
+    availability = fetch(imageUrl, { method: 'HEAD', cache: 'no-store' })
+      .then((response) => ({ available: response.ok }))
+      .catch((error) => ({ error: error instanceof Error ? error.message : String(error) }))
+    projectImageAvailability.set(imageUrl, availability)
+  }
+  const result = await availability
+  if (result.available) {
+    button.disabled = false
+    button.title = ''
+  } else if (!result.error) {
+    button.disabled = true
+    button.title = `Screenshot not found: ${button.dataset.projectImage}`
+  } else {
+    button.disabled = true
+    button.title = `Preview unavailable: ${result.error}`
+  }
+  if (![...imageActions.querySelectorAll('button')].some((item) => !item.hidden)) {
+    imageActions.hidden = true
+  }
+}
+
+function updateProjectImageActions(file = loadedModelInfo?.path || '') {
+  const previewPath = projectPreviewImagePath(file)
+  projectPreviewBtn.hidden = !previewPath
+  projectPreviewBtn.disabled = Boolean(previewPath)
+  if (previewPath) {
+    projectPreviewBtn.dataset.projectImage = previewPath
+    projectPreviewBtn.dataset.projectImageCaption = `${modelBasename(file)} full-project preview`
+    void verifyProjectImageButton(projectPreviewBtn)
+  }
+
+  const selectedPlate = plateChooser.value
+  const plateNumber = selectedPlate === 'all'
+    ? (loadedPlates.length === 1 ? 1 : 0)
+    : Number(selectedPlate)
+  const supportPath = plateSupportImagePath(file, plateNumber)
+  plateSupportPreviewBtn.hidden = !supportPath
+  plateSupportPreviewBtn.disabled = Boolean(supportPath)
+  if (supportPath) {
+    plateSupportPreviewBtn.dataset.projectImage = supportPath
+    plateSupportPreviewBtn.dataset.projectImageCaption = `Plate ${plateNumber} support preview`
+    void verifyProjectImageButton(plateSupportPreviewBtn)
+  }
+  imageActions.hidden = !previewPath && !supportPath
+}
+
+root.addEventListener('click', (event) => {
+  const button = event.target.closest?.('button[data-project-image]')
+  if (!button || button.disabled) return
+  const imageUrl = resolveProjectImageUrl(button.dataset.projectImage)
+  if (!imageUrl) return
+  projectImageCaption.textContent = button.dataset.projectImageCaption || 'Project image'
+  projectImage.alt = projectImageCaption.textContent
+  projectImage.onerror = () => {
+    button.disabled = true
+    button.title = `Preview unavailable: ${button.dataset.projectImage}`
+    projectImageCaption.textContent = button.title
+    projectImageDialog.close()
+  }
+  projectImage.src = imageUrl
+  projectImageDialog.showModal()
+})
+document.getElementById('closeProjectImageBtn').addEventListener('click', () => projectImageDialog.close())
+projectImageDialog.addEventListener('click', (event) => {
+  if (event.target === projectImageDialog) projectImageDialog.close()
+})
+projectImageDialog.addEventListener('close', () => {
+  projectImage.removeAttribute('src')
+  projectImage.onerror = null
+})
+
 function updateOrcaAction(file = '', modelPath = '') {
   const source = file ? modelSource(file) : null
   const openUrl = createOrcaSlicerOpenUrl(file, source?.downloadUrl || '', window.location.href)
@@ -1080,12 +1289,12 @@ function renderModelMeta() {
   const plateCount = metadataValue('plateCount', loadedPlates.length ? String(loadedPlates.length) : 'not available')
   const printFields = [
     ['Status', metadataValue('status')],
-    ['Print time', printSummaryValues.printTime],
-    ['Filament', metadataWithUnit('filamentUsageGrams', 'g')],
-    ['Filament length', metadataWithUnit('filamentUsageMillimeters', 'mm')],
-    ['Filament volume', metadataWithUnit('filamentUsageCubicMillimeters', 'mm³')],
-    ['Support material', printSummaryValues.supportUsage],
-    ['Support length', metadataWithUnit('supportFilamentMillimeters', 'mm')],
+    ['Total print time', printSummaryValues.printTime],
+    ['Total filament', metadataWithUnit('filamentUsageGrams', 'g')],
+    ['Total filament length', metadataWithUnit('filamentUsageMillimeters', 'mm')],
+    ['Total filament volume', metadataWithUnit('filamentUsageCubicMillimeters', 'mm³')],
+    ['Total support material', printSummaryValues.supportUsage],
+    ['Total support length', metadataWithUnit('supportFilamentMillimeters', 'mm')],
     ['Printer', metadataValue('printerProfile')],
     ['Nozzle', metadataWithUnit('nozzleDiameterMm', 'mm')],
     ['Process', metadataValue('processProfile')],
@@ -1110,6 +1319,7 @@ function renderModelMeta() {
     document.getElementById('summaryPlates').textContent = plateCount
   }
   const meta = document.getElementById('meta')
+  const plateDetailsOpen = meta.querySelector('.plate-print-details')?.open || false
   meta.innerHTML = '<span><strong>File:</strong> ' + escapeHtml(loadedModelInfo.path) + '</span>' +
     (loadedModelInfo.source ? '<span><strong>Source:</strong> ' + escapeHtml(loadedModelInfo.source) + '</span>' : '') +
     '<span><strong>Format:</strong> ' + (stats.format === 'binary' ? 'Binary STL' : stats.format === 'ascii' ? 'ASCII STL' : '3MF') + '</span>' +
@@ -1117,7 +1327,14 @@ function renderModelMeta() {
     '<span><strong>Facets:</strong> ' + stats.facets + '</span>' +
     '<span><strong>Vertices:</strong> ' + stats.vertices + '</span>' +
     (bounds ? '<span><strong>Size (mm):</strong> ' + bounds.size.x.toFixed(1) + ' x ' + bounds.size.y.toFixed(1) + ' x ' + bounds.size.z.toFixed(1) + '</span>' : '') +
+    renderPlatePrintDetails(projectMetadata, { file: loadedModelInfo.path }) +
     printFields.map(([label, value]) => `<span><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</span>`).join('')
+  const plateDetails = meta.querySelector('.plate-print-details')
+  if (plateDetails) plateDetails.open = plateDetailsOpen
+  updateProjectImageActions(loadedModelInfo.path)
+  meta.querySelectorAll('button[data-project-image]').forEach((button) => {
+    void verifyProjectImageButton(button)
+  })
 }
 // Average face normals per welded vertex, but fall back to the face
 // normal across creases so 90-degree corners stay crisp.
