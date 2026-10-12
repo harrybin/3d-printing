@@ -17,7 +17,7 @@ Die Finger sind vorgekrümmte PLA-Flexuren. Sie werden nicht aktiv bewegt; beim 
 | Starre Mechanik | `scripts/mechanism.py` |
 | Totenkopf-Drehknopf | `scripts/skull.py` |
 | Anatomische Hand | `scripts/skeleton_hand.py` |
-| Projekte/Mastermodelle | `scripts/ghouls_grip.py` |
+| Ansichts-/Druckprojekte | `scripts/ghouls_grip.py` |
 | Orca-Projekte | `scripts/export_ghouls_grip_orca_projects.py` |
 | Kollisionsnachweis | `scripts/verify_ghouls_grip_mechanics.py` |
 
@@ -94,7 +94,8 @@ Der Deckel erreicht 108° bereits bei etwa 32° Scherenwinkel und bleibt währen
 
 ## Stückliste
 
-Vier Orca-Projekte enthalten **22 Teiltypen / 35 physische Druckobjekte**.
+Das konsolidierte Orca-Druckprojekt enthält **22 Teiltypen / 35 physische
+Druckobjekte** auf sechs Platten.
 
 | Teil | Anzahl | Maße ungefähr | Farbe |
 | --- | ---: | --- | --- |
@@ -167,13 +168,12 @@ Handgelenkaufnahme; sie ist kein massiver Block. Die Einführsenkung macht die
 
 ## Druckprojekte
 
-- `models/ghouls-grip-master.3mf` – ausgefahrene Montageansicht.
-- `models/ghouls-grip-master-retracted.3mf` – geschlossene Einbaukontrolle.
+- `models/ghouls-grip-view.3mf` – zusammengesetzte Ansichten auf drei Platten:
+  vollständig ausgefahren (78°), Zwischenzustand (48°) und eingefahren (18°).
+- `models/ghouls-grip-print.3mf` – ein Orca-Projekt für alle 35 Druckobjekte
+  mit vier Filament-/Farbzuordnungen auf sechs nach Farbe und Baugruppe
+  gruppierten Druckplatten.
 - `models/ghouls-grip-preview.stl` – Canvas-Vorschau.
-- `models/ghouls-grip-print-black-pla.3mf` – Platte 1 „Schatulle“ stehend, Platte 2 „Deckel auf Hinterkante stehend“; Baumstützen bleiben aktiviert und sind im Druckbericht quantifiziert.
-- `models/ghouls-grip-print-bone-pla.3mf` – Unterarm, Hand und Finger, eine Platte.
-- `models/ghouls-grip-print-mechanism-pla.3mf` – starre Mechanik, zwei Platten.
-- `models/ghouls-grip-print-accent-pla.3mf` – Totenkopf-Drehknopf, eine Platte.
 
 Im geschlossenen Zustand liegt die vollständige interne Deckelmechanik unter
 einer mit dem Deckel vereinigten schwarzen Schutzhaube. Der Montagekanal ist
@@ -185,8 +185,8 @@ Alle Projekte verwenden PLA, Anycubic Kobra S1 0.4, Textured PEI, 0,20 mm Schich
 
 ### Gespeicherte OrcaSlicer-Defaults
 
-Diese Optionen werden beim Generieren aller vier Materialprojekte gesetzt und
-durch `tests/test_ghouls_grip_orca_settings.py` abgesichert:
+Diese Optionen werden im konsolidierten Mehrfarben-Projekt gesetzt und durch
+`tests/test_ghouls_grip_orca_settings.py` abgesichert:
 
 | Option | Gespeicherter Wert |
 | --- | --- |
@@ -199,10 +199,10 @@ durch `tests/test_ghouls_grip_orca_settings.py` abgesichert:
 | XY-Lochkompensation | +0,10 mm |
 | XY-Konturkompensation | 0,00 mm |
 | Elephant-Foot-Kompensation | 0,15 mm |
-| Prime Tower | aus, da jedes Projekt genau eine Farbe/Spule enthält |
+| Prime Tower | aus, da jede Druckplatte nur einer Farbe/Spule zugeordnet ist |
 
-Schwarz, Knochen und Grau verwenden automatische Baumstützen. Das
-Mechanikprojekt verwendet `normal(auto)` mit `snug`, weil Zahnstangen,
+Schwarz, Knochen und Grau verwenden automatische Baumstützen. Die
+naturweißen Mechanikplatten verwenden `normal(auto)` mit `snug`, weil Zahnstangen,
 Rahmenöffnungen und Verbinder damit reproduzierbarer abgestützt werden.
 Objekt-Overrides steuern Wände, Infill, Geschwindigkeit und Beschleunigung;
 kein Override deaktiviert Support.

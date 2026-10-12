@@ -225,8 +225,8 @@ Acceptance requires:
 
 - **Input is STL:** create a settings-bearing OrcaSlicer 3MF for orientation and
   slicing; keep the STL unchanged.
-- **Presentation/master 3MF:** do not overwrite it. Create or update the appropriate
-  printable project while preserving the master assembly.
+- **Assembled view 3MF:** do not overwrite it. Create or update the consolidated
+  printable `-print.3mf` while preserving the multi-state view.
 - **Multiple plates:** baseline and selected evidence are required per plate; do not
   flatten plates.
 - **Multiple materials:** preserve object/volume-to-filament assignments and capture

@@ -185,7 +185,8 @@ Report:
 - output format choice when multi-color/material semantics matter (STL vs 3MF)
 - OrcaSlicer version, selected profiles, print time, material use, layer count,
   support decision, warnings, and `verified | failed | not verified` status
-- master 3MF and print-plate 3MF paths for complex assemblies
+- assembled `-view.3mf` and consolidated `-print.3mf` paths for complex
+  assemblies
 
 ## Mandatory canvas preview after writing an optimized STL
 

@@ -81,8 +81,8 @@ the X axis, followed by dropping the transformed model back to Z=0.
 - Keep color-part boundaries aligned after transforms.
 - If parts are merged, warn user about lost color separability.
 - Preserve keyed assembly features for multi-part color prints.
-- Preserve stable object names, transforms, and material/color body identity for the
-  master and print 3MF files.
+- Preserve stable object names, transforms, and material/color body identity for
+  the assembled `-view.3mf` and consolidated `-print.3mf`.
 - After a Blender roundtrip, compare bounds, component count, and mating datums
   before accepting the transform.
 

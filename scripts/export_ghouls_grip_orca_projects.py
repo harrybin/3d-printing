@@ -1,9 +1,7 @@
-"""Create printable OrcaSlicer project 3MFs for each Ghoul's Grip material.
+"""Create the consolidated printable OrcaSlicer project for Ghoul's Grip.
 
-Unlike the neutral assembly 3MFs, these files embed the Anycubic Kobra S1
-0.4-mm machine profile, a Textured PEI plate, filament profile, process
-settings and per-object strength overrides. OrcaSlicer performs the final
-multi-plate arrangement, so large same-material groups remain directly usable.
+The single project contains one plate group per spool/color and carries each
+part's virtual filament assignment and functional process overrides.
 """
 
 from __future__ import annotations
@@ -28,6 +26,8 @@ MACHINE = PROFILE_ROOT / "machine" / "Anycubic Kobra S1 0.4 nozzle.json"
 BASE_PROCESS = PROFILE_ROOT / "process" / \
     "0.20mm Standard @Anycubic Kobra S1 0.4 nozzle.json"
 METADATA_ENTRY = "Metadata/ghouls_grip_print_metadata.xml"
+PLATE_X_PITCH = 300.0
+PLATE_GRID_COLUMNS = 3
 
 MATERIAL_PROJECTS = {
     "black-pla": {
@@ -88,6 +88,9 @@ MATERIAL_PROJECTS = {
         "filament_type": "PLA", "support": "tree",
     },
 }
+
+PRINT_OUTPUT = MODELS / "ghouls-grip-print.3mf"
+FILAMENT_ORDER = tuple(MATERIAL_PROJECTS)
 
 OBJECT_OVERRIDES = {
     "chest": {
@@ -278,95 +281,268 @@ def _patch_project_settings(path: Path, spec: dict) -> dict:
     return applied
 
 
-def _assign_row_plates(path: Path, spec: dict) -> None:
-    """Convert vertically staged rows into explicit Orca multi-plate metadata."""
-    row_pitch = spec.get("plate_row_pitch")
-    x_pitch = spec.get("plate_x_pitch", 300.0)
-    core = "http://schemas.microsoft.com/3dmanufacturing/core/2015/02"
-    production = "http://schemas.microsoft.com/3dmanufacturing/production/2015/06"
-    ET.register_namespace("", core)
-    ET.register_namespace("p", production)
+def _filament_slot(name: str, material_for) -> int:
+    match = material_for(_base_name(name)).name
+    for index, slug in enumerate(FILAMENT_ORDER):
+        if MATERIAL_PROJECTS[slug]["match"] == match:
+            return index
+    raise RuntimeError(f"No filament slot for {name} ({match})")
 
+
+def _add_metadata(parent: ET.Element, key: str, value: str) -> ET.Element:
+    node = next((item for item in parent.findall("metadata")
+                 if item.get("key") == key), None)
+    if node is None:
+        node = ET.SubElement(parent, "metadata", key=key)
+    node.set("value", value)
+    return node
+
+
+def _write_multi_plate_settings(
+    path: Path,
+    plate_names: list[str],
+    object_plate: dict[str, int],
+    material_for,
+) -> None:
+    """Assign imported objects to their material plate and ACE Pro slot."""
+    core = "http://schemas.microsoft.com/3dmanufacturing/core/2015/02"
     with ZipFile(path) as archive:
         infos = archive.infolist()
         entries = {info.filename: archive.read(info.filename) for info in infos}
 
-    model_key = "3D/3dmodel.model"
-    model = ET.fromstring(entries[model_key])
-    build = model.find(f"{{{core}}}build")
-    if build is None:
-        raise RuntimeError(f"{path.name}: missing 3MF build")
+    model = ET.fromstring(entries["3D/3dmodel.model"])
+    resources = model.find(f"{{{core}}}resources")
+    if resources is None:
+        raise RuntimeError(f"{path.name}: missing 3MF resources")
+    key = "Metadata/model_settings.config"
+    root = ET.fromstring(entries[key])
+    names_by_id = {
+        obj.get("id"): name_node.get("value", "")
+        for obj in root.findall("object")
+        for name_node in obj.findall("metadata")
+        if name_node.get("key") == "name"
+    }
+    ids_by_name = {name: object_id for object_id, name in names_by_id.items()}
+    resource_ids = {
+        obj.get("id")
+        for obj in resources.findall(f"{{{core}}}object")
+    }
+    if (set(object_plate) != set(ids_by_name)
+            or not set(names_by_id).issubset(resource_ids)):
+        missing = sorted(set(object_plate) - set(ids_by_name))
+        unexpected = sorted(set(ids_by_name) - set(object_plate))
+        raise RuntimeError(
+            f"{path.name}: exported object names do not match layout "
+            f"(missing={missing}, unexpected={unexpected})")
 
-    plate_objects: dict[int, list[str]] = {}
-    adjusted_positions: dict[str, tuple[float, float]] = {}
-    for item in build.findall(f"{{{core}}}item"):
-        object_id = item.get("objectid")
-        values = [float(value) for value in item.get("transform", "").split()]
-        if object_id is None or len(values) != 12:
-            raise RuntimeError(f"{path.name}: invalid build transform")
-        plate_index = (
-            max(0, int(values[10] // row_pitch))
-            if row_pitch is not None else 0
-        )
-        if row_pitch is not None:
-            values[9] += plate_index * x_pitch
-            values[10] -= plate_index * row_pitch
-            item.set("transform", " ".join(f"{value:.9g}" for value in values))
-        plate_objects.setdefault(plate_index, []).append(object_id)
-        adjusted_positions[object_id] = (values[9], values[10])
-    entries[model_key] = ET.tostring(
-        model, encoding="utf-8", xml_declaration=True)
-
-    settings_key = "Metadata/model_settings.config"
-    settings = ET.fromstring(entries[settings_key])
-    for obj in settings.findall("object"):
+    ids_by_plate: dict[int, list[str]] = {}
+    found_names: set[str] = set()
+    for obj in root.findall("object"):
+        name_node = next((node for node in obj.findall("metadata")
+                          if node.get("key") == "name"), None)
+        if name_node is None:
+            continue
+        name = name_node.get("value", "")
+        if name not in object_plate:
+            continue
         object_id = obj.get("id")
-        if object_id not in adjusted_positions:
-            continue
-        x_value, y_value = adjusted_positions[object_id]
-        part = obj.find("part")
-        if part is None:
-            continue
-        metadata = {node.get("key"): node for node in part.findall("metadata")}
-        metadata["source_offset_x"].set("value", f"{x_value:.9g}")
-        metadata["source_offset_y"].set("value", f"{y_value:.9g}")
+        if object_id is None:
+            raise RuntimeError(f"{path.name}: object {name} has no ID")
+        slot = _filament_slot(name, material_for)
+        _add_metadata(obj, "extruder", str(slot + 1))
+        _add_metadata(obj, "enable_support", "1")
+        overrides = OBJECT_OVERRIDES.get(_base_name(name), {})
+        for setting, value in overrides.items():
+            _add_metadata(obj, setting, value)
 
-    for old_plate in settings.findall("plate"):
-        settings.remove(old_plate)
-    assemble = settings.find("assemble")
-    insert_at = list(settings).index(assemble) if assemble is not None else len(settings)
-    plate_names = spec.get("plate_names", ())
-    for plate_index, object_ids in sorted(plate_objects.items()):
+        spec = next(
+            MATERIAL_PROJECTS[slug]
+            for slug in FILAMENT_ORDER
+            if MATERIAL_PROJECTS[slug]["match"] == material_for(
+                _base_name(name)).name
+        )
+        if spec.get("support") == "normal":
+            _add_metadata(obj, "support_type", "normal(auto)")
+            _add_metadata(obj, "support_style", "snug")
+        else:
+            _add_metadata(obj, "support_type", "tree(auto)")
+        if spec.get("support_threshold_angle"):
+            _add_metadata(obj, "support_threshold_angle",
+                          spec["support_threshold_angle"])
+        if spec.get("support_critical_regions_only"):
+            _add_metadata(obj, "support_critical_regions_only", "1")
+        if spec.get("bridge_no_support"):
+            _add_metadata(obj, "bridge_no_support", "1")
+        ids_by_plate.setdefault(object_plate[name], []).append(object_id)
+        found_names.add(name)
+
+    if found_names != set(object_plate):
+        missing = sorted(set(object_plate) - found_names)
+        raise RuntimeError(f"{path.name}: missing objects in model settings: {missing}")
+
+    for plate in root.findall("plate"):
+        root.remove(plate)
+    assemble = root.find("assemble")
+    insert_at = list(root).index(assemble) if assemble is not None else len(root)
+    for plate_index, plate_name in enumerate(plate_names):
         plate = ET.Element("plate")
-        for key, value in (
+        for field, value in (
             ("plater_id", str(plate_index + 1)),
-            (
-                "plater_name",
-                plate_names[plate_index]
-                if plate_index < len(plate_names) else "",
-            ),
+            ("plater_name", plate_name),
             ("locked", "false"),
             ("filament_map_mode", "Auto For Flush"),
             ("gcode_file", ""),
         ):
-            ET.SubElement(plate, "metadata", key=key, value=value)
-        for object_id in object_ids:
+            ET.SubElement(plate, "metadata", key=field, value=value)
+        for object_id in ids_by_plate.get(plate_index, []):
             instance = ET.SubElement(plate, "model_instance")
-            ET.SubElement(instance, "metadata", key="object_id", value=object_id)
+            ET.SubElement(instance, "metadata", key="object_id",
+                          value=object_id)
             ET.SubElement(instance, "metadata", key="instance_id", value="0")
             ET.SubElement(instance, "metadata", key="identify_id",
                           value=object_id)
-        settings.insert(insert_at, plate)
+        root.insert(insert_at, plate)
         insert_at += 1
-    entries[settings_key] = ET.tostring(
-        settings, encoding="utf-8", xml_declaration=True)
+    entries[key] = ET.tostring(root, encoding="utf-8", xml_declaration=True)
 
     with ZipFile(path, "w") as archive:
         for info in infos:
             archive.writestr(info, entries[info.filename])
 
 
-def _write_project_metadata(path: Path, spec: dict, checks: dict) -> None:
+def _pack_print_layout(parts: dict, arrange, material_for):
+    """Build one source scene and retain material-specific plate grouping."""
+    scene_items = []
+    plate_names: list[str] = []
+    object_plate: dict[str, int] = {}
+    for slug, spec in MATERIAL_PROJECTS.items():
+        selected = {
+            name: mesh for name, mesh in parts.items()
+            if material_for(name).name == spec["match"]
+        }
+        if spec.get("include") is not None:
+            selected = {
+                name: mesh for name, mesh in selected.items()
+                if _base_name(name) in spec["include"]
+            }
+        selected = {
+            name: mesh for name, mesh in selected.items()
+            if _base_name(name) not in spec.get("exclude", set())
+        }
+        if not selected:
+            raise RuntimeError(f"No parts assigned to filament slot {slug}")
+        items = arrange(
+            selected,
+            gap=spec.get("manual_gap", 6.0),
+            margin=spec.get("bed_margin", 0.0),
+        )
+        row_pitch = spec.get("plate_row_pitch")
+        local_indices = {
+            name: max(0, int(mesh.centroid[1] // row_pitch))
+            if row_pitch is not None else 0
+            for name, mesh, _material, _transform in items
+        }
+        group_names = sorted(set(local_indices.values()))
+        for local_index in group_names:
+            global_index = len(plate_names)
+            local_name = spec.get("plate_names", ())
+            suffix = (
+                local_name[local_index]
+                if local_index < len(local_name)
+                else f"Plate {local_index + 1}"
+            )
+            color_name = spec["match"].split(" - ")[0]
+            plate_names.append(f"{color_name} - {suffix}")
+            for name, mesh, material, transform in items:
+                if local_indices[name] != local_index:
+                    continue
+                if name in object_plate:
+                    raise RuntimeError(f"Duplicate print object name: {name}")
+                local_y = local_index * row_pitch if row_pitch else 0.0
+                placed = mesh.copy()
+                placed.apply_translation([0.0, 0.0, -placed.bounds[0, 2]])
+                normalized = placed.copy()
+                normalized.apply_translation([0.0, -local_y, 0.0])
+                if (normalized.bounds[0, 0] < -0.01
+                        or normalized.bounds[0, 1] < -0.01
+                        or normalized.bounds[1, 0] > 250.01
+                        or normalized.bounds[1, 1] > 250.01):
+                    raise RuntimeError(
+                        f"{name} does not fit its 250 mm plate: "
+                        f"{normalized.extents.tolist()}"
+                    )
+                pitch = spec.get("plate_x_pitch", PLATE_X_PITCH)
+                plate_column = global_index % PLATE_GRID_COLUMNS
+                plate_row = global_index // PLATE_GRID_COLUMNS
+                normalized.apply_translation([
+                    plate_column * pitch,
+                    -plate_row * pitch,
+                    0.0,
+                ])
+                scene_items.append((name, normalized, material, transform))
+                object_plate[name] = global_index
+    if len(scene_items) != len(object_plate):
+        raise RuntimeError("Print layout contains duplicate or missing objects")
+    return scene_items, plate_names, object_plate
+
+
+def _expand_filament_settings(project: dict) -> None:
+    """Populate four virtual ACE Pro slots from the same installed PLA preset."""
+    specs = [MATERIAL_PROJECTS[slug] for slug in FILAMENT_ORDER]
+    colors = [spec["color"].upper() for spec in specs]
+    profile = specs[0]["filament"].removesuffix(".json")
+    for key, value in list(project.items()):
+        if (key.startswith("filament_") and isinstance(value, list)
+                and value):
+            project[key] = [value[0]] * len(specs)
+    project["default_filament_profile"] = [profile] * len(specs)
+    project["default_filament_colour"] = colors
+    project["extruder_colour"] = colors
+    project["filament_colour"] = colors
+    project["filament_settings_id"] = [profile] * len(specs)
+    project["filament_type"] = ["PLA"] * len(specs)
+    project["filament_map"] = [str(index + 1) for index in range(len(specs))]
+    project["filament_self_index"] = [
+        str(index + 1) for index in range(len(specs))
+    ]
+    project["filament_printable"] = ["3"] * len(specs)
+    project["filament_is_support"] = ["0"] * len(specs)
+    project["print_extruder_id"] = [str(index + 1)
+                                    for index in range(len(specs))]
+    project["printer_extruder_id"] = [str(index + 1)
+                                      for index in range(len(specs))]
+
+
+def _patch_combined_project(path: Path) -> None:
+    with ZipFile(path) as archive:
+        infos = archive.infolist()
+        entries = {info.filename: archive.read(info.filename) for info in infos}
+    key = "Metadata/project_settings.config"
+    project = json.loads(entries[key].decode("utf-8"))
+    spec = {
+        "wall_loops": "4", "infill": "25%", "speed": "standard",
+        "filament_type": "PLA", "support": "tree",
+    }
+    project.update(_process_settings(spec))
+    _expand_filament_settings(project)
+    project["enable_prime_tower"] = "0"
+    changed = set(project.get("different_settings_to_system", ["", "", ""])[1].split(";"))
+    changed.update({
+        "default_filament_colour", "default_filament_profile",
+        "extruder_colour", "filament_colour", "filament_settings_id",
+        "filament_map", "filament_self_index", "filament_type",
+        "print_extruder_id", "printer_extruder_id",
+    })
+    current = project.get("different_settings_to_system", ["", "", ""])
+    current[1] = ";".join(sorted(changed - {""}))
+    project["different_settings_to_system"] = current
+    entries[key] = json.dumps(project, indent=2).encode("utf-8")
+    with ZipFile(path, "w") as archive:
+        for info in infos:
+            archive.writestr(info, entries[info.filename])
+
+
+def _write_project_metadata(path: Path, checks: dict) -> None:
     """Add a stable, slicer-neutral summary for the canvas and other tools.
 
     Orca remains authoritative for calculated time/material values.  Until a
@@ -391,19 +567,18 @@ def _write_project_metadata(path: Path, spec: dict, checks: dict) -> None:
         "layerHeightMm": checks["layer_height"],
         "filamentProfile": ", ".join(checks["filament"]) if isinstance(
             checks["filament"], list) else checks["filament"],
-        "materialType": spec["filament_type"],
-        "materialColorName": spec["match"],
-        "materialColorHex": spec["color"].upper(),
+        "materialType": "PLA",
+        "materialColorName": "Four separate PLA colors",
+        "materialColorHex": ", ".join(
+            MATERIAL_PROJECTS[slug]["color"].upper()
+            for slug in FILAMENT_ORDER
+        ),
         "bedType": checks["bed"],
-        "wallLoops": spec["wall_loops"],
-        "infillDensity": spec["infill"],
-        "supportPolicy": spec.get(
-            "metadata_support_policy", spec.get("support", "none")),
-        "supportCriticalRegionsOnly": str(
-            bool(spec.get(
-                "metadata_support_critical",
-                spec.get("support_critical_regions_only")))).lower(),
-        "supportThresholdAngleDeg": spec.get("support_threshold_angle", "unknown"),
+        "wallLoops": "Per-object overrides",
+        "infillDensity": "Per-object overrides",
+        "supportPolicy": "Automatic; object-specific tree/normal",
+        "supportCriticalRegionsOnly": "object-specific",
+        "supportThresholdAngleDeg": "object-specific",
         "plateCount": str(checks["plates"]),
     }
     root = ET.Element("ghouls-grip-print-metadata", version="1")
@@ -422,7 +597,12 @@ def _write_project_metadata(path: Path, spec: dict, checks: dict) -> None:
             archive.writestr(METADATA_ENTRY, entries[METADATA_ENTRY])
 
 
-def _verify_project(path: Path, expected_objects: int) -> dict:
+def _verify_combined_project(
+    path: Path,
+    expected_objects: int,
+    expected_plates: int,
+    material_for,
+) -> dict:
     with ZipFile(path) as archive:
         project = json.loads(archive.read(
             "Metadata/project_settings.config").decode("utf-8"))
@@ -454,79 +634,92 @@ def _verify_project(path: Path, expected_objects: int) -> dict:
         raise RuntimeError(f"{path.name}: wrong bed: {checks['bed']}")
     if checks["layer_height"] != "0.2":
         raise RuntimeError(f"{path.name}: wrong layer height")
-    expected_color = [MATERIAL_PROJECTS[
-        path.stem.removeprefix("ghouls-grip-print-")]["color"].upper()]
+    expected_color = [
+        MATERIAL_PROJECTS[slug]["color"].upper() for slug in FILAMENT_ORDER
+    ]
     if checks["color"] != expected_color:
         raise RuntimeError(
             f"{path.name}: wrong filament color: {checks['color']}")
-    if len(objects) != expected_objects or not plates:
+    if (len(objects) != expected_objects
+            or len(plates) != expected_plates):
         raise RuntimeError(f"{path.name}: object/plate count mismatch {checks}")
     expected_ids = sorted(obj.get("id") for obj in objects)
     if (sorted(assigned_object_ids) != expected_ids
             or len(assigned_object_ids) != len(set(assigned_object_ids))):
         raise RuntimeError(
             f"{path.name}: incomplete or duplicate plate assignments")
+    if not all(project.get(key) == "1" for key in (
+            "enable_support",)) \
+            or project.get("seam_position") != "random" \
+            or project.get("ironing_type") != "top":
+        raise RuntimeError(f"{path.name}: missing required print defaults")
+    profile = MATERIAL_PROJECTS[FILAMENT_ORDER[0]]["filament"].removesuffix(
+        ".json")
+    if (project.get("filament_settings_id") != [profile] * len(FILAMENT_ORDER)
+            or project.get("filament_type") != ["PLA"] * len(FILAMENT_ORDER)):
+        raise RuntimeError(f"{path.name}: filament profiles are incomplete")
+    for obj in objects:
+        name_node = next((node for node in obj.findall("metadata")
+                          if node.get("key") == "name"), None)
+        extruder_node = next((node for node in obj.findall("metadata")
+                              if node.get("key") == "extruder"), None)
+        if name_node is None or extruder_node is None:
+            raise RuntimeError(f"{path.name}: missing object filament mapping")
+        expected_slot = _filament_slot(name_node.get("value", ""), material_for)
+        if extruder_node.get("value") != str(expected_slot + 1):
+            raise RuntimeError(
+                f"{path.name}: incorrect filament slot for "
+                f"{name_node.get('value')}")
     return checks
 
 
-def export_material_projects(parts, write_3mf, arrange, material_for) -> list[Path]:
+def export_print_project(parts, write_3mf, arrange, material_for) -> list[Path]:
     required = [ORCA_BIN, MACHINE, BASE_PROCESS]
     missing = [str(path) for path in required if not path.is_file()]
     if missing:
         raise RuntimeError("OrcaSlicer Kobra S1 profiles missing: " + ", ".join(missing))
 
-    outputs = []
-    with tempfile.TemporaryDirectory(prefix="ghouls-grip-orca-") as temp_name:
+    scene_items, plate_names, object_plate = (
+        _pack_print_layout(parts, arrange, material_for)
+    )
+    if not plate_names:
+        raise RuntimeError("The print project has no plates")
+    with tempfile.TemporaryDirectory(
+            prefix="ghouls-grip-orca-", dir=MODELS) as temp_name:
         temp = Path(temp_name)
-        for slug, spec in MATERIAL_PROJECTS.items():
-            selected = {name: mesh for name, mesh in parts.items()
-                        if material_for(name).name == spec["match"]}
-            include = spec.get("include")
-            exclude = spec.get("exclude", set())
-            if include is not None:
-                selected = {name: mesh for name, mesh in selected.items()
-                            if _base_name(name) in include}
-            selected = {name: mesh for name, mesh in selected.items()
-                        if _base_name(name) not in exclude}
-            if not selected:
-                raise RuntimeError(f"No parts assigned to material project {slug}")
-            source = temp / f"{slug}-source.3mf"
-            manual_gap = spec.get("manual_gap")
-            write_3mf(source, arrange(
-                selected,
-                gap=manual_gap if manual_gap is not None else 6.0,
-                margin=spec.get("bed_margin", 0.0),
-            ))
-            filament = PROFILE_ROOT / "filament" / spec["filament"]
-            output = MODELS / f"ghouls-grip-print-{slug}.3mf"
-            output.unlink(missing_ok=True)
-            cmd = [
-                str(ORCA_BIN), "--load-settings", f"{MACHINE};{BASE_PROCESS}",
-                "--load-filaments", str(filament),
-                "--arrange", "0" if manual_gap is not None else "1",
-                "--orient", "0", "--ensure-on-bed",
-                "--export-3mf", str(output), str(source),
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True,
-                                    timeout=600)
-            deadline = time.time() + 20.0
-            while not output.is_file() and time.time() < deadline:
-                time.sleep(0.25)
-            if result.returncode or not output.is_file():
-                raise RuntimeError(
-                    f"Orca export failed for {slug} (exit {result.returncode})\n"
-                    f"stdout: {result.stdout[-2000:]}\n"
-                    f"stderr: {result.stderr[-2000:]}")
-            applied = _patch_project_settings(output, spec)
-            _assign_row_plates(output, spec)
-            checks = _verify_project(output, len(selected))
-            _write_project_metadata(output, spec, checks)
-            if spec.get("object_overrides") and len(applied) != len(selected):
-                raise RuntimeError(
-                    f"{output.name}: object overrides {len(applied)}/{len(selected)}")
-            print(f"orca-project {output.name}: {checks}")
-            outputs.append(output)
-    return outputs
+        source = temp / "ghouls-grip-print-source.3mf"
+        staged_output = temp / PRINT_OUTPUT.name
+        write_3mf(source, scene_items)
+        filament = PROFILE_ROOT / "filament" / \
+            MATERIAL_PROJECTS[FILAMENT_ORDER[0]]["filament"]
+        cmd = [
+            str(ORCA_BIN), "--load-settings", f"{MACHINE};{BASE_PROCESS}",
+            "--load-filaments", ";".join(
+                [str(filament)] * len(FILAMENT_ORDER)),
+            "--arrange", "0", "--orient", "0", "--ensure-on-bed",
+            "--export-3mf", str(staged_output), str(source),
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True,
+                                timeout=600)
+        deadline = time.time() + 20.0
+        while not staged_output.is_file() and time.time() < deadline:
+            time.sleep(0.25)
+        if result.returncode or not staged_output.is_file():
+            raise RuntimeError(
+                f"Orca export failed (exit {result.returncode})\n"
+                f"stdout: {result.stdout[-2000:]}\n"
+                f"stderr: {result.stderr[-2000:]}")
+        _patch_combined_project(staged_output)
+        _write_multi_plate_settings(
+            staged_output, plate_names, object_plate, material_for,
+        )
+        checks = _verify_combined_project(
+            staged_output, len(scene_items), len(plate_names), material_for)
+        _write_project_metadata(staged_output, checks)
+        PRINT_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+        os.replace(staged_output, PRINT_OUTPUT)
+        print(f"orca-project {PRINT_OUTPUT.name}: {checks}")
+    return [PRINT_OUTPUT]
 
 
 if __name__ == "__main__":

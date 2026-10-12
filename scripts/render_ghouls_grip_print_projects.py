@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+from xml.etree import ElementTree as ET
+from zipfile import ZipFile
 
 import trimesh
 import vedo
@@ -13,42 +15,83 @@ ROOT = Path(__file__).resolve().parents[1]
 MODELS = ROOT / "models"
 OUT = ROOT / "docs" / "images"
 BED = 250.0
-PLATE_PITCH = 300.0
-
-PROJECTS = {
-    "black": (
-        MODELS / "ghouls-grip-print-black-pla.3mf",
-        "#202124",
-        ("ghouls-grip-slice-black-plate-1.png",
-         "ghouls-grip-slice-black-plate-2.png"),
-    ),
-    "bone": (
-        MODELS / "ghouls-grip-print-bone-pla.3mf",
-        "#D8C6A5",
-        ("ghouls-grip-slice-bone.png",),
-    ),
-    "mechanism": (
-        MODELS / "ghouls-grip-print-mechanism-pla.3mf",
-        "#F1EBDD",
-        ("ghouls-grip-slice-mechanism-plate-1.png",
-         "ghouls-grip-slice-mechanism-plate-2.png"),
-    ),
-    "accent": (
-        MODELS / "ghouls-grip-print-accent-pla.3mf",
-        "#777777",
-        ("ghouls-grip-slice-accent.png",),
-    ),
-}
+PLATE_X_PITCH = 300.0
+PLATE_GRID_COLUMNS = 3
+PROJECT = MODELS / "ghouls-grip-print.3mf"
+PLATES = (
+    ("Black PLA - chest", "#202124",
+     "ghouls-grip-slice-black-plate-1.png"),
+    ("Black PLA - lid", "#202124",
+     "ghouls-grip-slice-black-plate-2.png"),
+    ("Bone-beige PLA", "#D8C6A5", "ghouls-grip-slice-bone.png"),
+    ("Natural-white PLA - mechanism", "#F1EBDD",
+     "ghouls-grip-slice-mechanism-plate-1.png"),
+    ("Natural-white PLA - connectors", "#F1EBDD",
+     "ghouls-grip-slice-mechanism-plate-2.png"),
+    ("Gray PLA", "#777777", "ghouls-grip-slice-accent.png"),
+)
 
 
 def _plate_meshes(path: Path) -> dict[int, list[trimesh.Trimesh]]:
     scene = trimesh.load(path, force="scene")
+    core = "http://schemas.microsoft.com/3dmanufacturing/core/2015/02"
+    with ZipFile(path) as archive:
+        model = ET.fromstring(archive.read("3D/3dmodel.model"))
+        settings = ET.fromstring(archive.read("Metadata/model_settings.config"))
+
+    component_by_object = {}
+    for obj in model.findall(f".//{{{core}}}resources/{{{core}}}object"):
+        component = obj.find(f"{{{core}}}components/{{{core}}}component")
+        if component is not None:
+            component_by_object[obj.get("id", "")] = component.get(
+                "objectid", "")
+    object_by_component = {
+        component_id: object_id
+        for object_id, component_id in component_by_object.items()
+    }
+
+    object_plate = {}
+    for plate_index, plate in enumerate(settings.findall("plate")):
+        for instance in plate.findall("model_instance"):
+            object_id = next(
+                (node.get("value") for node in instance.findall("metadata")
+                 if node.get("key") == "object_id"),
+                None,
+            )
+            if object_id is not None:
+                if object_id in object_plate:
+                    raise RuntimeError(
+                        f"{path.name}: object {object_id} is on multiple plates")
+                object_plate[object_id] = plate_index
+
     plates: dict[int, list[trimesh.Trimesh]] = {}
-    for mesh in scene.dump(concatenate=False):
-        plate = int(mesh.centroid[0] // PLATE_PITCH)
+    for node in scene.graph.nodes_geometry:
+        object_id = object_by_component.get(str(node))
+        if object_id is None or object_id not in object_plate:
+            raise RuntimeError(
+                f"{path.name}: no plate assignment for mesh node {node}")
+        transform, geometry_name = scene.graph.get(node)
+        mesh = scene.geometry[geometry_name].copy()
+        mesh.apply_transform(transform)
+        plate = object_plate[object_id]
+        plate_column = plate % PLATE_GRID_COLUMNS
+        plate_row = plate // PLATE_GRID_COLUMNS
+        mesh.apply_translation([
+            -plate_column * PLATE_X_PITCH,
+            plate_row * PLATE_X_PITCH,
+            0.0,
+        ])
+        if (mesh.bounds[0, 0] < -0.01 or mesh.bounds[0, 1] < -0.01
+                or mesh.bounds[1, 0] > BED + 0.01
+                or mesh.bounds[1, 1] > BED + 0.01):
+            raise RuntimeError(
+                f"{path.name}: mesh node {node} is outside its plate: "
+                f"{mesh.bounds.tolist()}")
         local = mesh.copy()
-        local.apply_translation([-plate * PLATE_PITCH, 0.0, 0.0])
         plates.setdefault(plate, []).append(local)
+    if len(object_plate) != sum(map(len, plates.values())):
+        raise RuntimeError(
+            f"{path.name}: plate metadata and mesh node counts differ")
     return plates
 
 
@@ -109,19 +152,18 @@ def _overview(paths: list[tuple[str, Path]]) -> None:
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
+    plates = _plate_meshes(PROJECT)
+    if sorted(plates) != list(range(len(PLATES))):
+        raise RuntimeError(
+            f"{PROJECT.name}: expected {len(PLATES)} plates, "
+            f"found {sorted(plates)}"
+        )
     rendered: list[tuple[str, Path]] = []
-    for material, (project, color, filenames) in PROJECTS.items():
-        plates = _plate_meshes(project)
-        if len(plates) != len(filenames):
-            raise RuntimeError(
-                f"{project.name}: expected {len(filenames)} plates, "
-                f"found {len(plates)}"
-            )
-        for plate, filename in zip(sorted(plates), filenames):
-            output = OUT / filename
-            _render_plate(plates[plate], color, output)
-            rendered.append((f"{material} - plate {plate + 1}", output))
-            print(output)
+    for plate, (label, color, filename) in enumerate(PLATES):
+        output = OUT / filename
+        _render_plate(plates[plate], color, output)
+        rendered.append((label, output))
+        print(output)
     _overview(rendered)
     print(OUT / "ghouls-grip-slice-overview.png")
 

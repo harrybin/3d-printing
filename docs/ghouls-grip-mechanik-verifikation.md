@@ -18,7 +18,7 @@ Geprüft wird die starre, manuell reversible Kraftkette: Drehbarer Totenkopf -> 
 | D-Wellen-Einsetzsweep | 0.000 mm³ |
 | Totenkopf-Drehweg | 113.54° |
 | Einzelkörper je Druckteil | {'scissor-arm': 1, 'slider': 1, 'lid-follower-rack': 1, 'platform': 1, 'drive-pinion': 1, 'lid-rack': 1, 'lid-crank': 1, 'scissor-drive-gear': 1, 'idler-gear': 1, 'forearm-output-gear': 1, 'forearm': 1, 'chest': 1, 'lid': 1} |
-| Laufzeit | 425.0 s |
+| Laufzeit | 852.0 s |
 | Sweep hand_chest | 0.000 mm³ |
 | Sweep hand_lid | 0.000 mm³ |
 | Sweep hand_platform | 0.000 mm³ |

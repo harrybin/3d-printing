@@ -76,7 +76,9 @@ Before the print settings interview:
 
 10. Is this a complex assembly or does it require multiple print orientations?
    - No: normal STL/3MF output
-   - Yes: require assembled `master.3mf` plus print-optimized 3MF plate files
+   - Yes: require an assembled `view.3mf` plus one combined `print.3mf` with
+     all material groups and print plates; meaningful mechanism states use
+     additional plates in the view file.
 
 11. Does the part have overhangs greater than 45°?
 

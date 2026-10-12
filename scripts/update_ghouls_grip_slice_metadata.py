@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import re
 import time
+import json
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from zipfile import ZipFile
@@ -13,19 +14,26 @@ ROOT = Path(__file__).resolve().parents[1]
 MODELS = ROOT / "models"
 SLICES = ROOT / "build" / "ghoul-final-slices"
 METADATA_ENTRY = "Metadata/ghouls_grip_print_metadata.xml"
-PROJECTS = {
-    "black-pla": ("black-pla",),
-    "bone-pla": ("bone-pla",),
-    "mechanism-pla": ("mechanism-pla",),
-    "accent-pla": ("accent-pla",),
-}
+PROJECT = MODELS / "ghouls-grip-print.3mf"
+PLATES = (
+    ("Schatulle - Schatulle", "black", 0),
+    ("Schatulle - Deckel auf Hinterkante stehend", "black", 0),
+    ("Knochen - Plate 1", "bone", 1),
+    ("Mechanik - Mechanik-Hauptteile", "mechanism", 2),
+    ("Mechanik - Zahnraeder und Verbinder", "mechanism", 2),
+    ("Totenkopf-Ausloeser - Plate 1", "accent", 3),
+)
 
 
-def _number(text: str, label: str) -> float:
-    match = re.search(rf"; {re.escape(label)} = ([0-9.]+)", text)
+def _number(text: str, label: str, filament_index: int) -> float:
+    match = re.search(rf"; {re.escape(label)} = ([0-9., ]+)", text)
     if not match:
         raise RuntimeError(f"Missing {label}")
-    return float(match.group(1))
+    values = [value.strip() for value in match.group(1).split(",")]
+    if filament_index >= len(values):
+        raise RuntimeError(
+            f"Missing filament {filament_index + 1} in {label}")
+    return float(values[filament_index])
 
 
 def _seconds(text: str) -> int:
@@ -71,15 +79,18 @@ def _support_filament_mm(text: str) -> float:
     return total
 
 
-def _stats(paths: list[Path]) -> dict[str, str]:
+def _stats(paths: list[tuple[Path, int]]) -> dict[str, str]:
     totals = {"seconds": 0, "millimetres": 0.0, "cubic_mm": 0.0, "grams": 0.0}
     support_mm = 0.0
-    for path in paths:
+    for path, filament_index in paths:
         text = path.read_text(encoding="utf-8", errors="replace")
         totals["seconds"] += _seconds(text)
-        totals["millimetres"] += _number(text, "filament used [mm]")
-        totals["cubic_mm"] += _number(text, "filament used [cm3]") * 1000.0
-        totals["grams"] += _number(text, "filament used [g]")
+        totals["millimetres"] += _number(
+            text, "filament used [mm]", filament_index)
+        totals["cubic_mm"] += _number(
+            text, "filament used [cm3]", filament_index) * 1000.0
+        totals["grams"] += _number(
+            text, "filament used [g]", filament_index)
         support_mm += _support_filament_mm(text)
     # Derive the support share from the slicer's own mm-to-mass ratio instead
     # of assuming a filament density.
@@ -132,18 +143,56 @@ def _patch(project: Path, values: dict[str, str]) -> None:
 
 
 def main() -> None:
-    for slug, directories in PROJECTS.items():
-        paths = [
-            path
-            for directory in directories
-            for path in sorted((SLICES / directory).glob("plate_*.gcode"))
-        ]
-        if not paths:
-            raise RuntimeError(f"No G-code found for {slug}")
-        values = _stats(paths)
-        project = MODELS / f"ghouls-grip-print-{slug}.3mf"
-        _patch(project, values)
-        print(project.name, values)
+    paths = [
+        (SLICES / "print" / f"plate_{index}.gcode", plate[2])
+        for index, plate in enumerate(PLATES, start=1)
+    ]
+    missing = [str(path) for path, _slot in paths if not path.is_file()]
+    if missing:
+        raise RuntimeError("Missing final plate G-code: " + ", ".join(missing))
+
+    overall = _stats(paths)
+    by_color: dict[str, dict[str, int | float]] = {}
+    plate_details = []
+    for (path, slot), (plate_name, color, _slot) in zip(paths, PLATES):
+        if slot != _slot:
+            raise RuntimeError(f"Filament mapping mismatch for {plate_name}")
+        stats = _stats([(path, slot)])
+        totals = by_color.setdefault(color, {
+            "seconds": 0,
+            "grams": 0.0,
+            "support_grams": 0.0,
+            "plates": 0,
+        })
+        totals["seconds"] += int(stats["estimatedPrintTimeSeconds"])
+        totals["grams"] += float(stats["filamentUsageGrams"])
+        totals["support_grams"] += float(stats["supportFilamentGrams"])
+        totals["plates"] += 1
+        plate_details.append({
+            "name": plate_name,
+            **stats,
+        })
+    color_names = {
+        "black": "Black PLA",
+        "bone": "Bone-beige PLA",
+        "mechanism": "Natural-white PLA",
+        "accent": "Gray PLA",
+    }
+    per_color = {
+        color_names[color]: {
+            "estimatedPrintTimeSeconds": int(values["seconds"]),
+            "filamentUsageGrams": round(float(values["grams"]), 2),
+            "supportFilamentGrams": round(float(values["support_grams"]), 2),
+            "plateCount": values["plates"],
+        }
+        for color, values in by_color.items()
+    }
+    overall["filamentUsageByColor"] = json.dumps(
+        per_color, sort_keys=True, separators=(",", ":"))
+    overall["plateDetails"] = json.dumps(
+        plate_details, sort_keys=True, separators=(",", ":"))
+    _patch(PROJECT, overall)
+    print(PROJECT.name, overall)
 
 
 if __name__ == "__main__":

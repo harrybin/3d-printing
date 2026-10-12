@@ -38,6 +38,7 @@ SCISSOR_Y = mechanism.SCISSOR_Y
 
 POSES = {
     "retracted": mechanism.THETA_MIN,
+    "intermediate": 48.0,
     "deployed": mechanism.THETA_MAX,
 }
 BLACK_COLOR = "#202124"
@@ -254,6 +255,10 @@ def render(pose: str) -> Path:
         cam = dict(pos=(470.0, -620.0, top * 0.92),
                    focal_point=(-10.0, 0.0, top * 0.44), viewup=(0, 0, 1))
         size = (1150, 1450)
+    elif pose == "intermediate":
+        cam = dict(pos=(350.0, -560.0, top + 150.0),
+                   focal_point=(-10.0, 0.0, top * 0.40), viewup=(0, 0, 1))
+        size = (1150, 1250)
     else:
         cam = dict(pos=(300.0, -420.0, 300.0),
                    focal_point=(-10.0, 0.0, 55.0), viewup=(0, 0, 1))
@@ -267,5 +272,6 @@ def render(pose: str) -> Path:
 
 
 if __name__ == "__main__":
-    for which in (sys.argv[1:] or ["deployed", "retracted"]):
+    for which in (sys.argv[1:] or [
+            "deployed", "intermediate", "retracted"]):
         render(which)

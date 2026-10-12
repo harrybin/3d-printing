@@ -148,19 +148,19 @@ test('lays overlapping plates side by side without mutating individual plates', 
 test('all-plates summary retains whole-project totals and exposes plate count', () => {
   const metadata = {
     status: 'verified',
-    estimatedPrintTimeSeconds: '49988',
-    filamentUsageGrams: '330.96',
-    supportFilamentGrams: '17.98',
-    filamentUsageMillimeters: '110966.48',
+    estimatedPrintTimeSeconds: '88554',
+    filamentUsageGrams: '521.72',
+    supportFilamentGrams: '55.09',
+    filamentUsageMillimeters: '174923.38',
     materialType: 'PLA',
     plateCount: '2',
   }
   assert.deepEqual(formatPrintMetadataSummary(metadata), {
     visible: true,
-    printTime: '13 h 53 min',
-    materialUsage: '330.96 g PLA',
-    supportUsage: '17.98 g',
-    filamentLength: '110966.48 mm',
+    printTime: '24 h 36 min',
+    materialUsage: '521.72 g PLA',
+    supportUsage: '55.09 g',
+    filamentLength: '174923.38 mm',
     status: 'verified',
   })
   assert.match(APP_HTML, /value="all">All plates<\/option>/)

@@ -39,17 +39,20 @@ named machine, process and filament preset. Stop with a clear message when
   mesh.
 - For multi-material files, verify object-to-filament mapping and include a
   preview that shows the material regions.
-- For complex assemblies, preserve the assembled presentation 3MF separately and
-  create one printable OrcaSlicer project 3MF per material/spool group. A project
-  may contain multiple plates when all same-material parts cannot fit the 250 mm
-  bed together.
-- Every printable project must embed the exact Anycubic Kobra S1 0.4 mm machine
-  preset, explicit Textured PEI bed, matching filament preset, global process
-  settings tuned to that material, complete BOM quantities, and per-object
-  overrides for functional differences such as pins versus shells. Verify these
-  values from `Metadata/project_settings.config` and
-  `Metadata/model_settings.config`; a neutral 3MF with only mesh/color metadata
-  is not print-ready.
+- For a complex assembly, preserve one assembled `-view.3mf` separately from one
+  consolidated, printable `-print.3mf`. Put all parts and spool groups in the
+  print project; same-material/color parts should share plates when safe. Use
+  additional plates inside that same file for bed limits, orientation, support
+  clearance or print-risk isolation, rather than creating per-material projects.
+  If it has a mechanism, the view file should show meaningful states on separate
+  plates.
+- The single printable project must embed the exact Anycubic Kobra S1 0.4 mm
+  machine preset, explicit Textured PEI bed, each matching filament preset,
+  per-object filament mapping, complete BOM quantities, material/process
+  settings, and per-object overrides for functional differences such as pins
+  versus shells. Verify these values from `Metadata/project_settings.config`
+  and `Metadata/model_settings.config`; a neutral 3MF with only mesh/color
+  metadata is not print-ready.
 - Unless a project documents a specific exception, generated OrcaSlicer 3MFs
   must set `seam_position=random`, `ironing_type=top` ("All top surfaces") and
   `enable_support=1`. Verify all three keys in
@@ -73,9 +76,9 @@ named machine, process and filament preset. Stop with a clear message when
 
 - 0.20 mm layer height, 0.4 mm nozzle.
 - Random seam position and ironing on all top surfaces.
-- Every part is printed in PLA; only the filament colour changes between the
-  four spool-group projects. Bone parts and fingers share bone-beige PLA and one
-  plate. Do not reintroduce PETG or TPU without asking.
+- Every part is printed in PLA using four color/spool assignments in the single
+  project. Bone parts and fingers share bone-beige PLA and one plate. Do not
+  reintroduce PETG or TPU without asking.
 - Rigid shells and mechanism: 4-5 walls, 20-40 % Gyroid.
 - PLA film-hinge fingers: 2 walls so the 0.8 mm web is exactly two perimeters,
   15 % Gyroid, 30 mm/s outer wall, reduced acceleration.

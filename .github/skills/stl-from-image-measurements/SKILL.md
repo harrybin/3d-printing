@@ -241,7 +241,13 @@ If the reference indicates multiple materials, inserts, coatings, or color regio
 2. If yes, preserve them as separate solids/regions and switch the final deliverable format to **3MF**.
 3. If no, document that the output is intentionally merged and proceed with STL-compatible geometry.
 4. Never finalize as STL when distinct material/color semantics are explicitly required.
-5. For a complex multi-part assembly, keep the assembled 3MF separate and create one print-ready OrcaSlicer project 3MF per actual material/spool group. Embed the current printer, explicit bed, filament and material process settings, plus object-level overrides and complete repeated-part quantities; split into multiple internal plates when required by the bed.
+5. For a complex multi-part assembly, deliver an assembled `-view.3mf` and one
+   print-ready OrcaSlicer `-print.3mf` containing all material/color/spool
+   assignments, complete repeated-part quantities and object-level overrides.
+   Group same-material/color parts on shared plates when safe; use multiple
+   plates inside the print project instead of one 3MF per material. The print
+   file must embed the current printer, explicit bed, filament profiles and
+   material process settings.
 
 ### 6. Compose or edit the output geometry
 
@@ -260,9 +266,10 @@ Python; Blender may change only the approved organic regions. Revalidate scale,
 component count, datums, topology, and feature probes after every Blender export.
 
 When material/color regions must remain distinct, invoke
-`multimaterial-assembly-packaging`: produce an assembled master 3MF plus
-print-optimized 3MF files, and prefer separately printed keyed color bodies when
-that reduces purge without unacceptable visual or structural loss.
+`multimaterial-assembly-packaging`: produce one assembled multi-state
+`-view.3mf` and one settings-bearing `-print.3mf` with all print plates, and
+prefer separately printed keyed color bodies when that reduces purge without
+unacceptable visual or structural loss.
 
 Allowed operations include:
 
@@ -432,7 +439,8 @@ Before finishing, provide:
 - final relation measurements between objects in mm
 - the material-semantics decision and resulting output format choice (STL or 3MF)
 - printability findings and any accepted risks
-- master 3MF, print-plate 3MF, and optional part-STL paths for complex outputs
+- `-view.3mf`, consolidated `-print.3mf`, and optional part-STL paths for
+  complex outputs
 - OrcaSlicer version, profile names, print time, material use, support decision,
   warnings, and validation status
 - whether the mesh was centered or origin-aligned and by which convention

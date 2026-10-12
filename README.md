@@ -13,10 +13,9 @@ A collection of ASCII STL models for the Anycubic Kobra S1 Combo + ACE Pro (250 
 | `models/zylinder_scheibe_2026_2027.stl` | Cylindrical/washer-style reference part |
 | `models/lampe-5-rahmen.3mf` | Multi-material frame for the 240 mm number-5 wall lamp |
 | `models/lampe-5-leuchtflaechen.stl` | All four translucent lamp panels arranged together on the 250 × 250 mm bed |
-| `models/ghouls-grip-master.3mf` | Multi-material deployed master assembly of the mechanical Halloween candy-box ([dimensions and assembly](docs/ghouls-grip-masse-und-bauanleitung.md)) |
-| `models/ghouls-grip-master-retracted.3mf` | Closed-lid/retracted master assembly for cavity and clearance inspection |
-| `models/ghouls-grip-print-*.3mf` | Four print-ready OrcaSlicer projects, exactly one per PLA colour/spool and six plates in total. Black uses separate chest and lid plates; the lid stands on its rear edge. Natural-white mechanism parts use two plates, while forearm, palm and all five fingers share one bone-beige plate. Every project embeds Anycubic Kobra S1, Textured PEI, filament/process settings, complete quantities and verified print metadata. |
-| `models/ghouls-grip-preview.stl` | Assembly-only multi-body preview; printable parts live in the print 3MF projects and regenerate from `scripts/` |
+| `models/ghouls-grip-view.3mf` | Assembled multi-material view on three plates: deployed, intermediate at a 48° scissor angle, and retracted ([dimensions and assembly](docs/ghouls-grip-masse-und-bauanleitung.md)) |
+| `models/ghouls-grip-print.3mf` | One settings-bearing OrcaSlicer project with all four PLA color/spool assignments, 35 print objects and six plates. Same-color parts are grouped; each plate retains its Anycubic Kobra S1/Textured PEI settings, filament mapping, process overrides and verified slice metadata. |
+| `models/ghouls-grip-preview.stl` | Deployed assembly-only multi-body preview; printable parts regenerate from `scripts/` |
 | `model-sources/ghouls-grip/ghouls-grip-master.blend` | Blender CLI/MCP scene checkpoint; technical objects are frozen and organic objects are separately marked |
 
 ### The Ghoul's Grip: final project contract
@@ -31,15 +30,20 @@ and crank sit below a sealed black service hood with a continuous 2.0 mm roof;
 only its assembly cavity opens toward the inside of the chest. The intended
 external skull knob remains accessible at the front.
 
-The four material projects contain **35 physical objects on six plates**:
+The consolidated print project contains **35 physical objects on six plates**:
 
-| Project | Plates | Main contents | Verified material / support / time |
+| Plate group | Plates | Main contents | Verified material / support / time |
 | --- | ---: | --- | ---: |
-| Black PLA | 2 | chest; lid standing on rear edge | 330.96 g / 17.98 g / 13 h 53 min |
-| Bone-beige PLA | 1 | forearm, socketed palm, five flexure fingers | 42.82 g / 12.51 g / 3 h 12 min |
-| Natural-white PLA | 2 | complete rigid mechanism, gears, shafts and pivot pins | 122.76 g / 16.69 g / 6 h 18 min |
-| Gray PLA | 1 | anatomical skull drive knob | 20.30 g / 8.21 g / 1 h 16 min |
-| **Total** | **6** | **complete print BOM** | **516.84 g / 55.39 g / 24 h 39 min** |
+| Black PLA | 2 | chest; lid standing on rear edge | 331.68 g / 17.87 g / 13 h 59 min |
+| Bone-beige PLA | 1 | forearm, socketed palm, five flexure fingers | 43.35 g / 12.43 g / 3 h 16 min 29 s |
+| Natural-white PLA | 2 | complete rigid mechanism, gears, shafts and pivot pins | 122.86 g / 16.84 g / 5 h 48 min 58 s |
+| Gray PLA | 1 | anatomical skull drive knob | 23.83 g / 7.95 g / 1 h 31 min 27 s |
+| **Total** | **6** | **complete print BOM** | **521.72 g / 55.09 g / 24 h 35 min 54 s** |
+
+Complex projects follow the two-file convention: `-view.3mf` is the assembled
+overview (with additional state plates for mechanisms), and `-print.3mf` is the
+single all-material print project. Same-color parts share plates when safe;
+additional plate count never creates additional print-project files.
 
 All generated OrcaSlicer projects use these repository defaults unless a
 documented part-specific override is required:
@@ -200,7 +204,7 @@ If the fit is too tight or too loose, adjust `HOLE_DIA` / `PRESS_CLEAR` in
 | `optimize-stl-for-print` | Optimizes a correct mesh for printing: orientation for load direction, overhang and bridge reduction, hole/elephant-foot compensation, bed layout and filament estimate. |
 | `orcaslicer-support-minimization` | Compares stable-datum orientation candidates in OrcaSlicer to minimize support while preserving Kobra S1 profiles, material grouping, plate semantics, strength, fit, and source STL authority; geometry changes remain suggestions only. |
 | `orcaslicer-print-validation` | Performs the final slicer gate and records exact profiles, print time, material use, supports, warnings, status, and plate previews. |
-| `multimaterial-assembly-packaging` | Builds an assembled master 3MF plus print-optimized 3MF plates, favoring keyed separately printed color parts to reduce purge waste. |
+| `multimaterial-assembly-packaging` | Builds one assembled multi-state view 3MF and one consolidated print 3MF with all plates, favoring keyed separately printed color parts to reduce purge waste. |
 | `.github/skills/README.md` *(meta)* | Skills library index for reusable procedures: which rules are maintained in which skills and how new findings should be categorized. |
 
 ## Central consistency matrix
@@ -224,7 +228,7 @@ If the fit is too tight or too loose, adjust `HOLE_DIA` / `PRESS_CLEAR` in
 | Python vs Blender | `blender-assisted-modeling` | Python owns fit-critical geometry; Blender owns approved organic and visual regions, followed by independent export validation. |
 | Delivered-project support minimization | `orcaslicer-support-minimization` | Compare candidates from one frozen baseline, run OrcaSlicer sequentially, preserve materials/plates, and write the selected transform to 3MF rather than overwriting a generator STL. |
 | Final slicing | `orcaslicer-print-validation` | Do not claim print time or final print readiness without a successful slice using the intended profiles. |
-| Complex and multicolor packaging | `multimaterial-assembly-packaging` | Deliver an assembled master 3MF and print-optimized 3MF plates; prefer separately printed keyed colors when practical. |
+| Complex and multicolor packaging | `multimaterial-assembly-packaging` | Deliver exactly one multi-state `-view.3mf` and one all-plates `-print.3mf`; group same-color parts on shared plates and prefer keyed color bodies when practical. |
 
 ## Blender and OrcaSlicer workflow
 
@@ -236,13 +240,16 @@ visual edits. The two paths may be combined, but Blender exports are always trea
 as external meshes and must pass the same scale, topology, feature and render
 checks as any downloaded model.
 
-Every new complex assembly is delivered as `models/<name>-master.3mf` plus one or
-more `models/<name>-print-<plate-or-material>.3mf` files. OrcaSlicer is the final
-print gate: each print plate is sliced with the intended Kobra S1, nozzle, process
-and filament profiles, and the resulting print time, material estimate, supports
-and warnings are documented. When colors can be separated without unacceptable
-loss of appearance or strength, keyed separately printed bodies are preferred over
-purge-heavy in-place multicolor printing.
+Every new complex assembly is delivered as `models/<name>-view.3mf` plus one
+`models/<name>-print.3mf`. The view file contains the assembled object, with
+meaningful mechanism states on additional plates; the single print project
+contains all material/spool mappings and print plates, grouping same-color parts
+when safe. OrcaSlicer is the final print gate: each print plate is sliced with
+the intended Kobra S1, nozzle, process and filament profiles, and the resulting
+print time, material estimate, supports and warnings are documented. When colors
+can be separated without unacceptable loss of appearance or strength, keyed
+separately printed bodies are preferred over purge-heavy in-place multicolor
+printing.
 
 The project MCP template is `.vscode/mcp.json`. Blender uses the official Blender
 Lab MCP server through a local `uv` installation. OrcaSlicer is configured as an
