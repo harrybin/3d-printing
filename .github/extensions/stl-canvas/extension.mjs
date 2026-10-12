@@ -6,7 +6,7 @@ import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { inflateRawSync } from "node:zlib";
 import { joinSession, createCanvas, CanvasError } from "@github/copilot-sdk/extension";
-import { compose3mfTransforms, transform3mfPoint as apply3mfTransform } from "./viewer-app.mjs";
+import { compose3mfTransforms, transform3mfPoint as apply3mfTransform, orcaMaterialAssignments } from "./viewer-app.mjs";
 import { launchOrcaSlicer, validateOrcaModelPath } from "./orca-launcher.mjs";
 import { createModelApiPayload, handleOrcaOpenRequest } from "./canvas-server-helpers.mjs";
 
@@ -298,14 +298,15 @@ function xmlAttribute(tag, name) {
     return tag.match(new RegExp(`(?:^|\\s)(?:[\\w.-]+:)?${name}="([^"]*)"`))?.[1] || "";
 }
 
-function parse3mfDocument(xml, transform, triangles, triangleColors) {
+function parse3mfDocument(xml, transform, triangles, triangleColors, assignment) {
     const materials = [...xml.matchAll(/<base\b[^>]*\bdisplaycolor="(#[0-9A-Fa-f]{6})(?:[0-9A-Fa-f]{2})?"[^>]*\/>/g)]
         .map((match) => match[1]);
     for (const object of xml.matchAll(/<object\b[\s\S]*?<\/object>/g)) {
         const verticesBlock = object[0].match(/<vertices>([\s\S]*?)<\/vertices>/);
         if (!verticesBlock) continue;
         const materialIndex = Number(object[0].match(/<object\b[^>]*\bpindex="(\d+)"/)?.[1]);
-        const color = materials[materialIndex] || "#d6d9de";
+        const objectId = xmlAttribute(object[0].match(/<object\b[^>]*>/)[0], "id");
+        const color = assignment?.parts.get(objectId) || assignment?.color || materials[materialIndex] || "#d6d9de";
         const vertices = [...verticesBlock[1].matchAll(/<vertex\b[^>]*\bx="([^"]+)"[^>]*\by="([^"]+)"[^>]*\bz="([^"]+)"[^>]*\/>/g)]
             .map((match) => transform3mfPoint([Number(match[1]), Number(match[2]), Number(match[3])], transform));
         for (const triangle of object[0].matchAll(/<triangle\b[^>]*\bv1="(\d+)"[^>]*\bv2="(\d+)"[^>]*\bv3="(\d+)"[^>]*\/>/g)) {
@@ -367,6 +368,30 @@ function parse3mfBuffer(buffer) {
     parse3mfDocument(rootXml, null, triangles, triangleColors);
     const projectMetadata = parse3mfProjectMetadata(buffer);
     const plateAssignments = parse3mfPlateAssignments(buffer);
+    const optionalEntry = (path) => {
+        try {
+            return readZipEntry(buffer, path).toString("utf8");
+        } catch (error) {
+            if (error.message === `3MF entry not found: ${path}`) return null;
+            throw error;
+        }
+    };
+    const settingsXml = optionalEntry("Metadata/model_settings.config");
+    const projectJson = optionalEntry("Metadata/project_settings.config");
+    const node = (localName, tag, children = []) => ({
+        localName, children, getAttribute: (name) => xmlAttribute(tag, name),
+    });
+    const metadataNodes = (xml) => [...xml.matchAll(/<metadata\b[^>]*\/?>/g)]
+        .map((match) => node("metadata", match[0]));
+    const objects = [...(settingsXml || "").matchAll(/<object\b([^>]*)>([\s\S]*?)<\/object>/g)]
+        .map((match) => node("object", match[1], [
+            ...metadataNodes(match[2].replace(/<part\b[\s\S]*?<\/part>/g, "")),
+            ...[...match[2].matchAll(/<part\b([^>]*)>([\s\S]*?)<\/part>/g)]
+                .map((part) => node("part", part[1], metadataNodes(part[2]))),
+        ]));
+    const assignments = projectJson
+        ? orcaMaterialAssignments({ documentElement: { children: objects } }, JSON.parse(projectJson))
+        : new Map();
     const plateGroups = new Map();
 
     const componentsByObject = new Map();
@@ -393,7 +418,7 @@ function parse3mfBuffer(buffer) {
         const xml = readZipEntry(buffer, component.path).toString("utf8");
         const itemTriangles = [];
         const itemColors = [];
-        parse3mfDocument(xml, transform, itemTriangles, itemColors);
+        parse3mfDocument(xml, transform, itemTriangles, itemColors, assignments.get(objectId));
         triangles.push(...itemTriangles);
         triangleColors.push(...itemColors);
         const plateId = plateAssignments.get(objectId) || "1";
@@ -462,6 +487,7 @@ function renderHtml(title, defaultFile, openInOrcaNonce) {
         modelsApiUrl: "/api/models",
         modelApiUrl: "/api/model",
         modelDownloadApiUrl: "/api/model-file",
+        projectImageApiUrl: "/api/project-image",
         openInOrcaApiUrl: "/api/open-in-orca",
         openInOrcaNonce,
     }));
@@ -553,6 +579,44 @@ async function startServer(modelPath) {
                 res.setHeader("Content-Type", "text/plain; charset=utf-8");
                 res.end(String(err));
             }
+            return;
+        }
+        if (url.pathname === "/api/project-image") {
+            if (req.method !== "GET" && req.method !== "HEAD") {
+                res.statusCode = 405;
+                res.setHeader("Allow", "GET, HEAD");
+                res.end("Method not allowed");
+                return;
+            }
+            const imagePath = url.searchParams.get("path") || "";
+            const prefix = "docs/images/";
+            const filename = imagePath.startsWith(prefix) ? imagePath.slice(prefix.length) : "";
+            if (!filename || filename.includes("/") || filename.includes("\\") ||
+                /[\u0000-\u001f]/.test(filename) || !/\.png$/i.test(filename)) {
+                res.statusCode = 400;
+                res.setHeader("Content-Type", "text/plain; charset=utf-8");
+                res.end("Invalid project image path");
+                return;
+            }
+            const resolved = resolve(process.cwd(), "docs", "images", filename);
+            let imageSize;
+            try {
+                const stat = statSync(resolved);
+                if (stat.isFile()) imageSize = stat.size;
+            } catch {
+                imageSize = undefined;
+            }
+            if (imageSize === undefined) {
+                res.statusCode = 404;
+                res.setHeader("Content-Type", "text/plain; charset=utf-8");
+                res.end("Project image not found");
+                return;
+            }
+            res.setHeader("Content-Type", "image/png");
+            res.setHeader("Cache-Control", "no-store");
+            res.setHeader("Content-Length", String(imageSize));
+            if (req.method === "HEAD") res.end();
+            else res.end(readFileSync(resolved));
             return;
         }
         if (url.pathname === "/api/open-in-orca") {

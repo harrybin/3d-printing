@@ -48,6 +48,24 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .meta-panel[open] > summary::after { transform: rotate(180deg); }
 #meta { max-height: calc(min(42vh, 360px) - 33px); overflow: auto; padding: 8px 10px 10px; border-top: 1px solid #30363d; font-size: 12px; line-height: 1.45; color: #b1bac4; display: flex; flex-wrap: wrap; gap: 5px 14px; }
 #meta strong { color: #e6edf3; font-weight: 600; }
+.plate-print-details { flex: 1 0 100%; min-width: 0; border-top: 1px solid #30363d; padding-top: 8px; }
+.plate-print-details > summary { cursor: pointer; padding: 4px 0; color: #e6edf3; font-weight: 600; }
+.plate-print-details > summary:focus-visible,
+.plate-table-scroll:focus-visible { outline: 2px solid var(--color-focus-outline, #58a6ff); outline-offset: 2px; }
+.plate-table-scroll { max-width: 100%; overflow-x: auto; margin-top: 8px; }
+.plate-print-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+.plate-print-table caption { text-align: left; padding-bottom: 8px; color: #b1bac4; }
+.plate-print-table th,
+.plate-print-table td { padding: 8px; border-bottom: 1px solid #30363d; vertical-align: top; }
+.plate-print-table th { color: #e6edf3; }
+.plate-print-table td { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.plate-print-table th[scope="row"] { min-width: 100px; overflow-wrap: anywhere; }
+.plate-data-notice { flex: 1 0 100%; margin: 8px 0 0; }
+.plate-support-preview { white-space: nowrap; }
+.project-image-dialog { width: min(96vw, 1440px); max-width: 96vw; max-height: 94vh; padding: 10px; border: 1px solid #30363d; border-radius: 10px; background: #0d1117; color: #e6edf3; }
+.project-image-dialog::backdrop { background: rgba(1, 4, 9, .78); }
+.project-image-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.project-image-dialog img { display: block; max-width: 100%; max-height: calc(94vh - 60px); object-fit: contain; margin: 0 auto; }
 @media (max-width: 760px) {
   .toolbar { align-items: stretch; }
   .tool-drawer { margin-left: 0; }

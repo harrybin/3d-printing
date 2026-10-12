@@ -112,6 +112,13 @@ Provide:
 
 - a rendered assembled view showing the view-3MF states
 - a slicer preview of every print plate
+- one complete-project preview sidecar for each delivered 3MF at
+  `docs/images/<3mf-stem>-preview.png`, with the material/color regions visible
+- one actual-G-code support-path screenshot per successfully sliced plate at
+  `docs/images/<3mf-stem>-plate-<n>-supports.png`; show no-support results
+  explicitly, and do not invent images for unsliced plates
+- project-preview and per-plate support-preview buttons in the Canvas/Web
+  viewers, including inside each expandable per-plate print-details section
 - the bill of parts and assembly order
 - any required hardware, adhesive, or post-processing
 - remaining fit or color-alignment risk

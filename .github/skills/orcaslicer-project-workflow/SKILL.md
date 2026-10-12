@@ -71,6 +71,17 @@ named machine, process and filament preset. Stop with a clear message when
   fields. Use `unknown` and `status=not-verified` until a successful slice
   provides measured values; never invent estimates. The STL Canvas displays
   these fields.
+- Render a complete-project preview for every 3MF as
+  `docs/images/<3mf-stem>-preview.png`; multi-material project previews must
+  preserve visible material/color regions.
+- For every plate actually sliced, render a support-path image named
+  `docs/images/<3mf-stem>-plate-<n>-supports.png` from that plate's G-code.
+  Show an explicit no-support result when the G-code has no support extrusion;
+  never synthesize support paths for an unsliced plate.
+- The shared STL Canvas and Web viewer expose project-preview and per-plate
+  support-preview buttons, including within expandable per-plate print
+  details. Missing image assets must hide the action or disable it with an
+  explanation; the web build copies these sidecars from `docs/images/`.
 
 ## Ghoul's Grip defaults
 
