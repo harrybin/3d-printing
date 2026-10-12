@@ -14,8 +14,8 @@ A collection of ASCII STL models for the Anycubic Kobra S1 Combo + ACE Pro (250 
 | `models/lampe-5-rahmen.3mf` | Multi-material frame for the 240 mm number-5 wall lamp |
 | `models/lampe-5-leuchtflaechen.stl` | All four translucent lamp panels arranged together on the 250 × 250 mm bed |
 | `models/modellauto-reifen.stl` / `models/modellauto-reifen-print.3mf` | Completed PLA toy-car replacement tyre, 37.2 mm diameter × 26 mm width; [archived measurements and print notes](docs/modellauto-reifen-masse.md) |
-| `models/ghouls-grip-view.3mf` | Assembled multi-material view on three plates: deployed, intermediate at a 48° scissor angle, and retracted ([dimensions and assembly](docs/ghouls-grip-masse-und-bauanleitung.md)) |
-| `models/ghouls-grip-print.3mf` | One settings-bearing OrcaSlicer project with four PLA color/spool assignments and 37 objects on the user's preserved five plates. The rear-wall correction adds two small lid-transfer gears without moving the original 35 objects or resetting their settings. See the recorded slice/profile status and the separate existing floor-pivot interference before printing. |
+| `models/ghouls-grip-view.3mf` | Assembled multi-material view on three plates: deployed, intermediate at a 48° scissor angle, and retracted ([project preview](docs/images/ghouls-grip-view-preview.png); [dimensions and assembly](docs/ghouls-grip-masse-und-bauanleitung.md)) |
+| `models/ghouls-grip-print.3mf` | One settings-bearing OrcaSlicer project with four PLA color/spool assignments and 37 objects on the user's preserved five plates ([all-plate preview](docs/images/ghouls-grip-print-preview.png)). The rear-wall correction adds two small lid-transfer gears without moving the original 35 objects or resetting their settings. See [slice/profile status](docs/ghouls-grip-druckvalidierung.md) and the separate existing floor-pivot interference before printing. |
 | `models/ghouls-grip-preview.stl` | Deployed assembly-only multi-body preview; printable parts regenerate from `scripts/` |
 | `model-sources/ghouls-grip/ghouls-grip-master.blend` | Blender CLI/MCP scene checkpoint; technical objects are frozen and organic objects are separately marked |
 
@@ -31,16 +31,17 @@ and crank sit below a sealed black service hood with a continuous 2.0 mm roof;
 only its assembly cavity opens toward the inside of the chest. The intended
 external skull knob remains accessible at the front.
 
-The consolidated print project contains **35 physical objects on six plates**:
+The current user-edited print project contains **35 physical objects on five plates**.
+The file has been sliced with OrcaSlicer CLI 2.4.2; its saved profile settings
+differ from repository defaults, so print-profile compliance is not verified.
 
-| Plate group | Plates | Main contents | Verified material / support / time |
+| Plate group | Plates | Main contents | Slice material / support / time |
 | --- | ---: | --- | ---: |
-| Black PLA | 2 | chest; lid standing on rear edge | 331.68 g / 17.87 g / 13 h 59 min |
-| Bone-beige PLA | 1 | forearm, socketed palm, five flexure fingers | 43.35 g / 12.43 g / 3 h 16 min 29 s |
-| Natural-white PLA | 2 | complete rigid mechanism, gears, shafts and pivot pins | 122.86 g / 16.84 g / 5 h 48 min 58 s |
-| Gray PLA | 1 | anatomical skull drive knob | 23.83 g / 7.95 g / 1 h 31 min 27 s |
-| **Total** | **6** | **complete print BOM** | **521.72 g / 55.09 g / 24 h 35 min 54 s** |
-
+| Black PLA | 1 | chest and lid | 336.98 g / 6.46 g / 12 h 03 min 47 s |
+| Bone-beige PLA | 1 | forearm, palm, five flexure fingers | 43.51 g / 5.90 g / 3 h 04 min 12 s |
+| Natural-white PLA | 2 | complete mechanism, gears, shafts and pivot pins | 122.66 g / 12.66 g / 5 h 16 min 17 s |
+| Gray PLA | 1 | anatomical skull drive knob | 24.05 g / 3.40 g / 1 h 11 min 05 s |
+| **Total** | **5** | **35 print objects** | **527.20 g / 28.42 g / 21 h 35 min 21 s** |
 Complex projects follow the two-file convention: `-view.3mf` is the assembled
 overview (with additional state plates for mechanisms), and `-print.3mf` is the
 single all-material print project. Same-color parts share plates when safe;
@@ -60,6 +61,16 @@ self-supporting geometry and a successful slice, never from switching support
 generation off. The exact per-plate support quantities and measured orientation
 comparisons are recorded in
 [`docs/ghouls-grip-druckvalidierung.md`](docs/ghouls-grip-druckvalidierung.md).
+Every 3MF also has a complete-project preview at
+`docs/images/<3mf-stem>-preview.png`. After a successful slice, each sliced plate
+has a G-code-derived support screenshot at
+`docs/images/<3mf-stem>-plate-<n>-supports.png`; both the Canvas and Web viewer
+provide buttons for these images, including in the expandable per-plate details.
+The current print-project preview shows all five plates and their material
+grouping:
+
+![Ghoul's Grip complete print project, all five plates](docs/images/ghouls-grip-print-preview.png)
+
 Assembly order, connector use and dimensions are in
 [`docs/ghouls-grip-masse-und-bauanleitung.md`](docs/ghouls-grip-masse-und-bauanleitung.md);
 the full swept-volume proof is in
@@ -84,6 +95,10 @@ The final print gate uses OrcaSlicer's official CLI. `.vscode/mcp.json` supports
 the official Blender Lab MCP through a user-local `BLENDER_MCP_DIR`, bound to
 `127.0.0.1:9876`. The third-party OrcaSlicer MCP entry remains disabled; official
 Orca CLI slicing is authoritative. See [`docs/mcp-setup.md`](docs/mcp-setup.md).
+Render complete 3MF project previews with
+`.\.venv\Scripts\python.exe scripts\render_3mf_previews.py`; after a successful
+plate slice, render color-coded plate previews and G-code support-path screenshots
+with the corresponding scripts in `scripts/`.
 Printer control remains disabled unless explicitly requested.
 
 ## Example: From Photo to Printable STL
@@ -293,16 +308,21 @@ Erweiterung, zeigt also lokale Vorschauen konsistent im Web und im Agent-UI an.
 
 - 3D-Vorschau für **STL und 3MF** aus `models/`
 - Mehrplattige 3MF-Dateien öffnen standardmäßig mit **All plates**:
-  alle Platten nebeneinander mit Projekt-Gesamtwerten und Plattenzahl.
+  alle Platten mit Projekt-Gesamtwerten und Plattenzahl.
   Build-/Komponenten-Transformationen und OrcaSlicer-`plater_id` bleiben
-  erhalten; vorhandene Plattenabstände werden übernommen, überlappende
-  Platten ohne Grid-Offsets mit Abstand in einer Reihe angeordnet.
+  erhalten; mehr als zwei Platten werden nur in der Gesamtansicht in einem
+  Grid mit Abstand angeordnet. Zwei Platten stehen nebeneinander.
   Einzelplatten bleiben auswählbar; Reload derselben Datei behält die Auswahl,
   ein Dateiwechsel setzt sie auf **All plates** zurück.
+- Materialfarben aus OrcaSlicers Filamentpalette und Objekt-/Teilzuweisungen;
+  Standard-3MF-Materialfarben bleiben der Fallback für andere 3MF-Dateien.
 - kompakte, ständig sichtbare Druckübersicht für Zeit, Gesamtmaterial,
-  Stützmaterial, Filamentlänge und Validierungsstatus
+  Stützmaterial, Filamentlänge und Validierungsstatus **aller Plates**,
+  auch wenn eine einzelne Plate ausgewählt ist
 - einklappbares Detail-Overlay rechts unten mit Profil, Farbe, Bett, Wänden,
-  Infill, Supportart, Plattenzahl und vollständigen Projektmetadaten
+  Infill, Supportart, Plattenzahl und vollständigen Projektmetadaten sowie
+  einer separat aufklappbaren Tabelle **Print data by plate** mit Druckzeit,
+  Material, Stützmaterial, Filamentlänge und Status pro Plate
 - ein einziges einklappbares Menü für Reload/Auto-Reload, Zoom, Shading,
   Wireframe, Ansichten, Modellrotation, Hilfsanzeigen und Messwerkzeuge
 - lokaler Canvas-Button **Open in OrcaSlicer**, der genau die aktuell gewählte

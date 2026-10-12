@@ -20,6 +20,13 @@ body {
   color: #e6edf3;
 }
 
+.print-summary {
+  --text-color-default: #e6edf3;
+  --text-color-muted: #9da7b3;
+  --background-color-muted: #161b22;
+  --border-color-default: #30363d;
+}
+
 button,
 input,
 select,

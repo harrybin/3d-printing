@@ -5,10 +5,12 @@ import {
   APP_HTML,
   createOrcaLaunchRequest,
   createOrcaSlicerOpenUrl,
-  formatPlateBreakdown,
   formatPrintMetadataSummary,
+  plateSupportImagePath,
+  projectPreviewImagePath,
+  renderPlatePrintDetails,
   layoutPlateOverview,
-  renderPlateBreakdown,
+  orcaMaterialAssignments,
   selectDefaultPlate,
 } from '../../.github/extensions/stl-canvas/viewer-app.mjs'
 
@@ -79,8 +81,96 @@ test('reports no support material when the slice needed none', () => {
   assert.equal(summary.supportUsage, 'none')
   assert.equal(
     formatPrintMetadataSummary({ status: 'not-verified' }).supportUsage,
-    'none',
+    'not available',
   )
+})
+
+test('renders per-plate details without substituting project totals', () => {
+  const metadata = {
+    filamentUsageGrams: '999',
+    plateDetails: JSON.stringify([
+      { name: 'Plate 1 - Black PLA', estimatedPrintTimeSeconds: '43427',
+        filamentUsageGrams: '336.98', supportFilamentGrams: '18.41',
+        filamentUsageMillimeters: '112982.82', status: 'not-verified' },
+      { name: 'Plate 4', estimatedPrintTimeSeconds: '3492',
+        filamentUsageGrams: '9.66', supportFilamentGrams: '0.00',
+        filamentUsageMillimeters: '3238.45', status: 'verified' },
+    ]),
+  }
+  const html = renderPlatePrintDetails(metadata)
+  assert.match(html, /<details class="plate-print-details">/)
+  assert.match(html, /Print data by plate \(2\)/)
+  assert.match(html, /336.98 g/)
+  assert.match(html, /18.41 g/)
+  assert.match(html, /3238.45 mm/)
+  assert.match(html, /<td>none<\/td>/)
+  assert.doesNotMatch(html, /999/)
+})
+
+test('resolves project and per-plate screenshot sidecars from a 3MF filename', () => {
+  assert.equal(
+    projectPreviewImagePath('models/ghouls-grip-print.3mf'),
+    'docs/images/ghouls-grip-print-preview.png',
+  )
+  assert.equal(
+    plateSupportImagePath('ghouls-grip-print.3mf', 5),
+    'docs/images/ghouls-grip-print-plate-5-supports.png',
+  )
+  assert.equal(projectPreviewImagePath('part.stl'), '')
+  assert.equal(plateSupportImagePath('part.3mf', 0), '')
+  assert.equal(plateSupportImagePath('part.3mf', 'not-a-plate'), '')
+})
+
+test('offers support screenshot buttons inside the expandable per-plate details', () => {
+  const html = renderPlatePrintDetails({
+    plateDetails: JSON.stringify([
+      { name: 'Plate 1 - Black PLA', status: 'verified' },
+      { name: 'Plate 2 - Bone PLA', status: 'verified' },
+    ]),
+  }, { file: 'ghouls-grip-print.3mf' })
+  assert.match(html, /<details class="plate-print-details">/)
+  assert.match(html, /<th scope="col">Support preview<\/th>/)
+  assert.match(html, /ghouls-grip-print-plate-1-supports\.png/)
+  assert.match(html, /ghouls-grip-print-plate-2-supports\.png/)
+})
+
+test('reports missing or invalid per-plate metadata and escapes plate names', () => {
+  assert.equal(renderPlatePrintDetails({}), '')
+  assert.match(renderPlatePrintDetails({ status: 'not-verified' }), /not available/)
+  assert.match(renderPlatePrintDetails({ plateDetails: '{' }), /invalid plateDetails/)
+  assert.match(renderPlatePrintDetails({ plateDetails: '[null]' }), /expected plate records/)
+  assert.match(renderPlatePrintDetails({ plateDetails: '[]' }), /No per-plate/)
+  const html = renderPlatePrintDetails({ plateDetails: [{ name: '<img onerror="x">' }] })
+  assert.match(html, /&lt;img/)
+  assert.doesNotMatch(html, /<img/)
+  assert.match(html, /not available/)
+})
+
+test('rounds print time without producing sixty-minute fields and keeps numeric zero', () => {
+  const summary = formatPrintMetadataSummary({
+    estimatedPrintTimeSeconds: 3599, filamentUsageGrams: 0,
+    filamentUsageMillimeters: 0, supportFilamentGrams: 0,
+  })
+
+  assert.equal(summary.printTime, '1 h 0 min')
+  assert.equal(summary.materialUsage, '0 g')
+  assert.equal(summary.filamentLength, '0 mm')
+  assert.equal(summary.supportUsage, 'none')
+})
+
+test('merged per-plate table includes support lengths without duplicating the breakdown', () => {
+  const html = renderPlatePrintDetails({ plateDetails: JSON.stringify([
+    { name: 'Black shells', supportFilamentMillimeters: '700' },
+    { name: 'Bone parts', supportFilamentMillimeters: 0 },
+    { name: 'Unknown', supportFilamentMillimeters: -1 },
+  ]) }, { file: 'ghouls-grip-print.3mf' })
+  assert.match(APP_HTML, /All plates · project total/)
+  assert.match(html, /Support length/)
+  assert.match(html, /700\.00 mm/)
+  assert.match(html, /0\.00 mm/)
+  assert.doesNotMatch(html, /-1\.00 mm/)
+  assert.equal((html.match(/<details /g) || []).length, 1)
+  assert.equal((html.match(/data-project-image=/g) || []).length, 3)
 })
 
 test('posts the exact Windows model path to the local OrcaSlicer endpoint', () => {
@@ -130,21 +220,54 @@ test('preserves baked Orca row/grid offsets and all component transforms', () =>
   const row = [makePlate('1'), makePlate('2', 300)]
   const grid = [...row, makePlate('3', 0, -300), makePlate('4', 300, -300)]
   assert.equal(layoutPlateOverview(row), row)
-  assert.equal(layoutPlateOverview(grid), grid)
+  assert.deepEqual(layoutPlateOverview(grid).map((plate) => plate.triangles), grid.map((plate) => plate.triangles))
   assert.deepEqual(row[1].triangles[0][0], [300, 0, 3])
 })
 
-test('lays overlapping plates side by side without mutating individual plates', () => {
+test('lays overlapping plates in a grid without mutating individual plates', () => {
   const input = [makePlate('1'), makePlate('2', 10, 20), makePlate('3', 0, 0, 400)]
   const before = structuredClone(input)
   const overview = layoutPlateOverview(input)
   assert.deepEqual(input, before)
   assert.deepEqual(overview[0].triangles, input[0].triangles)
-  assert.deepEqual(overview[1].triangles[0], [[300, 0, 3], [400, 0, 3], [300, 100, 10]])
-  assert.deepEqual(overview[2].triangles[0], [[525, 0, 3], [925, 0, 3], [525, 100, 10]])
+  assert.deepEqual(overview[1].triangles[0], [[450, 0, 3], [550, 0, 3], [450, 100, 10]])
+  assert.deepEqual(overview[2].triangles[0], [[-150, -300, 3], [250, -300, 3], [-150, -200, 10]])
   assert.equal(overview[1].triangleColors, input[1].triangleColors)
   assert.equal(overview[2].stats.facets, 1)
   assert.deepEqual(overview[2].stats.bounds.size, { x: 400, y: 100, z: 7 })
+})
+
+test('reflows five or six baked line plates into a three-column grid', () => {
+  for (const count of [5, 6]) {
+    const input = Array.from({ length: count }, (_, index) => makePlate(String(index + 1), index * 300))
+    const before = structuredClone(input)
+    const output = layoutPlateOverview(input)
+    assert.deepEqual(input, before)
+    assert.deepEqual(output.map((plate) => plate.triangles[0][0]), [
+      [0, 0, 3], [300, 0, 3], [600, 0, 3],
+      [0, -300, 3], [300, -300, 3], ...(count === 6 ? [[600, -300, 3]] : []),
+    ])
+  }
+})
+
+function xmlNode(localName, attributes = {}, children = []) {
+  return { localName, children, getAttribute: (name) => attributes[name] ?? null }
+}
+
+test('reads Orca one-based filament slots and part overrides, including inherited zero', () => {
+  const meta = (value) => xmlNode('metadata', { key: 'extruder', value })
+  const doc = { documentElement: xmlNode('config', {}, [
+    xmlNode('object', { id: '52' }, [meta('3'), xmlNode('part', { id: '51' }, [meta('0')])]),
+    xmlNode('object', { id: '4' }, [meta('1'), xmlNode('part', { id: '3' }, [meta('2')])]),
+    xmlNode('object', { id: '8' }, [meta('9')]),
+  ]) }
+  const assignments = orcaMaterialAssignments(doc, { filament_colour: ['#202124', '#D8C6A5FF', '#F1EBDD'] })
+  assert.equal(assignments.get('52').color, '#f1ebdd')
+  assert.equal(assignments.get('52').parts.get('51'), '#f1ebdd')
+  assert.equal(assignments.get('4').color, '#202124')
+  assert.equal(assignments.get('4').parts.get('3'), '#d8c6a5')
+  assert.equal(assignments.get('8').color, null)
+  assert.equal(orcaMaterialAssignments(doc, {}).get('4').color, null)
 })
 
 test('all-plates summary retains whole-project totals and exposes plate count', () => {
@@ -165,84 +288,6 @@ test('all-plates summary retains whole-project totals and exposes plate count', 
     filamentLength: '174923.38 mm',
     status: 'verified',
   })
-  assert.match(APP_HTML, /All plates · project total/)
   assert.match(APP_HTML, /value="all">All plates<\/option>/)
   assert.match(APP_HTML, /id="summaryPlates"/)
-})
-
-test('formats every plate from project metadata independently of plate selection', () => {
-  const metadata = {
-    plateDetails: JSON.stringify([
-      {
-        name: 'Black shells',
-        status: 'verified',
-        estimatedPrintTimeSeconds: '3600',
-        filamentUsageGrams: '45.50',
-        filamentUsageMillimeters: '15000',
-        supportFilamentGrams: '2.25',
-        supportFilamentMillimeters: '700',
-      },
-      {
-        name: 'Bone parts',
-        status: 'verified',
-        estimatedPrintTimeSeconds: '90',
-        filamentUsageGrams: '0',
-        filamentUsageMillimeters: '0',
-        supportFilamentGrams: '0',
-        supportFilamentMillimeters: '0',
-      },
-    ]),
-  }
-  assert.deepEqual(formatPlateBreakdown(metadata), {
-    visible: true,
-    error: '',
-    plates: [
-      {
-        name: 'Black shells',
-        status: 'verified',
-        printTime: '1 h 0 min',
-        filament: '45.50 g',
-        support: '2.25 g',
-        filamentLength: '15000.00 mm',
-        supportLength: '700.00 mm',
-      },
-      {
-        name: 'Bone parts',
-        status: 'verified',
-        printTime: '2 min',
-        filament: 'none',
-        support: 'none',
-        filamentLength: '0.00 mm',
-        supportLength: '0.00 mm',
-      },
-    ],
-  })
-  const html = renderPlateBreakdown(metadata)
-  assert.match(html, /Print data per plate \(2\)/)
-  assert.match(html, /Black shells/)
-  assert.match(html, /Bone parts/)
-  assert.match(html, /Filament length/)
-})
-
-test('reports malformed plate metadata visibly and escapes plate names', () => {
-  assert.match(
-    renderPlateBreakdown({ plateDetails: '{invalid' }),
-    /Plate data is invalid:/,
-  )
-  assert.match(
-    renderPlateBreakdown({ plateDetails: '[]' }),
-    /No per-plate print data is available\./,
-  )
-  assert.match(
-    renderPlateBreakdown({
-      plateDetails: JSON.stringify([{ name: '<script>alert(1)<\/script>' }]),
-    }),
-    /&lt;script&gt;alert\(1\)&lt;\/script&gt;/,
-  )
-  assert.doesNotMatch(
-    renderPlateBreakdown({
-      plateDetails: JSON.stringify([{ name: '<script>alert(1)<\/script>' }]),
-    }),
-    /<script>/,
-  )
 })

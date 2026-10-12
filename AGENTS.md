@@ -44,6 +44,25 @@ There is no separate test suite in this repo at the moment.
 - Keep the final presentation render separate from temporary analysis/reference renders. Do not delete it before it has been displayed in chat; temporary renders may be cleaned up afterward.
 - Use the platform's image attachment/inline-image mechanism. If the current interface cannot embed the image, state that limitation explicitly and provide the rendered image path as a fallback rather than implying that the canvas preview was posted in chat.
 
+## 3MF project and support screenshots
+
+- For every delivered `models/<stem>.3mf`, render a complete-project preview at
+  `docs/images/<stem>-preview.png`. The preview must show the full project and
+  preserve visible material/color regions for multi-material projects.
+- After a successful OrcaSlicer slice, render one support-path screenshot for
+  every sliced plate at `docs/images/<stem>-plate-<n>-supports.png`. Derive
+  these images from that plate's actual G-code; show an explicit no-support
+  result when the slice contains no support extrusion. Never fabricate support
+  paths or screenshots when the plate was not sliced.
+- Keep the screenshot names beside the project stem so both the STL Canvas
+  extension and Web viewer can resolve the same images. The viewers expose a
+  project-preview button and per-plate support-preview buttons, including in
+  the expandable per-plate print details. Missing images must hide the action
+  or leave it disabled with an explanation.
+- `web/scripts/sync-models.mjs` must copy the preview/support sidecars into the
+  static web build. Keep the final screenshots in `docs/images/` as committed
+  deliverables.
+
 ## Architecture Boundaries
 
 - `scripts/`: parametric geometry definitions, boolean operations, reference-image tooling (`make_contact_sheet.py`) and the shared mesh CLI (`mesh_tool.py`).

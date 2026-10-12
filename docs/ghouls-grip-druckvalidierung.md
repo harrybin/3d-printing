@@ -245,17 +245,24 @@ Renderer zeigt daraus:
   Filamentprofil, Material, Farbe, Bett, Wandzahl, Infill, Support und
   Plattenzahl;
 - im Detail-Overlay eine separat aufklappbare Tabelle **Print data by plate**
-  mit Druckzeit, Material, Supportmaterial, Filamentlänge und Status pro Plate.
-  Fehlende oder fehlerhafte Plate-Metadaten werden ausdrücklich angezeigt;
+  mit Druckzeit, Material, Supportmaterial, Filamentlänge, Supportlänge, Status und einem
+  Supportbild-Button pro gesliceter Plate. Die Bilder zeigen die tatsächlich
+  extrudierten Supportbahnen und sind in Canvas sowie Webview per Dialog
+  anzusehen. Fehlende oder fehlerhafte Plate-Metadaten werden ausdrücklich angezeigt;
+- ein Projektvorschau-Button für das vollständige farbcodierte
+  Fünf-Platten-Druckprojekt;
 - die korrekte einzelne Platte oder alle Platten unter Berücksichtigung von
   3MF-Komponenten-Transformationen und OrcaSlicer-`plater_id`;
 - ein einklappbares Werkzeugmenü für Reload, Auto-Reload, Zoom, Wireframe,
   Shading, Ansichten, Rotation, Hilfsanzeigen und Messung.
 
 Mehrplattige Dateien starten in Canvas und Web-Viewer mit **All plates**.
-Die Platten stehen nebeneinander: vorhandene Orca-Grid-Offsets bleiben erhalten;
-ohne ausreichenden Abstand werden sie nur für die Übersicht in einer Reihe
-mit 50 mm Zwischenraum angeordnet. Die Druckübersicht zeigt die eingebetteten
+Mehr als zwei Platten stehen nur in der Gesamtansicht in einem Grid mit
+50 mm Zwischenraum; zwei Platten stehen nebeneinander. Die Einzelplatten-
+Transformationen bleiben unverändert. Materialfarben folgen OrcaSlicers
+Filamentpalette mit Objekt- und Teilzuweisungen; bei Standard-3MF-Dateien
+werden weiterhin die 3MF-Materialressourcen verwendet.
+Die Druckübersicht zeigt die eingebetteten
 Projekt-Gesamtwerte (Zeit, Material, Support und Filamentlänge) sowie die
 Plattenzahl. Einzelplatten bleiben über **Plate** auswählbar. Reload derselben
 Datei behält die Auswahl; beim Öffnen einer anderen Datei wird wieder

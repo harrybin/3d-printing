@@ -101,7 +101,9 @@ document with:
 - support material mass, length and volume whenever supports are generated;
   recover the share from the G-code by summing positive extruder deltas under
   `;TYPE:Support` and `;TYPE:Support interface` and scaling it with the
-  slicer's own mm-to-mass ratio. State `none` only for a slice that produced
+  slicer's own mm-to-mass ratio per plate. Respect `M82`/`M83` extrusion modes
+  and `G92` resets; exclude extruder-only retraction/unretraction movements.
+  State `none` only for a slice that produced
   no support path at all.
 - supports, brim/raft, bridges, and notable overhangs
 - material/color changes and purge impact when available
@@ -110,6 +112,16 @@ document with:
 
 Capture a slicer preview for every delivered print plate. For multi-color output,
 the preview must make the assigned regions visible.
+
+Also render a complete-project preview for every delivered 3MF at
+`docs/images/<3mf-stem>-preview.png`. For every successfully sliced plate,
+render `docs/images/<3mf-stem>-plate-<n>-supports.png` from that plate's actual
+G-code, including a clearly labeled result when no support extrusion was
+generated. Do not create support screenshots for an unsliced plate or infer
+support paths from the mesh alone. These sidecars are exposed as buttons in the
+STL Canvas extension and Web viewer, including each plate's expandable print
+details; if an image is unavailable, hide or disable its button with an
+explanation.
 
 ## 3MF metadata contract
 
@@ -125,10 +137,16 @@ Every generated project 3MF must include a slicer-neutral metadata part named
 - `supportFilamentCubicMillimeters`
 - printer, nozzle, process/layer height, filament/material, bed, supports,
   infill, wall loops, and plate count
+- `plateDetails`: an ordered JSON array containing each plate's name, status,
+  print time, filament usage and support usage using the same field names as
+  the project totals
 
 Values that are not backed by a successful slice must be `unknown`, with
 `status=not-verified`; never invent estimates. The STL Canvas reads and displays
-these fields alongside mesh and plate information. After a successful slice,
+these fields alongside mesh and plate information. Its top summary always shows
+project totals, independent of the selected plate; the bottom collapsible details
+also show the per-plate breakdown. Missing support data is not a zero-support proof.
+After a successful slice,
 patch the same metadata entry with the exact slicer-reported values and set
 `status=verified`.
 
