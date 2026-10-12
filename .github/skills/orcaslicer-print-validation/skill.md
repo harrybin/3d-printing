@@ -29,6 +29,20 @@ local executable's help before using them; CLI behavior can change between versi
 Use the GUI when the installed CLI cannot expose the required project, plate, or
 preview information.
 
+When updating geometry in a saved multi-plate project, preserve unaffected mesh
+payloads, settings, plate membership and build transforms. Align each changed
+mesh to its original transformed bed-contact plane; bounds-centering alone can
+put a taller replacement below Z=0. OrcaSlicer 2.4.2 crashed during plate loading
+for the below-bed crank, but sliced all five plates after correcting this source
+export datum. Do not hide this by rearranging or resetting user settings.
+Require one successful G-code per original plate and retain its diagnostics.
+
+CLI profile loading (verified with OrcaSlicer 2.4.2): pass the system profile JSON
+files from `C:\Program Files\OrcaSlicer\resources\profiles\Anycubic\{machine,process,filament}`
+directly to `--load-settings "<machine>;<process>"` and `--load-filaments <filament>`.
+Hand-flattened copies of those profiles fail with exit code `-17`
+(`CLI_PROCESS_NOT_COMPATIBLE`), even with emptied compatibility lists.
+
 Computer Use is a fallback only: use it to start or stop OrcaSlicer when no
 usable CLI/MCP path exists, or to enable/configure the local MCP. Once a CLI or
 MCP path is available, perform slicing and inspection through that path rather

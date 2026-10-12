@@ -89,6 +89,16 @@ def grip_hand():
     """Build the expensive voxel-fused anatomical hand once per process."""
     return assemble(load_skeleton(), GRIP_POSE)
 
+
+@lru_cache(maxsize=None)
+def _source_mesh(builder, **kwargs):
+    return builder(**kwargs)
+
+
+def source_mesh(builder, **kwargs):
+    return _source_mesh(builder, **kwargs).copy()
+
+
 def build_scene_at(theta: float):
     rad = np.deg2rad(theta)
     lift = ARM_L * np.sin(rad)
@@ -97,9 +107,9 @@ def build_scene_at(theta: float):
     plat_origin = np.array([FLOOR_PIVOT[0] - PLATFORM_PIN, 0.0, plate_z + 8.0])
 
     items = []
-    items.append(("chest", build_chest(), BLACK_COLOR))
+    items.append(("chest", source_mesh(build_chest), BLACK_COLOR))
 
-    lid = build_lid()
+    lid = source_mesh(build_lid)
     lid.apply_translation([0.0, 0.0, LID_DROP])
     opening = lid_angle(theta)
     lid_transform = np.eye(4)
@@ -109,7 +119,7 @@ def build_scene_at(theta: float):
         lid.apply_transform(lid_transform)
     items.append(("lid", lid, BLACK_COLOR))
 
-    lid_crank = mechanism.build_lid_crank()
+    lid_crank = source_mesh(mechanism.build_lid_crank)
     lid_crank.apply_transform(rot(90.0, [0, 1, 0]))
     lid_crank.apply_transform(rot(opening, [1, 0, 0]))
     lid_crank.apply_translation([
@@ -117,25 +127,35 @@ def build_scene_at(theta: float):
     ])
     items.append(("lid-crank", lid_crank, MECHANISM_COLOR))
 
-    slider = mechanism.build_slider()
+    for name, y, angle in (
+        ("lid-transfer-input", mechanism.LID_TRANSFER_Y, opening),
+        ("lid-transfer-idler", mechanism.LID_IDLER_Y, -opening),
+    ):
+        gear = source_mesh(mechanism.build_lid_transfer_gear)
+        gear.apply_transform(rot(90.0, [0, 1, 0]))
+        gear.apply_transform(rot(angle, [1, 0, 0]))
+        gear.apply_translation([-mechanism.DRIVE_PITCH_R, y, HINGE_Z])
+        items.append((name, gear, MECHANISM_COLOR))
+
+    slider = source_mesh(mechanism.build_slider)
     slider.apply_translation([slider_x, 0.0, 0.0])
     items.append(("slider", slider, MECHANISM_COLOR))
 
     drive_rotation = mechanism.drive_angle(theta)
-    pinion = mechanism.build_drive_pinion()
+    pinion = source_mesh(mechanism.build_drive_pinion)
     pinion.apply_transform(rot(drive_rotation, [0, 0, 1]))
     pinion.apply_transform(rot(90.0, [1, 0, 0]))
     pinion.apply_translation(mechanism.DRIVE_AXIS)
     items.append(("drive-pinion", pinion, MECHANISM_COLOR))
 
     knob_angle = mechanism.KNOB_STOW_ANGLE - drive_rotation
-    knob = build_drive_knob(shaft_d=mechanism.DRIVE_SHAFT_D)
+    knob = source_mesh(build_drive_knob, shaft_d=mechanism.DRIVE_SHAFT_D)
     knob.apply_transform(rot(90.0, [1, 0, 0]))
     knob.apply_transform(rot(knob_angle, [0, 1, 0]))
     knob.apply_translation(mechanism.DRIVE_AXIS + np.array([0.0, -17.0, 0.0]))
     items.append(("drive-skull-knob", knob, ACCENT_COLOR))
 
-    lid_rack = mechanism.build_lid_rack()
+    lid_rack = source_mesh(mechanism.build_lid_rack)
     lid_rack.apply_transform(rot(-90.0, [0, 1, 0]))
     drive_rise = mechanism.RETRACTED_SLIDER_X - slider_x
     lid_rack.apply_translation([
@@ -145,7 +165,7 @@ def build_scene_at(theta: float):
     ])
     items.append(("lid-rack", lid_rack, MECHANISM_COLOR))
 
-    follower = mechanism.build_lid_follower_rack()
+    follower = source_mesh(mechanism.build_lid_follower_rack)
     follower.apply_transform(rot(-90.0, [0, 1, 0]))
     follower.apply_translation([
         -mechanism.DRIVE_PITCH_R,
@@ -155,7 +175,7 @@ def build_scene_at(theta: float):
     ])
     items.append(("lid-follower-rack", follower, MECHANISM_COLOR))
 
-    arm = mechanism.build_scissor_arm()
+    arm = source_mesh(mechanism.build_scissor_arm)
     for i, y in enumerate((-SCISSOR_Y, SCISSOR_Y)):
         for mirrored in (False, True):
             off = 3.0 if mirrored else -3.0
@@ -182,7 +202,7 @@ def build_scene_at(theta: float):
                 MECHANISM_COLOR,
             ))
 
-    platform = mechanism.build_platform()
+    platform = source_mesh(mechanism.build_platform)
     platform.apply_translation(plat_origin)
     items.append(("platform", platform, MECHANISM_COLOR))
 
@@ -196,7 +216,7 @@ def build_scene_at(theta: float):
     idler_centres = [plat_origin + centre for centre in idler_local]
     gear_end = plat_origin + gear_end_local
 
-    input_gear = mechanism.build_scissor_drive_gear()
+    input_gear = source_mesh(mechanism.build_scissor_drive_gear)
     input_gear.apply_transform(rot(-theta, [0, 0, 1]))
     input_gear.apply_transform(rot(90.0, [1, 0, 0]))
     input_gear.apply_translation(gear_start + np.array([0.0, 3.0, 0.0]))
@@ -204,18 +224,18 @@ def build_scene_at(theta: float):
 
     for index, (centre, angle) in enumerate(zip(
             idler_centres, mechanism.forearm_idler_angles(theta))):
-        idler = mechanism.build_idler_gear()
+        idler = source_mesh(mechanism.build_idler_gear)
         idler.apply_transform(rot(angle, [0, 0, 1]))
         idler.apply_transform(rot(90.0, [1, 0, 0]))
         idler.apply_translation(centre + np.array([0.0, 3.0, 0.0]))
         items.append((f"idler-gear-{index}", idler, MECHANISM_COLOR))
 
-    output_gear = mechanism.build_forearm_output_gear()
+    output_gear = source_mesh(mechanism.build_forearm_output_gear)
     output_gear.apply_transform(rot(tilt, [0, 1, 0]))
     output_gear.apply_translation(hinge)
     items.append(("forearm-output-gear", output_gear, MECHANISM_COLOR))
 
-    forearm = mechanism.build_forearm()
+    forearm = source_mesh(mechanism.build_forearm)
     forearm.apply_translation([0.0, 0.0, -4.0])
     forearm.apply_transform(rot(tilt, [0, 1, 0]))
     forearm.apply_translation(hinge)

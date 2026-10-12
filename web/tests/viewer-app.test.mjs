@@ -134,6 +134,23 @@ test('offers support screenshot buttons inside the expandable per-plate details'
   assert.match(html, /ghouls-grip-print-plate-2-supports\.png/)
 })
 
+test('shows per-plate support lengths and the all-plate project-total label', () => {
+  const html = renderPlatePrintDetails({
+    plateDetails: JSON.stringify([
+      { name: 'Black shells', supportFilamentMillimeters: '700' },
+      { name: 'Bone parts', supportFilamentMillimeters: 0 },
+      { name: 'Unknown', supportFilamentMillimeters: -1 },
+    ]),
+  }, { file: 'ghouls-grip-print.3mf' })
+  assert.match(APP_HTML, /All plates · project total/)
+  assert.match(html, /Support length/)
+  assert.match(html, /700\.00 mm/)
+  assert.match(html, /0\.00 mm/)
+  assert.doesNotMatch(html, /-1\.00 mm/)
+  assert.equal((html.match(/<details /g) || []).length, 1)
+  assert.equal((html.match(/data-project-image=/g) || []).length, 3)
+})
+
 test('reports missing or invalid per-plate metadata and escapes plate names', () => {
   assert.equal(renderPlatePrintDetails({}), '')
   assert.match(renderPlatePrintDetails({ status: 'not-verified' }), /not available/)

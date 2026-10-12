@@ -315,6 +315,7 @@ PART_MATERIAL = {
     "scissor-arm": MECH, "slider": MECH, "platform": MECH,
     "drive-pinion": MECH, "lid-rack": MECH,
     "lid-follower-rack": MECH, "lid-crank": MECH,
+    "lid-transfer-gear": MECH,
     "scissor-drive-gear": MECH, "idler-gear": MECH,
     "forearm-output-gear": MECH,
     "pivot-pin-3": MECH,
@@ -326,6 +327,7 @@ PRINT_QUANTITIES = {
     "scissor-arm": 4,
     "idler-gear": 3,
     "pivot-pin-3": 10,
+    "lid-transfer-gear": 2,
 }
 
 
@@ -563,9 +565,15 @@ def main() -> None:
         validate(name, mesh)
 
     print_parts = expand_print_parts(parts)
-    from export_ghouls_grip_orca_projects import export_print_project
-    print_projects = export_print_project(
-        print_parts, write_3mf, arrange, material_for)
+    if OUT_PRINT_3MF.exists():
+        from refresh_ghouls_grip_print_geometry import refresh
+        refresh(OUT_PRINT_3MF, print_parts,
+                {"chest", "lid", "lid-follower-rack", "lid-crank"})
+        print_projects = [OUT_PRINT_3MF]
+    else:
+        from export_ghouls_grip_orca_projects import export_print_project
+        print_projects = export_print_project(
+            print_parts, write_3mf, arrange, material_for)
 
     view_objects, view_plates, object_plates, material_slots = (
         view_assembly_objects()
