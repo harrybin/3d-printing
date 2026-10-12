@@ -84,6 +84,10 @@ export const APP_HTML = `
 </section>
 <div class="viewer-container">
   <canvas id="view"></canvas>
+  <div id="loadingSpinner" class="loading-spinner" hidden role="status" aria-live="polite">
+    <div class="spinner"></div>
+    <span class="spinner-text">Loading plates…</span>
+  </div>
   <div id="info" hidden></div>
   <div id="measurePanel" hidden></div>
   <details id="metaPanel" class="meta-panel" open>
@@ -279,6 +283,38 @@ export function selectDefaultPlate(file, previousFile, previousSelection, plates
     : 'all'
 }
 
+export function selectDefaultModelFile(files = [], requested = '') {
+  if (requested && files.includes(requested)) return requested
+  const printCandidate = files.find((name) => /ghouls[_-]?grip.*print/i.test(name))
+  if (printCandidate) return printCandidate
+  const anyGhoul = files.find((name) => /ghouls[_-]?grip/i.test(name))
+  if (anyGhoul) return anyGhoul
+  const first3mf = files.find((name) => /\.3mf$/i.test(name))
+  if (first3mf) return first3mf
+  return files[0] || 'ghouls-grip-print.3mf'
+}
+
+export function calculateTouchPinchZoom(currentZoom, currentDistance, initialDistance, minZoom = 0.1, maxZoom = 30) {
+  if (!initialDistance || initialDistance <= 0 || !currentDistance || currentDistance <= 0) return currentZoom
+  const factor = currentDistance / initialDistance
+  const updated = currentZoom * factor
+  return Math.max(minZoom, Math.min(maxZoom, Math.round(updated * 100) / 100))
+}
+
+export function calculateTouchPan(dx, dy, scale = 0.5) {
+  return {
+    deltaPanX: dx * scale,
+    deltaPanY: dy * scale,
+  }
+}
+
+export function calculateTouchRotation(dx, dy, scale = 0.5) {
+  return {
+    deltaRotX: dy * scale,
+    deltaRotY: dx * scale,
+  }
+}
+
 function computeBounds(tris) {
   if (!tris.length) return null;
   let min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
@@ -359,7 +395,7 @@ const root = options.root || document.querySelector('#app') || document.body
 root.innerHTML = APP_HTML
 const VIEW_STORAGE_KEY = options.viewStorageKey || 'stl-canvas-view-defaults'
 const searchParams = new URLSearchParams(window.location.search)
-const defaultModelFile = searchParams.get('model') || options.defaultModelFile || ''
+const defaultModelFile = searchParams.get('model') || options.defaultModelFile || 'ghouls-grip-print.3mf'
 const runtimeMode = options.dataSource === 'extension' ? 'extension' : 'static'
 const modelsBasePath = options.modelsBasePath || './models'
 const modelsIndexUrl = options.modelsIndexUrl || `${modelsBasePath}/models.json`
@@ -1064,6 +1100,18 @@ const orcaField = document.getElementById('orcaField');
 const openInOrcaBtn = document.getElementById('openInOrcaBtn');
 const orcaStatus = document.getElementById('orcaStatus');
 let orcaStatusTimer = null;
+const loadingSpinner = document.getElementById('loadingSpinner');
+const spinnerText = loadingSpinner?.querySelector('.spinner-text');
+
+function setSpinner(visible, text = 'Loading plates…') {
+  if (!loadingSpinner) return;
+  if (visible) {
+    if (spinnerText) spinnerText.textContent = text;
+    loadingSpinner.hidden = false;
+  } else {
+    loadingSpinner.hidden = true;
+  }
+}
 const projectImageAvailability = new Map()
 
 function resolveProjectImageUrl(imagePath) {
@@ -1660,9 +1708,10 @@ function loadModel(file, preserveView) {
   const previousFile = loadedModelInfo ? currentFile : ''
   const previousSelection = plateChooser.value
   updateOrcaAction()
+  setSpinner(true, 'Loading plates…')
   return fetchModelData(file)
     .then((data) => {
-      if (data.error) { meta.textContent = data.error; return false }
+      if (data.error) { meta.textContent = data.error; setSpinner(false); return false }
       const s = data.stats || {}
       const b = s.bounds
       const trianglesData = Array.isArray(data.triangles) ? data.triangles : []
@@ -1686,6 +1735,7 @@ function loadModel(file, preserveView) {
         currentFile = file
         currentMtime = runtimeMode === 'extension' ? '' : ''
         emitModelChange(file)
+        setSpinner(false)
         return false
       }
       loadedModelInfo = {
@@ -1719,12 +1769,14 @@ function loadModel(file, preserveView) {
         else applySavedOrFit()
       }
       draw()
+      setSpinner(false)
       updateOrcaAction(file, loadedModelInfo.modelPath)
       emitModelChange(file)
       return true
     })
     .catch((err) => {
       meta.textContent = 'Failed to load model: ' + err
+      setSpinner(false)
       emitModelChange(file)
       return false
     })
@@ -2309,6 +2361,96 @@ measureClearBtn.addEventListener('click', () => { clearMeasurement(); draw(); })
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { clearMeasurement(); draw(); } });
 canvas.addEventListener('wheel', (e) => { e.preventDefault(); const delta = e.deltaY > 0 ? -0.1 : 0.1; zoomInput.value = Math.max(0.1, Math.min(30, parseFloat(zoomInput.value) + delta)); draw(); saveView(); });
 canvas.addEventListener('dblclick', () => { rotX = baseView.rotX; rotY = baseView.rotY; rotZ = baseView.rotZ || 0; panX = baseView.panX; panY = baseView.panY; savedZoom = Number.isFinite(baseView.zoom) ? baseView.zoom : null; applySavedOrFit(); draw(); saveView(); });
+
+let initialPinchDist = 0;
+let initialPinchZoom = 1;
+let lastTouchPanMid = null;
+let lastTouchX = 0;
+let lastTouchY = 0;
+let lastTapTime = 0;
+
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  const t = e.touches;
+  if (t.length === 1) {
+    const now = Date.now();
+    if (now - lastTapTime < 300) {
+      rotX = baseView.rotX; rotY = baseView.rotY; rotZ = baseView.rotZ || 0;
+      panX = baseView.panX; panY = baseView.panY;
+      savedZoom = Number.isFinite(baseView.zoom) ? baseView.zoom : null;
+      applySavedOrFit();
+      draw();
+      saveView();
+      lastTapTime = 0;
+      return;
+    }
+    lastTapTime = now;
+    lastTouchX = t[0].clientX;
+    lastTouchY = t[0].clientY;
+  } else if (t.length === 2) {
+    const dx = t[0].clientX - t[1].clientX;
+    const dy = t[0].clientY - t[1].clientY;
+    initialPinchDist = Math.hypot(dx, dy);
+    initialPinchZoom = parseFloat(zoomInput.value) || 1;
+    lastTouchPanMid = {
+      x: (t[0].clientX + t[1].clientX) / 2,
+      y: (t[0].clientY + t[1].clientY) / 2
+    };
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  const t = e.touches;
+  if (t.length === 1) {
+    const curX = t[0].clientX;
+    const curY = t[0].clientY;
+    const dx = curX - lastTouchX;
+    const dy = curY - lastTouchY;
+    const rot = calculateTouchRotation(dx, dy);
+    rotY += rot.deltaRotY;
+    rotX += rot.deltaRotX;
+    lastTouchX = curX;
+    lastTouchY = curY;
+    draw();
+  } else if (t.length === 2) {
+    const dx = t[0].clientX - t[1].clientX;
+    const dy = t[0].clientY - t[1].clientY;
+    const currentDist = Math.hypot(dx, dy);
+    if (initialPinchDist > 0 && currentDist > 0) {
+      const newZoom = calculateTouchPinchZoom(initialPinchZoom, currentDist, initialPinchDist);
+      zoomInput.value = newZoom;
+    }
+    const midX = (t[0].clientX + t[1].clientX) / 2;
+    const midY = (t[0].clientY + t[1].clientY) / 2;
+    if (lastTouchPanMid) {
+      const panDelta = calculateTouchPan(midX - lastTouchPanMid.x, midY - lastTouchPanMid.y);
+      panX += panDelta.deltaPanX;
+      panY += panDelta.deltaPanY;
+    }
+    lastTouchPanMid = { x: midX, y: midY };
+    draw();
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+  if (e.touches.length === 0) {
+    initialPinchDist = 0;
+    lastTouchPanMid = null;
+    saveView();
+  } else if (e.touches.length === 1) {
+    initialPinchDist = 0;
+    lastTouchPanMid = null;
+    lastTouchX = e.touches[0].clientX;
+    lastTouchY = e.touches[0].clientY;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchcancel', () => {
+  initialPinchDist = 0;
+  lastTouchPanMid = null;
+  saveView();
+});
 zoomInput.addEventListener('input', () => { draw(); saveView(); });
 wireframeInput.addEventListener('change', () => { draw(); saveView(); });
 shadingInput.addEventListener('change', () => { draw(); saveView(); });
@@ -2374,9 +2516,13 @@ fileChooser.addEventListener('change', () => { if (fileChooser.value) loadModel(
 plateChooser.addEventListener('change', () => {
   pickedFeatures = []
   hoverFeature = null
-  applyPlateSelection()
-  fitView()
-  draw()
+  setSpinner(true, 'Rendering plate…')
+  setTimeout(() => {
+    applyPlateSelection()
+    fitView()
+    draw()
+    setSpinner(false)
+  }, 20)
 })
 reloadBtn.addEventListener('click', () => {
   const selected = fileChooser.value || currentFile

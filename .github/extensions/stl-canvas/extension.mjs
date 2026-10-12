@@ -16,7 +16,10 @@ const viewerCssPath = join(extensionDir, "viewer.css");
 const servers = new Map();
 function selectDefaultModel() {
     const files = listWorkspaceStlFiles();
-    const preferred = files.find((name) => /duschscharnier|duschtur|shower|hinge/i.test(name)) || files[0];
+    const preferred = files.find((name) => /ghouls[_-]?grip.*print/i.test(name)) ||
+        files.find((name) => /ghouls[_-]?grip/i.test(name)) ||
+        files.find((name) => /duschscharnier|duschtur|shower|hinge/i.test(name)) ||
+        files[0];
     return preferred ? `models/${preferred}` : "models/cone_30mm_ascii.stl";
 }
 const defaultStlPath = selectDefaultModel();
