@@ -19,7 +19,6 @@ MODELS = ROOT / "models"
 OUT = ROOT / "docs" / "images"
 BED = 250.0
 PLATE_X_PITCH = 300.0
-PLATE_GRID_COLUMNS = 3
 PROJECT = MODELS / "ghouls-grip-print.3mf"
 FILAMENTS = (
     ("Black PLA", "#202124"),
@@ -47,6 +46,7 @@ def _plate_meshes(path: Path) -> dict[int, list[trimesh.Trimesh]]:
     with ZipFile(path) as archive:
         model = ET.fromstring(archive.read("3D/3dmodel.model"))
         settings = ET.fromstring(archive.read("Metadata/model_settings.config"))
+    grid_columns = 3 if len(settings.findall("plate")) >= 5 else 2
 
     component_by_object = {}
     for obj in model.findall(f".//{{{core}}}resources/{{{core}}}object"):
@@ -83,8 +83,8 @@ def _plate_meshes(path: Path) -> dict[int, list[trimesh.Trimesh]]:
         mesh = scene.geometry[geometry_name].copy()
         mesh.apply_transform(transform)
         plate = object_plate[object_id]
-        plate_column = plate % PLATE_GRID_COLUMNS
-        plate_row = plate // PLATE_GRID_COLUMNS
+        plate_column = plate % grid_columns
+        plate_row = plate // grid_columns
         mesh.apply_translation([
             -plate_column * PLATE_X_PITCH,
             plate_row * PLATE_X_PITCH,
