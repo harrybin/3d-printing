@@ -153,6 +153,22 @@ Renderer zeigt daraus:
 - ein einklappbares Werkzeugmenü für Reload, Auto-Reload, Zoom, Wireframe,
   Shading, Ansichten, Rotation, Hilfsanzeigen und Messung.
 
+Mehrplattige Dateien starten in Canvas und Web-Viewer mit **All plates**.
+Die Platten stehen nebeneinander: vorhandene Orca-Grid-Offsets bleiben erhalten;
+ohne ausreichenden Abstand werden sie nur für die Übersicht in einer Reihe
+mit 50 mm Zwischenraum angeordnet. Die Druckübersicht zeigt die eingebetteten
+Projekt-Gesamtwerte (Zeit, Material, Support und Filamentlänge) sowie die
+Plattenzahl. Einzelplatten bleiben über **Plate** auswählbar. Reload derselben
+Datei behält die Auswahl; beim Öffnen einer anderen Datei wird wieder
+**All plates** gewählt. Einzelplatten-3MF und STL bleiben unverändert.
+
+Viewer-Prüfung (2026-10-12): `node --test web\tests\*.test.mjs` bestanden
+(22 Tests); `npm run build` in `web` bestanden. Browser-Screenshots des lokalen
+Canvas und der gebauten Web-SPA bestätigen beide schwarzen Druckplatten in
+der Übersicht und die Projekt-Gesamtwerte. Einzelplattenwahl, Reload,
+Dateiwechsel zur Master-3MF und Auto-Reload einer anderen Mehrplatten-Datei
+wurden ebenfalls geprüft.
+
 In der lokalen Copilot-Canvas-Erweiterung öffnet **Open in OrcaSlicer** die
 exakt ausgewählte Workspace-3MF über einen lokalen POST-Endpunkt mit
 Nonce-Prüfung und Pfadvalidierung. Der Button wird für STL, unsichere Pfade und

@@ -6,6 +6,8 @@ import {
   createOrcaLaunchRequest,
   createOrcaSlicerOpenUrl,
   formatPrintMetadataSummary,
+  layoutPlateOverview,
+  selectDefaultPlate,
 } from '../../.github/extensions/stl-canvas/viewer-app.mjs'
 
 test('keeps advanced controls and metadata in collapsible surfaces', () => {
@@ -89,4 +91,78 @@ test('posts the exact Windows model path to the local OrcaSlicer endpoint', () =
       body: JSON.stringify({ modelPath, nonce: 'server-nonce' }),
     },
   })
+})
+
+const plates = [{ id: '1' }, { id: '2' }]
+
+test('defaults to all plates on initial load and every file change', () => {
+  assert.equal(selectDefaultPlate('new.3mf', '', '1', plates), 'all')
+  assert.equal(selectDefaultPlate('new.3mf', 'old.3mf', '2', plates), 'all')
+  assert.equal(selectDefaultPlate('new.3mf', 'old.3mf', 'all', plates), 'all')
+})
+
+test('same-file reload preserves a valid selection but not a removed plate', () => {
+  assert.equal(selectDefaultPlate('same.3mf', 'same.3mf', '2', plates), '2')
+  assert.equal(selectDefaultPlate('same.3mf', 'same.3mf', 'all', plates), 'all')
+  assert.equal(selectDefaultPlate('same.3mf', 'same.3mf', '3', plates), 'all')
+})
+
+test('single-plate files and STL keep the all-geometry selection', () => {
+  assert.equal(selectDefaultPlate('single.3mf', 'single.3mf', '1', [plates[0]]), 'all')
+  assert.equal(selectDefaultPlate('part.stl', 'part.stl', '2', []), 'all')
+  const single = [makePlate('1')]
+  assert.equal(layoutPlateOverview(single), single)
+  assert.deepEqual(layoutPlateOverview([]), [])
+})
+
+function makePlate(id, x = 0, y = 0, width = 100) {
+  return {
+    id,
+    triangles: [[[x, y, 3], [x + width, y, 3], [x, y + 100, 10]]],
+    triangleColors: ['#202124'],
+    stats: { facets: 1, vertices: 3, uniqueVertices: 3, format: '3mf' },
+  }
+}
+
+test('preserves baked Orca row/grid offsets and all component transforms', () => {
+  const row = [makePlate('1'), makePlate('2', 300)]
+  const grid = [...row, makePlate('3', 0, -300), makePlate('4', 300, -300)]
+  assert.equal(layoutPlateOverview(row), row)
+  assert.equal(layoutPlateOverview(grid), grid)
+  assert.deepEqual(row[1].triangles[0][0], [300, 0, 3])
+})
+
+test('lays overlapping plates side by side without mutating individual plates', () => {
+  const input = [makePlate('1'), makePlate('2', 10, 20), makePlate('3', 0, 0, 400)]
+  const before = structuredClone(input)
+  const overview = layoutPlateOverview(input)
+  assert.deepEqual(input, before)
+  assert.deepEqual(overview[0].triangles, input[0].triangles)
+  assert.deepEqual(overview[1].triangles[0], [[300, 0, 3], [400, 0, 3], [300, 100, 10]])
+  assert.deepEqual(overview[2].triangles[0], [[525, 0, 3], [925, 0, 3], [525, 100, 10]])
+  assert.equal(overview[1].triangleColors, input[1].triangleColors)
+  assert.equal(overview[2].stats.facets, 1)
+  assert.deepEqual(overview[2].stats.bounds.size, { x: 400, y: 100, z: 7 })
+})
+
+test('all-plates summary retains whole-project totals and exposes plate count', () => {
+  const metadata = {
+    status: 'verified',
+    estimatedPrintTimeSeconds: '49988',
+    filamentUsageGrams: '330.96',
+    supportFilamentGrams: '17.98',
+    filamentUsageMillimeters: '110966.48',
+    materialType: 'PLA',
+    plateCount: '2',
+  }
+  assert.deepEqual(formatPrintMetadataSummary(metadata), {
+    visible: true,
+    printTime: '13 h 53 min',
+    materialUsage: '330.96 g PLA',
+    supportUsage: '17.98 g',
+    filamentLength: '110966.48 mm',
+    status: 'verified',
+  })
+  assert.match(APP_HTML, /value="all">All plates<\/option>/)
+  assert.match(APP_HTML, /id="summaryPlates"/)
 })

@@ -284,8 +284,13 @@ Erweiterung, zeigt also lokale Vorschauen konsistent im Web und im Agent-UI an.
 ### Funktionen
 
 - 3D-Vorschau für **STL und 3MF** aus `models/`
-- Auswahl einzelner 3MF-Druckplatten unter Berücksichtigung von
-  Build-/Komponenten-Transformationen und OrcaSlicer-`plater_id`
+- Mehrplattige 3MF-Dateien öffnen standardmäßig mit **All plates**:
+  alle Platten nebeneinander mit Projekt-Gesamtwerten und Plattenzahl.
+  Build-/Komponenten-Transformationen und OrcaSlicer-`plater_id` bleiben
+  erhalten; vorhandene Plattenabstände werden übernommen, überlappende
+  Platten ohne Grid-Offsets mit Abstand in einer Reihe angeordnet.
+  Einzelplatten bleiben auswählbar; Reload derselben Datei behält die Auswahl,
+  ein Dateiwechsel setzt sie auf **All plates** zurück.
 - kompakte, ständig sichtbare Druckübersicht für Zeit, Gesamtmaterial,
   Stützmaterial, Filamentlänge und Validierungsstatus
 - einklappbares Detail-Overlay rechts unten mit Profil, Farbe, Bett, Wänden,

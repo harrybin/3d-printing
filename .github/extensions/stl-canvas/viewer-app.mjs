@@ -6,7 +6,7 @@ export const APP_HTML = `
   </div>
   <div class="field" id="plateField" hidden>
     <label for="plateChooser">Plate</label>
-    <select id="plateChooser"><option value="all">All</option></select>
+    <select id="plateChooser"><option value="all">All plates</option></select>
   </div>
   <div class="field" id="orcaField" hidden>
     <button type="button" id="openInOrcaBtn" title="Open the current 3MF project in OrcaSlicer">Open in OrcaSlicer</button>
@@ -75,6 +75,7 @@ export const APP_HTML = `
   <div class="print-card"><span>Support material</span><strong id="summarySupport">—</strong></div>
   <div class="print-card"><span>Filament length</span><strong id="summaryLength">—</strong></div>
   <div class="print-card"><span>Validation</span><strong id="summaryStatus">—</strong></div>
+  <div class="print-card"><span>Plates</span><strong id="summaryPlates">—</strong></div>
 </section>
 <div class="viewer-container">
   <canvas id="view"></canvas>
@@ -187,6 +188,52 @@ export function compose3mfTransforms(parent, child, childUnitScale = 1) {
     combined[2][0], combined[2][1], combined[2][2],
     combined[3][0], combined[3][1], combined[3][2],
   ]
+}
+
+export function selectDefaultPlate(file, previousFile, previousSelection, plates) {
+  return plates.length > 1 && file === previousFile && plates.some((plate) => String(plate.id) === previousSelection)
+    ? previousSelection
+    : 'all'
+}
+
+function computeBounds(tris) {
+  if (!tris.length) return null;
+  let min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
+  for (const tri of tris) for (const v of tri) for (let i = 0; i < 3; i++) { if (v[i] < min[i]) min[i] = v[i]; if (v[i] > max[i]) max[i] = v[i]; }
+  return { min: { x: min[0], y: min[1], z: min[2] }, max: { x: max[0], y: max[1], z: max[2] }, size: { x: max[0] - min[0], y: max[1] - min[1], z: max[2] - min[2] } };
+}
+
+export function layoutPlateOverview(plates, bedSize = 250, spacing = 50) {
+  if (plates.length <= 1) return plates
+  const envelopes = plates.map((plate) => {
+    const bounds = computeBounds(plate.triangles)
+    return {
+      x: (bounds.min.x + bounds.max.x) / 2,
+      y: (bounds.min.y + bounds.max.y) / 2,
+      width: Math.max(bedSize, bounds.size.x),
+      height: Math.max(bedSize, bounds.size.y),
+    }
+  })
+  // Orca's plate-grid offsets are already baked into build/component transforms.
+  const overlaps = envelopes.some((left, index) => envelopes.slice(index + 1).some((right) => (
+    Math.abs(left.x - right.x) < (left.width + right.width) / 2 &&
+    Math.abs(left.y - right.y) < (left.height + right.height) / 2
+  )))
+  if (!overlaps) return plates
+
+  let nextX = envelopes[0].x - envelopes[0].width / 2
+  return plates.map((plate, index) => {
+    const envelope = envelopes[index]
+    const dx = nextX + envelope.width / 2 - envelope.x
+    const dy = envelopes[0].y - envelope.y
+    nextX += envelope.width + spacing
+    const triangles = plate.triangles.map((triangle) => triangle.map(([x, y, z]) => [x + dx, y + dy, z]))
+    return {
+      ...plate,
+      triangles,
+      stats: { ...plate.stats, bounds: computeBounds(triangles) },
+    }
+  })
 }
 
 export function initStlCanvas(options = {}) {
@@ -938,6 +985,7 @@ let triangleColors = [];
 let loadedTriangles = [];
 let loadedTriangleColors = [];
 let loadedPlates = [];
+let overviewPlates = [];
 let loadedModelInfo = null;
 // Crease-aware per-corner normals, rebuilt whenever the geometry changes.
 let cornerNormals = null, faceNormals = null;
@@ -970,12 +1018,6 @@ function saveView() {
   }, 400);
 }
 
-function computeBounds(tris) {
-  if (!tris.length) return null;
-  let min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
-  for (const tri of tris) for (const v of tri) for (let i = 0; i < 3; i++) { if (v[i] < min[i]) min[i] = v[i]; if (v[i] > max[i]) max[i] = v[i]; }
-  return { min: { x: min[0], y: min[1], z: min[2] }, max: { x: max[0], y: max[1], z: max[2] }, size: { x: max[0] - min[0], y: max[1] - min[1], z: max[2] - min[2] } };
-}
 // Model rotation is baked into the geometry so the part still sits flat on the plate.
 function applyModelRotation() {
   const rx = modelRotX * Math.PI / 180, ry = modelRotY * Math.PI / 180, rz = modelRotZ * Math.PI / 180;
@@ -997,8 +1039,9 @@ function applyPlateSelection() {
   const plate = selected === 'all'
     ? null
     : loadedPlates.find((candidate) => String(candidate.id) === selected)
-  const sourceTriangles = plate?.triangles || loadedTriangles
-  const sourceColors = plate?.triangleColors || loadedTriangleColors
+  const overview = !plate && overviewPlates.length > 1
+  const sourceTriangles = plate?.triangles || (overview ? overviewPlates.flatMap((entry) => entry.triangles) : loadedTriangles)
+  const sourceColors = plate?.triangleColors || (overview ? overviewPlates.flatMap((entry) => entry.triangleColors) : loadedTriangleColors)
   rawTriangles = []
   rawTriangleColors = []
   for (let index = 0; index < sourceTriangles.length; index += 1) {
@@ -1023,7 +1066,7 @@ function renderModelMeta() {
     ? null
     : loadedPlates.find((candidate) => String(candidate.id) === selected)
   const stats = plate?.stats || loadedModelInfo.stats
-  const bounds = stats?.bounds
+  const bounds = plate?.stats?.bounds || computeBounds(rawTriangles)
   const projectMetadata = loadedModelInfo.projectMetadata || {}
   const printSummaryValues = formatPrintMetadataSummary(projectMetadata)
   const metadataValue = (key, fallback = 'not available') => {
@@ -1034,6 +1077,7 @@ function renderModelMeta() {
     const value = metadataValue(key)
     return value === 'not available' ? value : `${value} ${unit}`
   }
+  const plateCount = metadataValue('plateCount', loadedPlates.length ? String(loadedPlates.length) : 'not available')
   const printFields = [
     ['Status', metadataValue('status')],
     ['Print time', printSummaryValues.printTime],
@@ -1053,7 +1097,7 @@ function renderModelMeta() {
     ['Walls', metadataValue('wallLoops')],
     ['Infill', metadataValue('infillDensity')],
     ['Supports', metadataValue('supportPolicy')],
-    ['Plates', metadataValue('plateCount')],
+    ['Plates', plateCount],
   ]
   const printSummary = document.getElementById('printSummary')
   printSummary.hidden = !printSummaryValues.visible
@@ -1063,6 +1107,7 @@ function renderModelMeta() {
     document.getElementById('summarySupport').textContent = printSummaryValues.supportUsage
     document.getElementById('summaryLength').textContent = printSummaryValues.filamentLength
     document.getElementById('summaryStatus').textContent = printSummaryValues.status
+    document.getElementById('summaryPlates').textContent = plateCount
   }
   const meta = document.getElementById('meta')
   meta.innerHTML = '<span><strong>File:</strong> ' + escapeHtml(loadedModelInfo.path) + '</span>' +
@@ -1390,6 +1435,8 @@ async function fetchModelData(file) {
 
 function loadModel(file, preserveView) {
   const meta = document.getElementById('meta')
+  const previousFile = loadedModelInfo ? currentFile : ''
+  const previousSelection = plateChooser.value
   updateOrcaAction()
   return fetchModelData(file)
     .then((data) => {
@@ -1409,6 +1456,7 @@ function loadModel(file, preserveView) {
         loadedTriangles = []
         loadedTriangleColors = []
         loadedPlates = []
+        overviewPlates = []
         loadedModelInfo = null
         triangleColors = []
         modelBounds = null
@@ -1435,15 +1483,19 @@ function loadModel(file, preserveView) {
         }
       }
       loadedPlates = platesData.filter((plate) => Array.isArray(plate?.triangles) && plate.triangles.length)
+      overviewPlates = layoutPlateOverview(loadedPlates)
       plateChooser.innerHTML = '<option value="all">All plates</option>' +
         loadedPlates.map((plate) => '<option value="' + escapeHtml(String(plate.id)) + '">Plate ' + escapeHtml(String(plate.id)) + '</option>').join('')
       plateField.hidden = loadedPlates.length <= 1
-      plateChooser.value = loadedPlates.length > 1 ? String(loadedPlates[0].id) : 'all'
+      plateChooser.value = selectDefaultPlate(file, previousFile, previousSelection, loadedPlates)
       applyPlateSelection()
       if (!modelBounds) modelBounds = b || computeBounds(rawTriangles)
       currentFile = file
       currentMtime = data.mtime || ''
-      if (!preserveView) applySavedOrFit()
+      if (!preserveView) {
+        if (plateChooser.value === 'all' && loadedPlates.length > 1) fitView()
+        else applySavedOrFit()
+      }
       draw()
       updateOrcaAction(file, loadedModelInfo.modelPath)
       emitModelChange(file)
@@ -1913,7 +1965,7 @@ function fitView() {
   let maxSize = Math.max(sizeX, sizeY, sizeZ);
   const plateOverview = plateChooser.value === 'all' && loadedPlates.length > 1
   if (plateOverview) {
-    const centers = loadedPlates
+    const centers = overviewPlates
       .map((plate) => plate.stats?.bounds)
       .filter(Boolean)
       .map((bounds) => ({
@@ -1959,7 +2011,7 @@ function draw() {
   const baseZ = modelBounds ? modelBounds.min.z : 0;
   const plateOverview = plateChooser.value === 'all' && loadedPlates.length > 1
   if (plateOverview) {
-    for (const plate of loadedPlates) {
+    for (const plate of overviewPlates) {
       const bounds = plate.stats?.bounds
       if (!bounds) continue
       drawBuildPlate(
