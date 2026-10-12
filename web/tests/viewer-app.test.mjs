@@ -12,6 +12,10 @@ import {
   layoutPlateOverview,
   orcaMaterialAssignments,
   selectDefaultPlate,
+  selectDefaultModelFile,
+  calculateTouchPinchZoom,
+  calculateTouchPan,
+  calculateTouchRotation,
 } from '../../.github/extensions/stl-canvas/viewer-app.mjs'
 
 test('keeps advanced controls and metadata in collapsible surfaces', () => {
@@ -291,3 +295,72 @@ test('all-plates summary retains whole-project totals and exposes plate count', 
   assert.match(APP_HTML, /value="all">All plates<\/option>/)
   assert.match(APP_HTML, /id="summaryPlates"/)
 })
+
+test('APP_HTML includes loading spinner element with accessible feedback', () => {
+  assert.match(APP_HTML, /id="loadingSpinner"/)
+  assert.match(APP_HTML, /class="loading-spinner"/)
+  assert.match(APP_HTML, /class="spinner"/)
+  assert.match(APP_HTML, /aria-live="polite"/)
+})
+
+test('selectDefaultModelFile prefers configured default or Ghoul\'s Grip print project', () => {
+  const files = [
+    'lineal_clip_kappe.stl',
+    'ghouls-grip-print.3mf',
+    'ghouls-grip-view.3mf',
+    'skull_box.stl',
+  ]
+
+  // Configured default model takes highest priority if present
+  assert.equal(selectDefaultModelFile(files, 'skull_box.stl'), 'skull_box.stl')
+
+  // Without configured model, defaults to ghouls-grip-print.3mf
+  assert.equal(selectDefaultModelFile(files), 'ghouls-grip-print.3mf')
+  assert.equal(selectDefaultModelFile(files, ''), 'ghouls-grip-print.3mf')
+
+  // When configured model is missing from files, falls back to ghouls-grip-print.3mf
+  assert.equal(selectDefaultModelFile(files, 'missing.stl'), 'ghouls-grip-print.3mf')
+
+  // If ghouls-grip-print.3mf is missing, matches any ghouls-grip file
+  const filesWithoutPrint = ['lineal_clip_kappe.stl', 'ghouls-grip-view.3mf']
+  assert.equal(selectDefaultModelFile(filesWithoutPrint), 'ghouls-grip-view.3mf')
+
+  // If no ghouls-grip exists, falls back to first 3mf or first file
+  const otherFiles = ['model_a.stl', 'model_b.3mf']
+  assert.equal(selectDefaultModelFile(otherFiles), 'model_b.3mf')
+
+  const onlyStl = ['model_a.stl', 'model_c.stl']
+  assert.equal(selectDefaultModelFile(onlyStl), 'model_a.stl')
+
+  assert.equal(selectDefaultModelFile([]), 'ghouls-grip-print.3mf')
+})
+
+test('calculateTouchPinchZoom scales zoom proportionally within bounds', () => {
+  // Scaling up: 200px -> 400px (2x ratio) on base zoom 1.5 => 3.0
+  assert.equal(calculateTouchPinchZoom(1.5, 400, 200), 3.0)
+
+  // Scaling down: 200px -> 100px (0.5x ratio) on base zoom 2.0 => 1.0
+  assert.equal(calculateTouchPinchZoom(2.0, 100, 200), 1.0)
+
+  // Clamps to min zoom (0.1)
+  assert.equal(calculateTouchPinchZoom(1.0, 1, 200), 0.1)
+
+  // Clamps to max zoom (30)
+  assert.equal(calculateTouchPinchZoom(20.0, 400, 200), 30)
+
+  // Handles invalid/zero distances safely by returning current zoom
+  assert.equal(calculateTouchPinchZoom(2.5, 0, 100), 2.5)
+  assert.equal(calculateTouchPinchZoom(2.5, 100, 0), 2.5)
+  assert.equal(calculateTouchPinchZoom(2.5, -50, 100), 2.5)
+})
+
+test('calculateTouchPan scales screen drag deltas', () => {
+  assert.deepEqual(calculateTouchPan(20, -10), { deltaPanX: 10, deltaPanY: -5 })
+  assert.deepEqual(calculateTouchPan(0, 0), { deltaPanX: 0, deltaPanY: 0 })
+})
+
+test('calculateTouchRotation maps horizontal/vertical drags to rotY and rotX deltas', () => {
+  assert.deepEqual(calculateTouchRotation(30, 20), { deltaRotX: 10, deltaRotY: 15 })
+  assert.deepEqual(calculateTouchRotation(-40, 50), { deltaRotX: 25, deltaRotY: -20 })
+})
+

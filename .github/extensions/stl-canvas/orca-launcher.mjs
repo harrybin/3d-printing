@@ -1,5 +1,5 @@
 import { existsSync, realpathSync } from "node:fs";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve, win32, posix } from "node:path";
 import { spawn } from "node:child_process";
 
 export function findOrcaSlicer({
@@ -25,16 +25,17 @@ export function findOrcaSlicer({
 export function validateOrcaModelPath(modelPath, workspaceRoot, {
     exists = existsSync,
     canonicalize = realpathSync,
+    path = (String(modelPath || "").includes("\\") || String(workspaceRoot || "").includes("\\") || /^[a-zA-Z]:/.test(String(modelPath || ""))) ? win32 : (process.platform === "win32" ? win32 : posix),
 } = {}) {
-    const resolved = resolve(String(modelPath || ""));
+    const resolved = path.resolve(String(modelPath || ""));
     if (!resolved.toLowerCase().endsWith(".3mf")) {
         throw new Error("Only 3MF projects can be opened in OrcaSlicer.");
     }
     if (!exists(resolved)) throw new Error(`Model file not found: ${resolved}`);
     const canonicalModelPath = canonicalize(resolved);
-    const canonicalWorkspaceRoot = canonicalize(resolve(workspaceRoot));
-    const relativePath = relative(canonicalWorkspaceRoot, canonicalModelPath);
-    if (relativePath.startsWith("..") || isAbsolute(relativePath)) {
+    const canonicalWorkspaceRoot = canonicalize(path.resolve(workspaceRoot));
+    const relativePath = path.relative(canonicalWorkspaceRoot, canonicalModelPath);
+    if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
         throw new Error(`Model path is outside the current workspace: ${canonicalModelPath}`);
     }
     return canonicalModelPath;

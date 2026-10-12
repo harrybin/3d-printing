@@ -121,9 +121,12 @@ async function bootstrap() {
   repoLink.href = repoUrl
   newIssueLink.href = `${repoUrl}/issues/new?template=model-request.yml`
 
+  const defaultModelFile = state.config?.app?.defaultModel || state.config?.defaultModel || 'ghouls-grip-print.3mf'
+
   initStlCanvas({
     root: document.querySelector('#viewerRoot'),
     repository: state.config.repository,
+    defaultModelFile,
     viewStorageKey: 'stl-canvas-pages-view-defaults',
     pollIntervalMs: 0,
     maxPixelRatio: window.matchMedia(MOBILE_BREAKPOINT).matches ? 1.1 : 1.75,
