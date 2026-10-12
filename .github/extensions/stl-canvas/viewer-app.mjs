@@ -70,6 +70,7 @@ export const APP_HTML = `
   </details>
 </div>
 <section id="printSummary" class="print-summary" aria-label="Print project summary" hidden>
+  <div class="print-summary-heading">All plates · project total</div>
   <div class="print-card"><span>Print time</span><strong id="summaryPrintTime">—</strong></div>
   <div class="print-card"><span>Material usage</span><strong id="summaryMaterial">—</strong></div>
   <div class="print-card"><span>Support material</span><strong id="summarySupport">—</strong></div>
@@ -98,6 +99,15 @@ export function createOrcaSlicerOpenUrl(file, accessibleUrl, baseUrl = globalThi
   } catch {
     return ''
   }
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
 }
 
 export function formatPrintMetadataSummary(projectMetadata = {}) {
@@ -130,6 +140,115 @@ export function formatPrintMetadataSummary(projectMetadata = {}) {
     filamentLength: metadataWithUnit('filamentUsageMillimeters', 'mm'),
     status: metadataValue('status'),
   }
+}
+
+export function formatPlateBreakdown(projectMetadata = {}) {
+  const rawDetails = projectMetadata.plateDetails
+  if (!rawDetails || rawDetails === 'unknown') {
+    return { visible: false, error: '', plates: [] }
+  }
+  if (typeof rawDetails !== 'string') {
+    return {
+      visible: true,
+      error: 'Plate data is invalid: expected JSON text.',
+      plates: [],
+    }
+  }
+
+  let details
+  try {
+    details = JSON.parse(rawDetails)
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return {
+        visible: true,
+        error: `Plate data is invalid: ${error.message}`,
+        plates: [],
+      }
+    }
+    throw error
+  }
+  if (!Array.isArray(details)) {
+    return {
+      visible: true,
+      error: 'Plate data is invalid: expected a list of plates.',
+      plates: [],
+    }
+  }
+  if (details.length === 0) {
+    return {
+      visible: true,
+      error: 'No per-plate print data is available.',
+      plates: [],
+    }
+  }
+
+  const plates = []
+  for (const detail of details) {
+    if (!detail || typeof detail.name !== 'string' || !detail.name.trim()) {
+      return {
+        visible: true,
+        error: 'Plate data is invalid: a plate is missing its name.',
+        plates: [],
+      }
+    }
+    const rawSeconds = detail.estimatedPrintTimeSeconds
+    const seconds = Number(rawSeconds)
+    const roundedMinutes = Math.round(seconds / 60)
+    const hours = Math.floor(roundedMinutes / 60)
+    const minutes = roundedMinutes % 60
+    const formatTime = rawSeconds !== undefined && rawSeconds !== null && rawSeconds !== '' && rawSeconds !== 'unknown' &&
+      Number.isFinite(seconds) && seconds >= 0
+      ? hours ? `${hours} h ${minutes} min` : `${minutes} min`
+      : 'not available'
+    const formatGrams = (value) => {
+      if (value === undefined || value === null || value === '' || value === 'unknown') {
+        return 'not available'
+      }
+      const grams = Number(value)
+      if (!Number.isFinite(grams) || grams < 0) return 'not available'
+      return grams === 0 ? 'none' : `${grams.toFixed(2)} g`
+    }
+    const formatLength = (value) => {
+      if (value === undefined || value === null || value === '' || value === 'unknown') {
+        return 'not available'
+      }
+      const millimeters = Number(value)
+      return Number.isFinite(millimeters) && millimeters >= 0
+        ? `${millimeters.toFixed(2)} mm`
+        : 'not available'
+    }
+    plates.push({
+      name: detail.name,
+      status: typeof detail.status === 'string' && detail.status ? detail.status : 'not available',
+      printTime: formatTime,
+      filament: formatGrams(detail.filamentUsageGrams),
+      support: formatGrams(detail.supportFilamentGrams),
+      filamentLength: formatLength(detail.filamentUsageMillimeters),
+      supportLength: formatLength(detail.supportFilamentMillimeters),
+    })
+  }
+  return { visible: plates.length > 0, error: '', plates }
+}
+
+export function renderPlateBreakdown(projectMetadata = {}) {
+  const breakdown = formatPlateBreakdown(projectMetadata)
+  if (!breakdown.visible) return ''
+  const body = breakdown.error
+    ? `<p class="plate-breakdown-error">${escapeHtml(breakdown.error)}</p>`
+    : `<div class="plate-table-scroll"><table class="plate-breakdown-table">
+      <thead><tr><th scope="col">Plate</th><th scope="col">Status</th><th scope="col">Print time</th><th scope="col">Filament</th><th scope="col">Support</th><th scope="col">Filament length</th><th scope="col">Support length</th></tr></thead>
+      <tbody>${breakdown.plates.map((plate) => `<tr>
+        <th scope="row">${escapeHtml(plate.name)}</th>
+        <td>${escapeHtml(plate.status)}</td>
+        <td>${escapeHtml(plate.printTime)}</td>
+        <td>${escapeHtml(plate.filament)}</td>
+        <td>${escapeHtml(plate.support)}</td>
+        <td>${escapeHtml(plate.filamentLength)}</td>
+        <td>${escapeHtml(plate.supportLength)}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`
+  return `<details class="plate-breakdown"><summary>Print data per plate (${breakdown.plates.length || 'unavailable'})</summary>${body}</details>`
 }
 
 export function createOrcaLaunchRequest(url, modelPath, nonce) {
@@ -907,15 +1026,6 @@ async function parseModelBuffer(modelPath, buffer) {
   return modelPath.toLowerCase().endsWith('.3mf') ? parse3mfBuffer(buffer) : parseStlBuffer(buffer)
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
-}
-
 let baseView = { ...configuredFallbackView };
 let reloadInFlight = false;
 const VIEW_PRESETS = {
@@ -1069,6 +1179,7 @@ function renderModelMeta() {
   const bounds = plate?.stats?.bounds || computeBounds(rawTriangles)
   const projectMetadata = loadedModelInfo.projectMetadata || {}
   const printSummaryValues = formatPrintMetadataSummary(projectMetadata)
+  const plateBreakdown = renderPlateBreakdown(projectMetadata)
   const metadataValue = (key, fallback = 'not available') => {
     const value = projectMetadata[key]
     return value && value !== 'unknown' ? value : fallback
@@ -1117,7 +1228,8 @@ function renderModelMeta() {
     '<span><strong>Facets:</strong> ' + stats.facets + '</span>' +
     '<span><strong>Vertices:</strong> ' + stats.vertices + '</span>' +
     (bounds ? '<span><strong>Size (mm):</strong> ' + bounds.size.x.toFixed(1) + ' x ' + bounds.size.y.toFixed(1) + ' x ' + bounds.size.z.toFixed(1) + '</span>' : '') +
-    printFields.map(([label, value]) => `<span><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</span>`).join('')
+    printFields.map(([label, value]) => `<span><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</span>`).join('') +
+    plateBreakdown
 }
 // Average face normals per welded vertex, but fall back to the face
 // normal across creases so 90-degree corners stay crisp.
