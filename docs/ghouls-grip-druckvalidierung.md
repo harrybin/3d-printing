@@ -60,7 +60,9 @@ Reproduktion:
 `.\.venv\Scripts\python.exe scripts\render_ghouls_grip_print_projects.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf`
 und
 `.\.venv\Scripts\python.exe scripts\render_ghouls_grip_supports.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf`.
-Canvas/Webview zeigen die Modellgeometrie und Metadaten, aber keine Supportpfade.
+Die Supportpfade bleiben eine separate Bildvorschau und werden nicht in die
+3D-Modellgeometrie eingeblendet. Canvas und Web-UI bieten jetzt zusätzlich
+direkte Buttons für die einzelnen Plattenbilder; ein Klick öffnet das Bild groß.
 ## Profilvertrag und tatsächliche Nutzereinstellungen
 
 Das Druckprojekt wurde vom Nutzer in OrcaSlicer geändert. Die aktuellen

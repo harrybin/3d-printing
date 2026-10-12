@@ -10,7 +10,7 @@ export const APP_HTML = `
   </div>
   <div class="field image-actions" id="imageActions" hidden>
     <button type="button" id="projectPreviewBtn" hidden>Project preview</button>
-    <button type="button" id="plateSupportPreviewBtn" hidden>Plate support preview</button>
+    <div class="plate-support-actions" id="plateSupportActions" role="group" aria-label="Support previews by plate" hidden></div>
   </div>
   <div class="field" id="orcaField" hidden>
     <button type="button" id="openInOrcaBtn" title="Open the current 3MF project in OrcaSlicer">Open in OrcaSlicer</button>
@@ -165,6 +165,17 @@ export function plateSupportImagePath(file, plateNumber) {
   if (!previewPath || !Number.isInteger(Number(plateNumber)) || Number(plateNumber) < 1) return ''
   const stem = modelBasename(file).replace(/\.3mf$/i, '')
   return `docs/images/${stem}-plate-${Number(plateNumber)}-supports.png`
+}
+
+export function renderPlateSupportPreviewActions(file, plates = []) {
+  if (!Array.isArray(plates)) return ''
+  return plates.map((plate) => {
+    const plateNumber = Number(plate?.id)
+    const imagePath = plateSupportImagePath(file, plateNumber)
+    if (!imagePath) return ''
+    const label = `Plate ${plateNumber}`
+    return `<button type="button" class="plate-support-preview" data-project-image="${escapeHtml(imagePath)}" data-project-image-caption="${escapeHtml(`${label} support preview`)}" disabled title="Checking screenshot availability">${label}: supports</button>`
+  }).join('')
 }
 
 function escapeHtml(value) {
@@ -1091,7 +1102,7 @@ const plateField = document.getElementById('plateField');
 const plateChooser = document.getElementById('plateChooser');
 const imageActions = document.getElementById('imageActions')
 const projectPreviewBtn = document.getElementById('projectPreviewBtn')
-const plateSupportPreviewBtn = document.getElementById('plateSupportPreviewBtn')
+const plateSupportActions = document.getElementById('plateSupportActions')
 const projectImageDialog = document.getElementById('projectImageDialog')
 const projectImage = document.getElementById('projectImage')
 const projectImageCaption = document.getElementById('projectImageCaption')
@@ -1162,19 +1173,12 @@ function updateProjectImageActions(file = loadedModelInfo?.path || '') {
     void verifyProjectImageButton(projectPreviewBtn)
   }
 
-  const selectedPlate = plateChooser.value
-  const plateNumber = selectedPlate === 'all'
-    ? (loadedPlates.length === 1 ? 1 : 0)
-    : Number(selectedPlate)
-  const supportPath = plateSupportImagePath(file, plateNumber)
-  plateSupportPreviewBtn.hidden = !supportPath
-  plateSupportPreviewBtn.disabled = Boolean(supportPath)
-  if (supportPath) {
-    plateSupportPreviewBtn.dataset.projectImage = supportPath
-    plateSupportPreviewBtn.dataset.projectImageCaption = `Plate ${plateNumber} support preview`
-    void verifyProjectImageButton(plateSupportPreviewBtn)
-  }
-  imageActions.hidden = !previewPath && !supportPath
+  plateSupportActions.innerHTML = renderPlateSupportPreviewActions(file, loadedPlates)
+  plateSupportActions.hidden = !plateSupportActions.childElementCount
+  plateSupportActions.querySelectorAll('button[data-project-image]').forEach((button) => {
+    void verifyProjectImageButton(button)
+  })
+  imageActions.hidden = !previewPath && plateSupportActions.hidden
 }
 
 root.addEventListener('click', (event) => {

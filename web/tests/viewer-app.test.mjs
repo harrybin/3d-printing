@@ -8,6 +8,7 @@ import {
   formatPrintMetadataSummary,
   plateSupportImagePath,
   projectPreviewImagePath,
+  renderPlateSupportPreviewActions,
   renderPlatePrintDetails,
   layoutPlateOverview,
   orcaMaterialAssignments,
@@ -136,6 +137,21 @@ test('offers support screenshot buttons inside the expandable per-plate details'
   assert.match(html, /<th scope="col">Support preview<\/th>/)
   assert.match(html, /ghouls-grip-print-plate-1-supports\.png/)
   assert.match(html, /ghouls-grip-print-plate-2-supports\.png/)
+})
+
+test('offers an always-visible support screenshot button for each 3MF plate', () => {
+  const html = renderPlateSupportPreviewActions('ghouls-grip-print.3mf', [
+    { id: '1' },
+    { id: '2' },
+    { id: '3' },
+  ])
+
+  assert.equal((html.match(/<button /g) || []).length, 3)
+  assert.match(html, /Plate 1: supports/)
+  assert.match(html, /Plate 2 support preview/)
+  assert.match(html, /ghouls-grip-print-plate-3-supports\.png/)
+  assert.equal(renderPlateSupportPreviewActions('part.stl', [{ id: '1' }]), '')
+  assert.equal(renderPlateSupportPreviewActions('part.3mf', [{ id: '0' }]), '')
 })
 
 test('reports missing or invalid per-plate metadata and escapes plate names', () => {
