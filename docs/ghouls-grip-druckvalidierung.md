@@ -245,7 +245,7 @@ Renderer zeigt daraus:
   Filamentprofil, Material, Farbe, Bett, Wandzahl, Infill, Support und
   Plattenzahl;
 - im Detail-Overlay eine separat aufklappbare Tabelle **Print data by plate**
-  mit Druckzeit, Material, Supportmaterial, Filamentlänge, Status und einem
+  mit Druckzeit, Material, Supportmaterial, Filamentlänge, Supportlänge, Status und einem
   Supportbild-Button pro gesliceter Plate. Die Bilder zeigen die tatsächlich
   extrudierten Supportbahnen und sind in Canvas sowie Webview per Dialog
   anzusehen. Fehlende oder fehlerhafte Plate-Metadaten werden ausdrücklich angezeigt;

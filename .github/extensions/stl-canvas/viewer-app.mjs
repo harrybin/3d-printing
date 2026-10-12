@@ -74,7 +74,7 @@ export const APP_HTML = `
   </details>
 </div>
 <section id="printSummary" class="print-summary" aria-label="Print project summary" hidden>
-  <div class="print-card print-scope"><strong>All plates</strong></div>
+  <div class="print-card print-scope"><strong>All plates · project total</strong></div>
   <div class="print-card"><span>Print time</span><strong id="summaryPrintTime">—</strong></div>
   <div class="print-card"><span>Material usage</span><strong id="summaryMaterial">—</strong></div>
   <div class="print-card"><span>Support material</span><strong id="summarySupport">—</strong></div>
@@ -191,13 +191,18 @@ export function renderPlatePrintDetails(projectMetadata = {}, { file = '' } = {}
   if (!plates.length) return '<p class="plate-data-notice">No per-plate print data is stored in this file.</p>'
   const rows = plates.map((plate, index) => {
     const summary = formatPrintMetadataSummary(plate)
+    const rawSupportLength = plate.supportFilamentMillimeters
+    const supportLength = rawSupportLength !== undefined && rawSupportLength !== null &&
+      String(rawSupportLength).trim() !== '' && Number.isFinite(Number(rawSupportLength)) &&
+      Number(rawSupportLength) >= 0
+      ? `${Number(rawSupportLength).toFixed(2)} mm` : 'not available'
     const name = typeof plate.name === 'string' && plate.name.trim() ? plate.name : `Plate ${index + 1}`
     const supportImagePath = plateSupportImagePath(file, index + 1)
     const supportPreview = supportImagePath
       ? `<button type="button" class="plate-support-preview" data-project-image="${escapeHtml(supportImagePath)}" data-project-image-caption="${escapeHtml(`${name} support preview`)}" disabled title="Checking screenshot availability">View supports</button>`
       : ''
     return `<tr><th scope="row">${escapeHtml(name)}</th>` +
-      [summary.printTime, summary.materialUsage, summary.supportUsage, summary.filamentLength, summary.status]
+      [summary.printTime, summary.materialUsage, summary.supportUsage, summary.filamentLength, supportLength, summary.status]
         .map((value) => `<td>${escapeHtml(value)}</td>`).join('') +
       `<td>${supportPreview}</td></tr>`
   }).join('')
@@ -205,7 +210,7 @@ export function renderPlatePrintDetails(projectMetadata = {}, { file = '' } = {}
     '<div class="plate-table-scroll" tabindex="0" role="region" aria-label="Print data by plate">' +
     '<table class="plate-print-table"><caption>Per-plate slice results; the top bar always shows all-plate totals.</caption>' +
     '<thead><tr><th scope="col">Plate</th><th scope="col">Print time</th><th scope="col">Material</th>' +
-    '<th scope="col">Support</th><th scope="col">Filament length</th><th scope="col">Validation</th>' +
+    '<th scope="col">Support</th><th scope="col">Filament length</th><th scope="col">Support length</th><th scope="col">Validation</th>' +
     '<th scope="col">Support preview</th></tr></thead>' +
     `<tbody>${rows}</tbody></table></div></details>`
 }
