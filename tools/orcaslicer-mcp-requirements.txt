@@ -1,0 +1,1 @@
+git+https://github.com/ShreddyKrueger75/claude-orcaslicer-mcp.git@b1a7cd13c853a733e09367f18d3c183f04c349d9

@@ -6,20 +6,36 @@ remain outside the repository.
 
 ## Blender MCP
 
-The `blender` entry uses the official Blender Lab MCP server through `uv`. Before
-enabling it locally:
+The `blender` entry uses the official Blender Lab MCP server through `uv`. Blender
+CLI and MCP are intentionally both supported: CLI scripts provide deterministic
+scene builds, imports, exports and renders; MCP provides bounded interactive
+inspection and visual edits in the live scene. Before enabling MCP locally:
 
 1. Install a supported Blender version and the Blender Lab MCP add-on.
 2. Install the MCP server in a user-owned directory.
-3. Set `BLENDER_MCP_DIR` to that directory.
+3. Set `BLENDER_MCP_DIR` to the checkout's `mcp` directory.
 4. Configure the add-on to listen only on `127.0.0.1:9876`.
 5. Start Blender with the project `.blend` file before connecting the MCP client.
 
 Example PowerShell environment setup:
 
 ```powershell
-$env:BLENDER_MCP_DIR = "C:\Tools\blender_mcp"
+$env:BLENDER_MCP_DIR = "C:\Tools\blender_mcp\mcp"
+$env:BLENDER_MCP_HOST = "127.0.0.1"
+$env:BLENDER_MCP_PORT = "9876"
 ```
+
+For a deterministic background bridge against a saved project:
+
+```powershell
+& "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" `
+  --background models\project.blend --online-mode `
+  --command blender_mcp --host 127.0.0.1 --port 9876
+```
+
+Use a CLI-generated `.blend` baseline before interactive MCP edits and save those
+edits to a new checkpoint. MCP never owns measured pivots, bores, clearances,
+mating surfaces or mechanical verification.
 
 The official Blender page warns that the server executes LLM-generated code in
 Blender without a data-protection sandbox. Use a disposable or isolated Blender

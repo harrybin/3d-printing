@@ -4,8 +4,14 @@
     {
       "id": "anycubic-kobra-s1-ace-pro-profile",
       "name": "anycubic-kobra-s1-ace-pro-profile",
-      "description": "Anycubic Kobra S1 Combo + ACE Pro defaults and constraints for STL authoring and editing.",
+      "description": "Anycubic Kobra S1 Combo + ACE Pro defaults and constraints for STL/3MF authoring and editing.",
       "source": ".github/skills/anycubic-kobra-s1-ace-pro-profile/skill.md"
+    },
+    {
+      "id": "blender-assisted-modeling",
+      "name": "blender-assisted-modeling",
+      "description": "Use local Blender through a controlled MCP workflow for organic or visual geometry while preserving measured datums and validating every exported mesh.",
+      "source": ".github/skills/blender-assisted-modeling/skill.md"
     },
     {
       "id": "create-ascii-stl",
@@ -20,10 +26,52 @@
       "source": ".github/skills/edit-stl-transform/skill.md"
     },
     {
+      "id": "image-relief-vectorize",
+      "name": "image-relief-vectorize",
+      "description": "Turn reference images into a relief/height-map aided vector outline before building 3D geometry.",
+      "source": ".github/skills/image-relief-vectorize/skill.md"
+    },
+    {
+      "id": "multimaterial-assembly-packaging",
+      "name": "multimaterial-assembly-packaging",
+      "description": "Package complex models as an assembled multi-state view 3MF and one consolidated printable 3MF, preferring separately printed keyed color parts to reduce purge waste.",
+      "source": ".github/skills/multimaterial-assembly-packaging/skill.md"
+    },
+    {
       "id": "optimize-stl-for-print",
       "name": "optimize-stl-for-print",
       "description": "Optimize an existing STL for FDM printing on the Anycubic Kobra S1 - orientation, overhangs, wall and hole compensation, elephant foot, bed layout and material estimate.",
       "source": ".github/skills/optimize-stl-for-print/skill.md"
+    },
+    {
+      "id": "orcaslicer-print-validation",
+      "name": "orcaslicer-print-validation",
+      "description": "Perform the final OrcaSlicer printability gate and record the exact profile, print time, material use, supports, warnings, and preview evidence.",
+      "source": ".github/skills/orcaslicer-print-validation/skill.md"
+    },
+    {
+      "id": "orcaslicer-project-workflow",
+      "name": "orcaslicer-project-workflow",
+      "description": "Slice and inspect this repository's STL/3MF outputs with standard OrcaSlicer through the pinned local MCP server.",
+      "source": ".github/skills/orcaslicer-project-workflow/SKILL.md"
+    },
+    {
+      "id": "orcaslicer-support-minimization",
+      "name": "orcaslicer-support-minimization",
+      "description": "Minimize supports in delivered STL/3MF print projects by comparing controlled OrcaSlicer orientation candidates while preserving project semantics; use when a final print project needs support-focused orientation and placement review without source-geometry edits.",
+      "source": ".github/skills/orcaslicer-support-minimization/SKILL.md"
+    },
+    {
+      "id": "partial-rebuild-instead-of-mutate",
+      "name": "partial-rebuild-instead-of-mutate",
+      "description": "Replace unstable local mutation with a controlled partial rebuild from frozen datums and a constrained scope.",
+      "source": ".github/skills/partial-rebuild-instead-of-mutate/skill.md"
+    },
+    {
+      "id": "photo-anchor-candidate-fit",
+      "name": "photo-anchor-candidate-fit",
+      "description": "Refine a model toward image references with frozen datums, landmark alignment, and candidate sweeps to avoid iterative drift.",
+      "source": ".github/skills/photo-anchor-candidate-fit/skill.md"
     },
     {
       "id": "research-part-specs",
@@ -32,9 +80,21 @@
       "source": ".github/skills/research-part-specs/skill.md"
     },
     {
+      "id": "research-reusable-3d-assets",
+      "name": "research-reusable-3d-assets",
+      "description": "Search for reusable 3D model assets before building from scratch, verify licensing and attribution, and choose reuse, hybrid rebuild, or original construction.",
+      "source": ".github/skills/research-reusable-3d-assets/skill.md"
+    },
+    {
+      "id": "reversible-fdm-joints",
+      "name": "reversible-fdm-joints",
+      "description": "Select, design, and validate strong glue-free FDM assembly joints, preferring serviceable removable connections and checking load paths and insertion sweeps.",
+      "source": ".github/skills/reversible-fdm-joints/SKILL.md"
+    },
+    {
       "id": "stl-create-edit-interview",
       "name": "stl-create-edit-interview",
-      "description": "Guided question flow for STL authoring/editing choices (wall strategy, mesh pattern, infill strategy, and fit intent).",
+      "description": "Guided question flow for STL/3MF authoring/editing choices (wall strategy, mesh pattern, infill strategy, and fit intent).",
       "source": ".github/skills/stl-create-edit-interview/skill.md"
     },
     {
@@ -48,6 +108,12 @@
       "name": "validate-stl-mesh",
       "description": "Validate STL meshes for manifold correctness and FDM printability readiness.",
       "source": ".github/skills/validate-stl-mesh/skill.md"
+    },
+    {
+      "id": "visual-hull-envelope-fit",
+      "name": "visual-hull-envelope-fit",
+      "description": "Use multiple silhouettes or views to constrain the outer envelope before rebuilding or refining a model.",
+      "source": ".github/skills/visual-hull-envelope-fit/skill.md"
     }
   ]
 }

@@ -27,8 +27,11 @@ If a procedure is needed more than once, it belongs in a skill file.
 | Blender modeling | `blender-assisted-modeling` | Organic/visual modeling, MCP safety, frozen datums, and validated export roundtrip |
 | Mesh quality | `validate-stl-mesh` | Integrity checks, feature probes, stale-file checks |
 | Print optimization | `optimize-stl-for-print` | Orientation and compensation decisions after geometry is correct |
+| Slicer handoff | `orcaslicer-project-workflow` | Pinned standard-OrcaSlicer MCP setup, slicing-only safety boundary and evidence |
+| Support minimization | `orcaslicer-support-minimization` | Stable-datum orientation candidates, sequential slices, support-first ranking, and suggestion-only geometry escalation |
 | Slicer validation | `orcaslicer-print-validation` | Final profiles, slicing, time/material estimates, warnings, and preview evidence |
-| Multimaterial packaging | `multimaterial-assembly-packaging` | Master 3MF, print plates, purge-minimizing color splits, and keyed assembly |
+| Multimaterial packaging | `multimaterial-assembly-packaging` | Multi-state view 3MF, consolidated print 3MF, purge-minimizing color splits, and keyed assembly |
+| Reversible assemblies | `reversible-fdm-joints` | Glue-free joint selection, load paths, service access, insertion sweeps, and reusable joint geometry |
 
 ## Central consistency matrix
 
@@ -43,6 +46,7 @@ If a procedure is needed more than once, it belongs in a skill file.
 | Rebuild-vs-mutate decision | stable local boundary plus frozen trusted geometry | `partial-rebuild-instead-of-mutate` | `photo-anchor-candidate-fit`, `visual-hull-envelope-fit`, `create-ascii-stl` | If a local region is structurally wrong, rebuild that region from the script instead of continuing STL mutation. |
 | Source of geometry edits | parametric scripts in `scripts/` | `create-ascii-stl` | `edit-stl-transform`, `photo-anchor-candidate-fit` | Regenerate from script instead of hand-editing STL facets. |
 | STL vs 3MF decision | confirmed material/color semantics | `stl-create-edit-interview` | `create-ascii-stl`, `stl-from-image-measurements`, `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Distinct material/color regions require a 3MF deliverable; STL is only for merged single-region output. |
+| Complex-project print handoff | complete BOM plus material/object process intent | `multimaterial-assembly-packaging` | `orcaslicer-project-workflow`, `create-ascii-stl`, `anycubic-kobra-s1-ace-pro-profile` | Deliver one assembled `-view.3mf` and one all-material, settings-bearing `-print.3mf`; group same-color parts on shared plates and use extra plates as needed. |
 | Coordinate convention | mesh coordinates and user intent | `validate-stl-mesh` | `edit-stl-transform`, `optimize-stl-for-print` | Auto-detect center-origin vs corner-origin unless the user specifies it. |
 | Mesh proof and feature existence | `scripts/mesh_tool.py` checks | `validate-stl-mesh` | `stl-from-image-measurements`, `photo-anchor-candidate-fit` | Prove ambiguous internal features with probes/slices, not screenshots alone. |
 | STL canvas preview | written output path under `models/` | `create-ascii-stl` | `edit-stl-transform`, `stl-from-image-measurements`, `validate-stl-mesh`, `optimize-stl-for-print` | Preview any written STL immediately; for 3MF-first outputs, report the 3MF path and preview an STL counterpart when available. |
@@ -51,8 +55,10 @@ If a procedure is needed more than once, it belongs in a skill file.
 | Python vs Blender routing | feature type and frozen datums | `blender-assisted-modeling` | `create-ascii-stl`, `stl-from-image-measurements`, `edit-stl-transform` | Python owns fit geometry; Blender owns approved organic/visual regions. |
 | Blender MCP security | current official integration docs and local-only configuration | `blender-assisted-modeling` | `AGENTS.md` | Do not expose Blender MCP publicly or silently install/enable it. |
 | Project MCP configuration | `.vscode/mcp.json` plus local environment variables | `blender-assisted-modeling`, `orcaslicer-print-validation` | `docs/mcp-setup.md` | Commit names and safe defaults, never executable paths, secrets, downloaded servers, or personal profiles. |
+| Delivered-project support minimization | exact final STL/3MF plus fixed Kobra S1 profiles | `orcaslicer-support-minimization` | `orcaslicer-project-workflow`, `optimize-stl-for-print`, `orcaslicer-print-validation` | Compare bounded absolute datum rotations sequentially, preserve material/plate semantics, save orientation in 3MF, and never apply suggested geometry changes without a later source-model decision. |
 | Final slice evidence | successful OrcaSlicer project slice | `orcaslicer-print-validation` | `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Never claim print time or final print readiness without a successful slice. |
-| Complex 3MF packaging | assembled master plus print plates | `multimaterial-assembly-packaging` | `stl-create-edit-interview`, `optimize-stl-for-print` | Deliver master and print 3MF files; prefer keyed color parts when practical. |
+| Complex 3MF packaging | assembled view plus complete print BOM | `multimaterial-assembly-packaging` | `stl-create-edit-interview`, `optimize-stl-for-print` | Deliver exactly one multi-state `-view.3mf` and one all-plates `-print.3mf`; group same-color parts on shared plates. |
+| Assembly joints and installation | load case, service intent, assembly order, and collision-free insertion sweep | `reversible-fdm-joints` | `create-ascii-stl`, `validate-stl-mesh`, `anycubic-kobra-s1-ace-pro-profile` | Prefer reversible glue-free joints; model retention separately and prove insertion/removal access. |
 
 ## What belongs in the library
 

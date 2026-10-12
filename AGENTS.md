@@ -72,6 +72,17 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Blender is allowed for organic, sculptural, relief, and visually complex regions.
   It must not freely alter measured datums, bores, fits, interfaces, or keyed joints.
   Validate every Blender export independently with the repo tools.
+- Whenever a region should read as realistic, photorealistic, organic or sculptural
+  (ornaments, creatures, skulls, foliage, drapery), do not keep stacking Python
+  primitives. Switch to Blender for that region and first search online for a
+  license-compatible motif, scan or asset that comes close to the target, then adapt
+  it instead of approximating it from scratch. Record source, author and license per
+  `research-reusable-3d-assets`.
+- Ornaments do not have to be purely raised. Recessed/engraved relief is allowed
+  wherever the remaining wall thickness and stability still satisfy the part's
+  structural requirement. Whichever direction is used, the decorated part must be
+  sliced against a matched undecorated control with automatic support enabled, and
+  it must not increase support paths or support extrusion.
 - Prefer the official Blender Lab MCP integration, bind it only to localhost, save a
   `.blend` checkpoint before agent-controlled changes, and treat arbitrary Blender
   Python execution as trusted local code execution.
@@ -87,11 +98,25 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Every delivered print plate must be sliced in OrcaSlicer with the intended Kobra
   S1/nozzle/process/filament profiles when OrcaSlicer is available. Record print
   time and material only from a successful slice.
-- New complex assemblies use `models/<name>-master.3mf` for the complete assembled
-  object and one or more `models/<name>-print-<plate-or-material>.3mf` files for
-  print-optimized jobs. Optional part STLs do not replace these files.
+- Generated OrcaSlicer 3MF projects default to random seam placement, ironing on
+  all top surfaces and enabled automatic support (`seam_position=random`,
+  `ironing_type=top`, `enable_support=1`) unless a documented part-specific reason
+  requires an exception. Support stays on so that a zero-support slice is proven
+  geometry, never a disabled setting.
+- New complex assemblies use exactly two 3MF deliverables:
+  `models/<name>-view.3mf` contains the fully assembled object, with separate
+  plates for other meaningful mechanism states; `models/<name>-print.3mf`
+  contains the complete print BOM. Group parts of each material/color together
+  and use multiple plates as needed instead of splitting the project into
+  per-material files. Optional part STLs do not replace these files.
 - Prefer separately printed, keyed color bodies over purge-heavy in-place
   multicolor when assembly, strength, and appearance remain acceptable.
+- Material-separated parts must be physically assemblable after printing. Define
+  and verify an insertion direction, assembly order, reachable retaining feature
+  and collision-free insertion sweep for every cross-material joint. A static
+  master render is not proof: reject any part that reaches its final pose only by
+  passing through another solid, and split integral cross-material shafts/gears
+  into keyed couplings where necessary.
 - Detect Blender, Blender MCP, and OrcaSlicer before relying on them. If a tool is
   missing, ask whether the user wants it installed or enabled. If declined,
   continue with repo-native tools and label unavailable validation explicitly.
@@ -102,6 +127,30 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - When recreating parts from photos/videos, run the render-and-compare loop (vedo offscreen renders vs. reference frames) before declaring the model done; see `.github/skills/stl-from-image-measurements/SKILL.md`.
 - Before reading reference photos, build a numbered contact sheet with `python scripts/make_contact_sheet.py <image folder>` and open only the tiles that show the feature in question. Commit the sheet as `<image folder>/_index.png` and cite tile numbers in the measurement doc.
 - When a model is finished, delete its raw reference photos and temporary analysis renderings after the final presentation render has been shown in chat. Keep the final presentation render as needed for the deliverable/PR, and keep only the contact sheet(s), renamed after the model, in `model-sources/archiv/` (e.g. `duschscharnier_ersatz-referenzfotos-index.png`); record the tile-to-file legend in `model-sources/archiv/README.md`.
+
+## Realism And Mechanism Proof
+
+- For anatomical, skeletal, creature, historical-artifact or other complex organic forms, search for a license-compatible scan or reference mesh before approximating the shape with primitives. Preserve attribution and license metadata in `docs/`; cache only the smallest reproducible derivative needed by the generator.
+- Treat a reference mesh as shape evidence, not as a finished printable mechanism. Re-rig, segment, thicken, fuse and add sockets/flexures parametrically while preserving the recognizable source anatomy.
+- Separate visual and mechanical reconstruction: organic parts may reuse researched meshes, while pivots, rails, latches, stops and clearances must come from explicit dimensions and equations.
+- A moving assembly is not complete after static mesh validation. Sample the full motion range, solve every pivot analytically, and run manifold intersection-volume checks against fixed parts and adjacent moving parts. Record a PASS/FAIL report under `docs/`.
+- Verify both end states: the deployed state must clear the enclosure and lid; the retracted state must fit wholly inside the usable cavity with explicit minimum margins. Render both states.
+- Replace any solid tray, bridge or decorative body that crosses the swept volume with an open yoke/frame or another structurally bounded rebuild; never hide a collision in the closed render.
+- Put hinges on the physically correct edge and verify their rotation axis against the reference image before detailing the shell.
+- Keep assembly and manufacturing separate: the `-view.3mf` is the assembled
+  presentation model, never a print layout. For mechanisms, include a plate for
+  each meaningful assembly state in the view project.
+- The single complex-project `-print.3mf` must contain the complete BOM, the
+  Anycubic Kobra S1 0.4 mm machine profile, explicit Textured PEI bed selection,
+  each matching filament/spool profile and object-to-filament mapping, plus
+  object-specific overrides for walls, infill, supports, speeds or brim where
+  function differs. Neutral geometry-only 3MF files do not satisfy this
+  requirement.
+- Do not split a complex project's print BOM into separate material/color
+  projects. Group parts with the same material and color on shared plates when
+  they fit safely; use additional internal plates for bed size, orientation,
+  supports or print-risk isolation.
+- For ornate reference designs, use real raised/recessed geometry (scrolls, tracery, leaves, ribs, cartouches), not a few generic arches or a texture. Validate minimum stroke and relief depth for the nozzle. Raised and engraved relief may be mixed; engraving requires enough remaining wall thickness to stay structurally sound.
 
 ## Common Pitfalls
 
@@ -133,6 +182,7 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Image-to-STL workflow: [.github/skills/stl-from-image-measurements/SKILL.md](.github/skills/stl-from-image-measurements/SKILL.md)
 - Reusable asset/license research: [.github/skills/research-reusable-3d-assets/skill.md](.github/skills/research-reusable-3d-assets/skill.md)
 - Blender-assisted modeling: [.github/skills/blender-assisted-modeling/skill.md](.github/skills/blender-assisted-modeling/skill.md)
+- OrcaSlicer support minimization: [.github/skills/orcaslicer-support-minimization/SKILL.md](.github/skills/orcaslicer-support-minimization/SKILL.md)
 - OrcaSlicer validation: [.github/skills/orcaslicer-print-validation/skill.md](.github/skills/orcaslicer-print-validation/skill.md)
 - Multimaterial packaging: [.github/skills/multimaterial-assembly-packaging/skill.md](.github/skills/multimaterial-assembly-packaging/skill.md)
 - Local MCP setup: [docs/mcp-setup.md](docs/mcp-setup.md)
@@ -150,15 +200,17 @@ If behavior around print constraints, validation policy, or coordinate targeting
 | Rebuild-vs-mutate decision | stable local boundary plus frozen trusted geometry | `partial-rebuild-instead-of-mutate` | `photo-anchor-candidate-fit`, `visual-hull-envelope-fit`, `create-ascii-stl` | If a local region is structurally wrong, rebuild that region from the script instead of continuing STL mutation. |
 | Source of geometry edits | parametric scripts in `scripts/` | `create-ascii-stl` | `edit-stl-transform`, `photo-anchor-candidate-fit` | Regenerate from script instead of hand-editing STL facets. |
 | STL vs 3MF decision | confirmed material/color semantics | `stl-create-edit-interview` | `create-ascii-stl`, `stl-from-image-measurements`, `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Distinct material/color regions require a 3MF deliverable; STL is only for merged single-region output. |
+| Complex-project print handoff | complete BOM plus material/object process intent | `orcaslicer-project-workflow` | `multimaterial-assembly-packaging`, `anycubic-kobra-s1-ace-pro-profile` | Deliver an assembled `-view.3mf` and one Kobra-S1 settings-bearing `-print.3mf` with all filament mappings; group same-color parts on shared plates and use multiple plates as needed. |
 | Coordinate convention | mesh coordinates and user intent | `validate-stl-mesh` | `edit-stl-transform`, `optimize-stl-for-print` | Auto-detect center-origin vs corner-origin unless the user specifies it. |
 | Mesh proof and feature existence | `scripts/mesh_tool.py` checks | `validate-stl-mesh` | `stl-from-image-measurements`, `photo-anchor-candidate-fit` | Prove ambiguous internal features with probes/slices, not screenshots alone. |
 | Final model image in chat | exact final STL/3MF output | `create-ascii-stl` | `edit-stl-transform`, `stl-from-image-measurements`, `optimize-stl-for-print` | Post an inline rendered image in the final chat response; a canvas preview or path alone is not enough. |
 | STL canvas preview | written output path under `models/` | `create-ascii-stl` | `edit-stl-transform`, `stl-from-image-measurements`, `validate-stl-mesh`, `optimize-stl-for-print` | Also preview written STL outputs in the canvas; for 3MF-first outputs, report the 3MF path and preview an STL counterpart when available. |
 | Optional helper libraries | repo support status | `.github/skills/README.md` | all skills | Mark non-default helpers such as `scikit-image` or `shapely` explicitly as optional where applicable. |
 | Reusable online assets | original source and explicit license | `research-reusable-3d-assets` | `research-part-specs`, `stl-from-image-measurements` | Search before original modeling; unclear or incompatible licenses are reference-only. |
-| Python vs Blender routing | feature type and frozen datums | `blender-assisted-modeling` | `create-ascii-stl`, `stl-from-image-measurements` | Python owns fit geometry; Blender owns approved organic/visual regions. |
+| Python vs Blender routing | feature type and frozen datums | `blender-assisted-modeling` | `create-ascii-stl`, `stl-from-image-measurements`, `research-reusable-3d-assets` | Python owns fit geometry; Blender owns approved organic/visual regions, and realistic or sculptural requests move to Blender with a prior license-compatible asset search instead of more primitives. |
+| Delivered-project support minimization | exact final STL/3MF plus fixed Kobra S1 profiles | `orcaslicer-support-minimization` | `orcaslicer-project-workflow`, `optimize-stl-for-print`, `orcaslicer-print-validation` | Compare bounded absolute datum rotations sequentially, preserve material/plate semantics, save orientation in 3MF, and leave geometry changes as suggestions until separately approved at the source model. |
 | Final slice evidence | successful OrcaSlicer project slice | `orcaslicer-print-validation` | `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Never claim print time or final print readiness without a successful slice. |
-| Complex 3MF packaging | assembled master plus print plates | `multimaterial-assembly-packaging` | `stl-create-edit-interview`, `optimize-stl-for-print` | Deliver a master 3MF and print-optimized 3MFs; prefer keyed color parts when practical. |
+| Complex 3MF packaging | assembled view plus complete print BOM | `multimaterial-assembly-packaging` | `stl-create-edit-interview`, `optimize-stl-for-print` | Deliver exactly one multi-state `-view.3mf` and one settings-bearing `-print.3mf`; group same-color parts on shared plates and add plates as needed. |
 
 ## Session-Learned Friction To Avoid
 

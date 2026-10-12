@@ -88,3 +88,13 @@ Modellauto-Ersatzreifen (`scripts/modellauto_reifen.py`,
 
 Neue Kontaktblaetter erzeugt man mit
 `python scripts/make_contact_sheet.py <bildordner> --out model-sources/archiv/<modell>-index.png`.
+
+## Ghoul's Grip
+
+Die zwei Konzeptbilder bleiben waehrend der Prototypenphase unter
+`model-sources/ghouls-grip/`; das nummerierte Kontaktblatt ist `_index.png`.
+
+| Kachel | Originaldatei | Verwendung |
+| ---: | --- | --- |
+| 00 | 01-blueprint-concept.jpg | Stil, Scherenhub, Totenkopf-Ausloeser |
+| 01 | 02-render-concept.jpg | Materialwirkung, offene Suessigkeiten-Hand |

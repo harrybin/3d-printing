@@ -154,6 +154,27 @@ When a usable baseline model already exists but iterative photo-based tweaking k
 - if the mismatch is broad and view-to-view contradictory, switch to `visual-hull-envelope-fit` instead of continuing local tweaks
 - if one local region is structurally wrong and keeps dragging the rest of the model away, switch to `partial-rebuild-instead-of-mutate`
 
+### 2d. Licensed organic-reference branch
+
+When the target contains realistic anatomy, bones, creatures or another organic form that primitives cannot reproduce convincingly:
+
+- research a license-compatible scan or mesh before freehand modeling; verify the actual download, license and attribution text;
+- preserve the source's recognizable surface geometry and proportions, but treat it as reference material that still needs re-rigging, segmentation, thickening, repair and printable joints;
+- cache a documented, reduced derivative when the original file is too large or should not be redistributed; keep a script that can reproduce the derivative from the cited source;
+- never let the imported organic mesh dictate fit-critical pivots or clearances. Build the engineering interfaces parametrically around frozen anatomical datums;
+- compare rendered anatomy against the reference before integrating it into the mechanism.
+
+### 2e. Motion-proof branch for pictured mechanisms
+
+A realistic-looking assembly is not accepted until its motion is proved:
+
+- establish the actual hinge edge and axis from the reference before placing decoration;
+- solve the pivot chain analytically and sample the full travel, not only open/closed screenshots;
+- measure boolean intersection volume between the moving envelope and the enclosure, supports, fixed pivots and neighboring links;
+- require the retracted organic assembly to fit inside the usable cavity with a reported minimum margin;
+- rebuild supports around the swept volume (for example as an open yoke) when a solid tray or bridge intersects it;
+- render and preserve both retracted and deployed states.
+
 ### 3. Shape-first classification and strategy selection (mandatory)
 
 Do not start with fine segmentation. First classify the object as a whole, then choose the cheapest reliable strategy:
@@ -220,6 +241,13 @@ If the reference indicates multiple materials, inserts, coatings, or color regio
 2. If yes, preserve them as separate solids/regions and switch the final deliverable format to **3MF**.
 3. If no, document that the output is intentionally merged and proceed with STL-compatible geometry.
 4. Never finalize as STL when distinct material/color semantics are explicitly required.
+5. For a complex multi-part assembly, deliver an assembled `-view.3mf` and one
+   print-ready OrcaSlicer `-print.3mf` containing all material/color/spool
+   assignments, complete repeated-part quantities and object-level overrides.
+   Group same-material/color parts on shared plates when safe; use multiple
+   plates inside the print project instead of one 3MF per material. The print
+   file must embed the current printer, explicit bed, filament profiles and
+   material process settings.
 
 ### 6. Compose or edit the output geometry
 
@@ -238,9 +266,10 @@ Python; Blender may change only the approved organic regions. Revalidate scale,
 component count, datums, topology, and feature probes after every Blender export.
 
 When material/color regions must remain distinct, invoke
-`multimaterial-assembly-packaging`: produce an assembled master 3MF plus
-print-optimized 3MF files, and prefer separately printed keyed color bodies when
-that reduces purge without unacceptable visual or structural loss.
+`multimaterial-assembly-packaging`: produce one assembled multi-state
+`-view.3mf` and one settings-bearing `-print.3mf` with all print plates, and
+prefer separately printed keyed color bodies when that reduces purge without
+unacceptable visual or structural loss.
 
 Allowed operations include:
 
@@ -410,7 +439,8 @@ Before finishing, provide:
 - final relation measurements between objects in mm
 - the material-semantics decision and resulting output format choice (STL or 3MF)
 - printability findings and any accepted risks
-- master 3MF, print-plate 3MF, and optional part-STL paths for complex outputs
+- `-view.3mf`, consolidated `-print.3mf`, and optional part-STL paths for
+  complex outputs
 - OrcaSlicer version, profile names, print time, material use, support decision,
   warnings, and validation status
 - whether the mesh was centered or origin-aligned and by which convention

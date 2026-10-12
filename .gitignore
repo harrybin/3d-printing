@@ -1,4 +1,5 @@
 .venv/
+.venv-orcaslicer-mcp/
 __pycache__/
 *.pyc
 web/node_modules/
@@ -9,3 +10,5 @@ web/public/models/models.json
 web/public/build-info.json
 
 web/public/models/*.3mf
+build/
+*.log
