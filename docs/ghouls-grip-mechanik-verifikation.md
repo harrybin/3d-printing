@@ -1,10 +1,10 @@
 # Ghoul's Grip - Mechanik-Verifikation
 
-Ergebnis der Wandkorrektur: **PASS**
+Ergebnis der Wand- und Bodenlagerkorrektur: **PASS**
 
-Unabhängiger Bestandsfehler, nicht durch diese Korrektur geändert: Die unveränderten Scherenarme schneiden die unveränderten Bodenlager um bis zu 554.635 mm³. Der Nachweis behauptet deshalb keine global kollisionsfreie Mechanik; dieser Lager-/Armabstand braucht eine separate Korrektur vor dem Funktionsdruck.
+Bodenlager als offene Doppelwangen um die unveränderten Armhüllen neu aufgebaut. Größtes aktuelles Arm-/Kisten-Schnittvolumen: 0.000082 mm³. Jeder einzelne Arm wird in allen 61 Zuständen geprüft; jede Überschneidung über 0,001 mm³ lässt den Nachweis scheitern. Das ist ein Geometrienachweis, kein Belastungs- oder PLA-Passungstest.
 
-Baseline-Beweis: Schatulle aus `f396e7a:models/ghouls-grip-view.3mf`, nur um die Ansichtsplatten-Verschiebung zurückversetzt, gegen dieselben unveränderten Scherenarme geprüft. Größte Differenz zum korrigierten Gehäuse: 0.000000 mm³.
+Baseline-Beweis: Schatulle aus `f396e7a:models/ghouls-grip-view.3mf`, nur um die Ansichtsplatten-Verschiebung zurückversetzt, gegen dieselben unveränderten Scherenarme geprüft. Größte Verbesserung zum korrigierten Gehäuse: 554.634953 mm³.
 
 Geprüft wird die starre, manuell reversible Kraftkette: Drehbarer Totenkopf -> Antriebsritzel -> Schlittenzahnstange -> Doppelschere sowie Antriebsritzel -> Deckelzahnstange -> gefangener Deckelkurbelzapfen. Ein mitfahrendes Fünf-Zahnrad-Getriebe mit drei Zwischenrädern überträgt die Scherenarmdrehung auf den Unterarm. Es gibt keine Seile, Gummibänder, Federn oder Wickelspulen.
 
@@ -23,7 +23,7 @@ Geprüft wird die starre, manuell reversible Kraftkette: Drehbarer Totenkopf -> 
 | Hinterwand am ehemaligen Mechanikfenster | 100.000% massiv |
 | Totenkopf-Drehweg | 113.54° |
 | Einzelkörper je Druckteil | {'scissor-arm': 1, 'slider': 1, 'lid-follower-rack': 1, 'platform': 1, 'drive-pinion': 1, 'lid-rack': 1, 'lid-crank': 1, 'lid-transfer-gear': 1, 'scissor-drive-gear': 1, 'idler-gear': 1, 'forearm-output-gear': 1, 'forearm': 1, 'chest': 1, 'lid': 1} |
-| Laufzeit | 491.6 s |
+| Laufzeit | 536.6 s |
 | Sweep hand_chest | 0.000 mm³ |
 | Sweep hand_lid | 0.000 mm³ |
 | Sweep hand_platform | 0.000 mm³ |
@@ -56,23 +56,27 @@ Geprüft wird die starre, manuell reversible Kraftkette: Drehbarer Totenkopf -> 
 | Sweep lid_transfer_mesh_0_1 | 0.000 mm³ |
 | Sweep lid_transfer_mesh_1_2 | 0.000 mm³ |
 | Sweep lid_transfer_input_rack | 0.000 mm³ |
+| Sweep arm-0-False_chest | 0.000 mm³ |
+| Sweep arm-0-True_chest | 0.000 mm³ |
+| Sweep arm-1-False_chest | 0.000 mm³ |
+| Sweep arm-1-True_chest | 0.000 mm³ |
 
-## Unveränderte Bestandskollision
+## Beseitigte Bestandskollision (Baseline nur als Vergleich)
 
 | Scherenwinkel / Pose | Paar | Baseline f396e7a | Aktuell |
 | --- | --- | ---: | ---: |
-| 18 Grad | scissors_chest (Bodenlager) | 496.131 mm³ | 496.131 mm³ |
-| 48 Grad | scissors_chest (Bodenlager) | 519.274 mm³ | 519.274 mm³ |
-| 78 Grad | scissors_chest (Bodenlager) | 554.635 mm³ | 554.635 mm³ |
+| 18 Grad | scissors_chest (Bodenlager) | 496.131 mm³ | 0.000 mm³ |
+| 48 Grad | scissors_chest (Bodenlager) | 519.274 mm³ | 0.000 mm³ |
+| 78 Grad | scissors_chest (Bodenlager) | 554.635 mm³ | 0.000 mm³ |
 
 | Pose | Einzelpaar | Baseline f396e7a | Aktuell |
 | --- | --- | ---: | ---: |
-| 18 Grad | arm-0-False / chest (Bodenlager) | 248.068 mm³ | 248.068 mm³ |
-| 18 Grad | arm-1-False / chest (Bodenlager) | 248.062 mm³ | 248.062 mm³ |
-| 48 Grad | arm-0-False / chest (Bodenlager) | 259.642 mm³ | 259.642 mm³ |
-| 48 Grad | arm-1-False / chest (Bodenlager) | 259.632 mm³ | 259.632 mm³ |
-| 78 Grad | arm-0-False / chest (Bodenlager) | 277.320 mm³ | 277.320 mm³ |
-| 78 Grad | arm-1-False / chest (Bodenlager) | 277.315 mm³ | 277.315 mm³ |
+| 18 Grad | arm-0-False / chest (Bodenlager) | 248.068 mm³ | 0.000 mm³ |
+| 18 Grad | arm-1-False / chest (Bodenlager) | 248.062 mm³ | 0.000 mm³ |
+| 48 Grad | arm-0-False / chest (Bodenlager) | 259.642 mm³ | 0.000 mm³ |
+| 48 Grad | arm-1-False / chest (Bodenlager) | 259.632 mm³ | 0.000 mm³ |
+| 78 Grad | arm-0-False / chest (Bodenlager) | 277.320 mm³ | 0.000 mm³ |
+| 78 Grad | arm-1-False / chest (Bodenlager) | 277.315 mm³ | 0.000 mm³ |
 
 Die hintere Zahnstange läuft 14,854 mm weiter innen. Zwei gleich große Transferzahnräder übertragen mit zwei Drehsinnwechseln und Übersetzung 1:1 auf das unveränderte Deckelsegment. Die Kistenwand bleibt am ehemaligen Fenster durchgehend; alle 61 Scherenstellungen von 18 bis 78 Grad einschließlich 48 Grad werden gegen die reale Wand geprüft.
 

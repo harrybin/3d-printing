@@ -194,8 +194,11 @@ def build_scene_at(theta: float):
     for plane, y in enumerate((-SCISSOR_Y, SCISSOR_Y)):
         for index, (x, z) in enumerate(scissor_pin_points):
             pin = mechanism.build_pin(3.0, 26.0)
-            pin.apply_transform(rot(90.0, [1, 0, 0]))
-            pin.apply_translation([x, y + 13.0, z])
+            # The floor yoke is loaded from the open centre, not through the
+            # closed outer wall. Mirror its positive-side pin head inboard.
+            inboard = index == 0 and y > 0
+            pin.apply_transform(rot(-90.0 if inboard else 90.0, [1, 0, 0]))
+            pin.apply_translation([x, y - 13.0 if inboard else y + 13.0, z])
             items.append((
                 f"pivot-pin-3-{plane}-{index}",
                 pin,

@@ -316,6 +316,10 @@ def check() -> dict:
             named["forearm-output-gear"],
         ]
         values = {
+            **{
+                f"{name}_chest": volume_intersection(mesh, named["chest"])
+                for name, mesh in named.items() if name.startswith("arm-")
+            },
             "platform_chest": volume_intersection(
                 named["platform"], named["chest"]),
             "scissors_repaired_region": volume_intersection(
@@ -405,7 +409,7 @@ def check() -> dict:
             max_scissor_overlap_change,
             abs(current_scissor_overlap - old_scissor_overlap))
         for name, value in values.items():
-            collision_max[name] = max(collision_max[name], value)
+            collision_max[name] = max(collision_max.get(name, 0.0), value)
         motion_sweep.append({
             "theta": float(theta),
             "lid_angle": mechanism.lid_angle(float(theta)),
@@ -416,10 +420,11 @@ def check() -> dict:
         })
 
     for name, value in collision_max.items():
-        if value > 0.05:
+        if value > (0.001 if name.startswith("arm-") else 0.05):
             failures.append(f"Sweep {name}: {value:.3f} mm3")
-    if max_scissor_overlap_change > 0.01:
-        failures.append("Rear-wall fix changed the original scissor/post collision")
+    if preexisting_scissor_post_overlap > 0.001:
+        failures.append(
+            f"Scherenarme/Bodenlager: {preexisting_scissor_post_overlap:.6f} mm3")
 
     wall_probe = box((12.0, 0.8, 21.0), (-27.0, 59.5, 74.5))
     wall_fill = volume_intersection(assembly.build_chest(), wall_probe) \
@@ -447,7 +452,7 @@ def check() -> dict:
         "samples": samples,
         "motion_sweep": motion_sweep,
         "rear_wall_fill_ratio": wall_fill,
-        "preexisting_scissor_post_overlap_mm3": preexisting_scissor_post_overlap,
+        "current_scissor_post_overlap_mm3": preexisting_scissor_post_overlap,
         "baseline_scissor_post_overlap_mm3": baseline_scissor_overlap,
         "max_scissor_post_overlap_change_mm3": max_scissor_overlap_change,
         "preexisting_collision_pairs": preexisting_pairs,
@@ -460,17 +465,18 @@ def write_report(result: dict) -> None:
     lines = [
         "# Ghoul's Grip - Mechanik-Verifikation",
         "",
-        f"Ergebnis der Wandkorrektur: **{'PASS' if result['passed'] else 'FAIL'}**",
+        f"Ergebnis der Wand- und Bodenlagerkorrektur: **{'PASS' if result['passed'] else 'FAIL'}**",
         "",
-        "Unabhängiger Bestandsfehler, nicht durch diese Korrektur geändert: "
-        "Die unveränderten Scherenarme schneiden die unveränderten Bodenlager "
-        f"um bis zu {result['preexisting_scissor_post_overlap_mm3']:.3f} mm³. "
-        "Der Nachweis behauptet deshalb keine global kollisionsfreie Mechanik; "
-        "dieser Lager-/Armabstand braucht eine separate Korrektur vor dem Funktionsdruck.",
+        "Bodenlager als offene Doppelwangen um die unveränderten Armhüllen "
+        "neu aufgebaut. Größtes aktuelles Arm-/Kisten-Schnittvolumen: "
+        f"{result['current_scissor_post_overlap_mm3']:.6f} mm³. "
+        "Jeder einzelne Arm wird in allen 61 Zuständen geprüft; jede "
+        "Überschneidung über 0,001 mm³ lässt den Nachweis scheitern. "
+        "Das ist ein Geometrienachweis, kein Belastungs- oder PLA-Passungstest.",
         "",
         "Baseline-Beweis: Schatulle aus `f396e7a:models/ghouls-grip-view.3mf`, "
         "nur um die Ansichtsplatten-Verschiebung zurückversetzt, gegen dieselben "
-        "unveränderten Scherenarme geprüft. Größte Differenz zum korrigierten "
+        "unveränderten Scherenarme geprüft. Größte Verbesserung zum korrigierten "
         f"Gehäuse: {result['max_scissor_post_overlap_change_mm3']:.6f} mm³.",
         "",
         "Geprüft wird die starre, manuell reversible Kraftkette: "
@@ -502,7 +508,7 @@ def write_report(result: dict) -> None:
         lines.append(f"| Sweep {name} | {value:.3f} mm³ |")
     lines.extend([
         "",
-        "## Unveränderte Bestandskollision",
+        "## Beseitigte Bestandskollision (Baseline nur als Vergleich)",
         "",
         "| Scherenwinkel / Pose | Paar | Baseline f396e7a | Aktuell |",
         "| --- | --- | ---: | ---: |",
@@ -565,5 +571,18 @@ def write_report(result: dict) -> None:
 if __name__ == "__main__":
     outcome = check()
     write_report(outcome)
-    print(json.dumps(outcome, indent=2))
+    evidence = ROOT / "build" / "ghoul-floor-bearing-verification.json"
+    evidence.parent.mkdir(parents=True, exist_ok=True)
+    evidence.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({
+        "passed": outcome["passed"],
+        "failures": outcome["failures"],
+        "states": len(outcome["motion_sweep"]),
+        "individual_arm_chest_max_mm3": {
+            key: value for key, value in outcome["max_sweep_collisions_mm3"].items()
+            if key.startswith("arm-")
+        },
+        "report": str(REPORT),
+        "evidence": str(evidence),
+    }, indent=2))
     raise SystemExit(0 if outcome["passed"] else 1)

@@ -143,6 +143,14 @@ final print readiness from analytical estimates alone.
 
 ## Output checklist
 
+For multiple requested model/object changes, finish all related source geometry
+changes before starting the consolidated optimization and final quality phase.
+Run final mesh/mechanism validation, slicing, metadata updates and presentation
+renders on the combined result, not separately after every intermediate task.
+Keep targeted inexpensive construction checks where necessary; repeat final
+operations only when a later change invalidates their evidence. Final outputs
+must still have current validation, slices and previews.
+
 - Output format is correct for intent (STL for merged single-region output, 3MF for preserved material/color regions).
 - ASCII STL is syntactically correct when STL is the selected output format.
 - Triangle count and bounding box are reported.

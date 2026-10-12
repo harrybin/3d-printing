@@ -1342,22 +1342,30 @@ def build_chest(include_decoration: bool = True) -> trimesh.Trimesh:
         transfer_mounts.append(mount)
     body = union([body, *transfer_mounts])
 
-    # Fixed scissor pivots. The scissor pivot sits at x = 0 so the compact platform stays inside
-    # the chest over the whole stroke (see docs, kinematics table).
+    # Rebuild the fixed support outside BOTH unchanged arm swept planes.
+    # A central post cannot fit the 2 mm inter-arm gap. Two floor-fused cheeks
+    # provide double-shear pin support without clipping an arm or moving a datum.
     posts = []
     for sy in (-1.0, 1.0):
-        posts.append(box((12.0, 6.0, 14.0),
-                         (mechanism.FLOOR_PIVOT_X,
-                          sy * mechanism.SCISSOR_Y, FLOOR + 7.0)))
-        posts.append(cylinder(6.0, 6.0,
-                              (mechanism.FLOOR_PIVOT_X,
-                               sy * mechanism.SCISSOR_Y, RAIL_Z),
-                              (0.0, 1.0, 0.0)))
+        for offset in (-mechanism.FLOOR_BEARING_OFFSET,
+                       mechanism.FLOOR_BEARING_OFFSET):
+            centre = (mechanism.FLOOR_PIVOT_X,
+                      sy * mechanism.SCISSOR_Y + offset, RAIL_Z)
+            posts.extend([
+                box((2 * mechanism.FLOOR_BEARING_R,
+                     mechanism.FLOOR_BEARING_T, RAIL_Z - FLOOR + 0.6),
+                    (centre[0], centre[1], (RAIL_Z + FLOOR - 0.6) / 2)),
+                cylinder(mechanism.FLOOR_BEARING_R,
+                         mechanism.FLOOR_BEARING_T, centre, (0, 1, 0)),
+            ])
     body = union([body, *posts])
     body = difference(body, [
-        cylinder(3.2 / 2.0, 80.0,
-                 (mechanism.FLOOR_PIVOT_X, 0.0, RAIL_Z),
+        cylinder(mechanism.PIVOT_D / 2.0,
+                 2 * mechanism.FLOOR_BEARING_OFFSET
+                 + mechanism.FLOOR_BEARING_T + 2.0,
+                 (mechanism.FLOOR_PIVOT_X, sy * mechanism.SCISSOR_Y, RAIL_Z),
                  (0.0, 1.0, 0.0))
+        for sy in (-1.0, 1.0)
     ])
 
     # Hinge on the long rear edge.  Three chest knuckles alternate with four
