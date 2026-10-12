@@ -43,10 +43,7 @@ Reproduktion:
 `.\.venv\Scripts\python.exe scripts\render_ghouls_grip_print_projects.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf`
 und
 `.\.venv\Scripts\python.exe scripts\render_ghouls_grip_supports.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf`.
-Canvas und Web-Viewer zeigen die Modellgeometrie und Metadaten; tatsächliche
-Supportpfade sind keine 3D-Modellgeometrie. Die aus G-Code gerenderten
-Supportbilder lassen sich im Viewer über die Projektvorschau sowie über einen
-Button pro Plate in der aufklappbaren Tabelle **Print data by plate** öffnen.
+Canvas/Webview zeigen die Modellgeometrie und Metadaten, aber keine Supportpfade.
 ## Profilvertrag und tatsächliche Nutzereinstellungen
 
 Das Druckprojekt wurde vom Nutzer in OrcaSlicer geändert. Die aktuellen
@@ -248,22 +245,24 @@ Renderer zeigt daraus:
   Filamentprofil, Material, Farbe, Bett, Wandzahl, Infill, Support und
   Plattenzahl;
 - im Detail-Overlay eine separat aufklappbare Tabelle **Print data by plate**
-  mit Druckzeit, Material, Supportmaterial, Filamentlänge, Supportlänge und
-  Status pro Plate sowie einem **View supports**-Button, sofern das Sidecar existiert.
-  Fehlende oder fehlerhafte Plate-Metadaten werden ausdrücklich angezeigt;
-- im Viewer ein **Project preview**-Button für das Sidecar der vollständigen
-  3MF-Datei und ein **Plate support preview**-Button für die gewählte Plate.
-  Bilder öffnen in einem Dialog; nicht vorhandene Sidecars werden nicht als
-  verfügbar angezeigt;
+  mit Druckzeit, Material, Supportmaterial, Filamentlänge, Supportlänge, Status und einem
+  Supportbild-Button pro gesliceter Plate. Die Bilder zeigen die tatsächlich
+  extrudierten Supportbahnen und sind in Canvas sowie Webview per Dialog
+  anzusehen. Fehlende oder fehlerhafte Plate-Metadaten werden ausdrücklich angezeigt;
+- ein Projektvorschau-Button für das vollständige farbcodierte
+  Fünf-Platten-Druckprojekt;
 - die korrekte einzelne Platte oder alle Platten unter Berücksichtigung von
   3MF-Komponenten-Transformationen und OrcaSlicer-`plater_id`;
 - ein einklappbares Werkzeugmenü für Reload, Auto-Reload, Zoom, Wireframe,
   Shading, Ansichten, Rotation, Hilfsanzeigen und Messung.
 
 Mehrplattige Dateien starten in Canvas und Web-Viewer mit **All plates**.
-Die Platten stehen nebeneinander: vorhandene Orca-Grid-Offsets bleiben erhalten;
-ohne ausreichenden Abstand werden sie nur für die Übersicht in einer Reihe
-mit 50 mm Zwischenraum angeordnet. Die Druckübersicht zeigt die eingebetteten
+Mehr als zwei Platten stehen nur in der Gesamtansicht in einem Grid mit
+50 mm Zwischenraum; zwei Platten stehen nebeneinander. Die Einzelplatten-
+Transformationen bleiben unverändert. Materialfarben folgen OrcaSlicers
+Filamentpalette mit Objekt- und Teilzuweisungen; bei Standard-3MF-Dateien
+werden weiterhin die 3MF-Materialressourcen verwendet.
+Die Druckübersicht zeigt die eingebetteten
 Projekt-Gesamtwerte (Zeit, Material, Support und Filamentlänge) sowie die
 Plattenzahl. Einzelplatten bleiben über **Plate** auswählbar. Reload derselben
 Datei behält die Auswahl; beim Öffnen einer anderen Datei wird wieder
@@ -298,8 +297,8 @@ die öffentliche Web-SPA nicht als Desktop-Startweg angeboten.
 
 | Datei | SHA-256 |
 | --- | --- |
-| `ghouls-grip-view.3mf` | `D6118D9AEB4C5EF3A2D55BBBD36EE7B69EBAB049599845D8CD11A3AB75BD1592` |
-| `ghouls-grip-print.3mf` | `84EEC93E8FBA6A276A6385F135E9928F35C2031E312A0D25E114F9DA00DC1564` |
+| `ghouls-grip-view.3mf` | `687FE6888E0508B58957DA3004B6B71AE6FCFE25A05929F34A0A118B3231A28F` |
+| `ghouls-grip-print.3mf` | `770BD97BD47C1F17CB70FB96AE29FC918638C7142442921230E31DBBA5BAAD74` |
 
 ## Physische Restrisiken
 
