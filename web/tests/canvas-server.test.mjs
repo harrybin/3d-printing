@@ -33,6 +33,36 @@ test('model API payload preserves project print metadata for the canvas', () => 
   assert.equal(payload.modelPath, String.raw`D:\models\ghouls-grip-print-black-pla.3mf`)
 })
 
+test('model API keeps every plate with its baked grid transforms and project totals', () => {
+  const plates = [
+    { id: '1', triangles: [[[0, 0, 0], [100, 0, 0], [0, 100, 0]]], triangleColors: ['#202124'] },
+    { id: '2', triangles: [[[300, 0, 0], [400, 0, 0], [300, 100, 0]]], triangleColors: ['#202124'] },
+  ]
+  const projectMetadata = {
+    plateCount: '2',
+    estimatedPrintTimeSeconds: '49988',
+    filamentUsageGrams: '330.96',
+    supportFilamentGrams: '17.98',
+    filamentUsageMillimeters: '110966.48',
+  }
+  const payload = createModelApiPayload({
+    requested: 'project.3mf',
+    resolved: String.raw`D:\models\project.3mf`,
+    parsed: {
+      format: '3mf',
+      triangles: plates.flatMap((plate) => plate.triangles),
+      triangleColors: plates.flatMap((plate) => plate.triangleColors),
+      plates,
+      projectMetadata,
+    },
+    mtime: '123:456',
+  })
+  assert.equal(payload.plates, plates)
+  assert.equal(payload.projectMetadata, projectMetadata)
+  assert.equal(payload.triangles.length, 2)
+  assert.equal(payload.stats.plates, undefined)
+})
+
 test('Orca endpoint accepts JSON and launches the exact current model path', async (t) => {
   const expectedPath = String.raw`D:\Print Projects\Ghoul's Grip\black plate.3mf`
   let launchedPath = ''
