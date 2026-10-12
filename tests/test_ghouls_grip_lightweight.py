@@ -133,6 +133,12 @@ class LightweightEnclosureTests(unittest.TestCase):
             mechanism.LID_HINGE_Z + 6.0,
         )
 
+        footprint = trimesh.creation.box(extents=(25.0, 32.3, 1.0))
+        footprint.apply_translation((-30.5, 48.65, SERVICE_HOOD_TOP - 0.5))
+        skin = self.lid.intersection(footprint, engine="manifold")
+        self.assertAlmostEqual(abs(float(skin.volume)),
+                               footprint.volume, delta=0.05)
+
 
 if __name__ == "__main__":
     unittest.main()

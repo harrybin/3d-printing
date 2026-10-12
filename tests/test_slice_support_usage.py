@@ -39,6 +39,17 @@ class SupportUsageTests(unittest.TestCase):
         plain = ";TYPE:Outer wall\nG92 E0\nG1 X10 Y10 E1.0\n"
         self.assertEqual(_support_filament_mm(plain), 0.0)
 
+    def test_relative_extrusion_resets_retractions_and_mode_switch(self) -> None:
+        text = "\n".join([
+            "M83", ";TYPE:Support", "G1 X10 E1.0",
+            "G1 X20 E1.0", "G1 E-0.8", "G1 E0.8",
+            "G92 E0", "G1 X30 E0.5",
+            ";TYPE:Outer wall", "G1 X40 E2.0",
+            "M82", "G92 E0", ";TYPE:Support interface",
+            "G1 X50 E0.75", "G1 X60 E1.0",
+        ])
+        self.assertAlmostEqual(_support_filament_mm(text), 3.5)
+
 
 if __name__ == "__main__":
     unittest.main()

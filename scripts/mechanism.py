@@ -110,7 +110,12 @@ LID_HINGE_Y = 61.0
 LID_HINGE_Z = 93.0
 LID_LINK_PIN_Z = 70.0
 LID_SECTOR_R = LID_OPEN_TRAVEL / np.deg2rad(LID_OPEN_ANGLE)
-LID_RACK_Y = LID_HINGE_Y - LID_SECTOR_R
+LID_TRANSFER_STEP = 2.0 * LID_SECTOR_R
+LID_TRANSFER_Y = LID_HINGE_Y - 2.0 * LID_TRANSFER_STEP
+LID_IDLER_Y = LID_HINGE_Y - LID_TRANSFER_STEP
+LID_RACK_Y = LID_TRANSFER_Y - LID_SECTOR_R
+LID_TRANSFER_BEARING_X = -DRIVE_PITCH_R - 8.0
+LID_TOOTH_PHASE = 15.0
 LID_LINK_FRONT_Y = -38.0
 LID_YOKE_SPAN = LID_RACK_Y - LID_LINK_FRONT_Y
 
@@ -481,10 +486,11 @@ def build_lid_rack() -> trimesh.Trimesh:
 
 def build_lid_follower_rack() -> trimesh.Trimesh:
     """Seven-millimetre yoke linking the front lost slot to the lid gear."""
-    rear_spine = box((18.0, 5.0, 6.0), (0.0, LID_YOKE_SPAN, 0.0))
+    rear_spine = box((18.0, 2.4, 6.0),
+                    (0.0, LID_YOKE_SPAN - 2.7, 0.0))
     teeth = [
-        box((2.0, GEAR_TOOTH_H, 6.0),
-            (x, LID_YOKE_SPAN + (5.0 + GEAR_TOOTH_H) / 2.0, 0.0))
+        box((1.6, GEAR_TOOTH_H, 6.0),
+            (x, LID_YOKE_SPAN - 0.4, 0.0))
         for x in np.arange(-6.0, 6.1, GEAR_PITCH)
     ]
     connector = box(
@@ -495,7 +501,8 @@ def build_lid_follower_rack() -> trimesh.Trimesh:
         box((2.8, 9.0, 8.0), (-20.0, y, 0.0))
         for y in np.arange(8.0, LID_YOKE_SPAN - 4.0, 12.0)
     ])
-    rear_link = box((24.0, 5.0, 6.0), (-10.0, LID_YOKE_SPAN, 0.0))
+    rear_link = box((19.0, 5.0, 6.0),
+                    (-12.5, LID_YOKE_SPAN - 3.7, 0.0))
     pin = cylinder(3.0, 14.0, (-20.0, 0.0, 0.0))
     return clean(union([rear_spine, connector, rear_link, pin, *teeth]))
 
@@ -503,11 +510,29 @@ def build_lid_follower_rack() -> trimesh.Trimesh:
 def build_lid_crank() -> trimesh.Trimesh:
     """Small hinge sector gear driven by the secondary lid rack."""
     teeth = max(6, int(round(2.0 * np.pi * LID_SECTOR_R / GEAR_PITCH)))
-    gear = _spur_gear(max(2.8, LID_SECTOR_R - 1.2), GEAR_TOOTH_H,
+    gear = _spur_gear(LID_SECTOR_R - 1.5, GEAR_TOOTH_H,
                       teeth, 8.0)
-    coupling = box((18.0, 5.0, 5.0), (7.0, 0.0, 2.5))
-    return clean(difference(union([gear, coupling]), [
-        cylinder(2.0 / 2.0, 12.0, (0.0, 0.0, 4.0))
+    gear.apply_transform(trimesh.transformations.rotation_matrix(
+        np.deg2rad(LID_TOOTH_PHASE), (0.0, 0.0, 1.0)))
+    # The key points inward, above the rim, rather than down through the rear
+    # wall. Its longer axial tab enters the matching underside lid socket.
+    coupling = box((5.0, 18.0, 2.6), (0.0, -7.0, 9.7))
+    hub = cylinder(2.0, 11.0, (0.0, 0.0, 5.5))
+    return clean(difference(union([gear, hub, coupling]), [
+        cylinder(2.0 / 2.0, 15.0, (0.0, 0.0, 5.5))
+    ]))
+
+
+def build_lid_transfer_gear() -> trimesh.Trimesh:
+    """Equal-ratio transfer gear with an integral, axially inserted journal."""
+    teeth = max(6, int(round(2.0 * np.pi * LID_SECTOR_R / GEAR_PITCH)))
+    gear = _spur_gear(LID_SECTOR_R - 1.5, GEAR_TOOTH_H,
+                      teeth, 4.0)
+    gear.apply_transform(trimesh.transformations.rotation_matrix(
+        np.deg2rad(LID_TOOTH_PHASE), (0.0, 0.0, 1.0)))
+    journal = cylinder(1.4, 18.0, (0.0, 0.0, -5.0))
+    return clean(difference(union([gear, journal]), [
+        cylinder(0.95, 6.0, (0.0, 0.0, -12.0), (1.0, 0.0, 0.0)),
     ]))
 
 
@@ -628,6 +653,7 @@ PARTS = {
     "drive-pinion": build_drive_pinion,
     "lid-rack": build_lid_rack,
     "lid-crank": build_lid_crank,
+    "lid-transfer-gear": build_lid_transfer_gear,
     "scissor-drive-gear": build_scissor_drive_gear,
     "idler-gear": build_idler_gear,
     "forearm-output-gear": build_forearm_output_gear,

@@ -15,7 +15,7 @@ A collection of ASCII STL models for the Anycubic Kobra S1 Combo + ACE Pro (250 
 | `models/lampe-5-leuchtflaechen.stl` | All four translucent lamp panels arranged together on the 250 × 250 mm bed |
 | `models/modellauto-reifen.stl` / `models/modellauto-reifen-print.3mf` | Completed PLA toy-car replacement tyre, 37.2 mm diameter × 26 mm width; [archived measurements and print notes](docs/modellauto-reifen-masse.md) |
 | `models/ghouls-grip-view.3mf` | Assembled multi-material view on three plates: deployed, intermediate at a 48° scissor angle, and retracted ([dimensions and assembly](docs/ghouls-grip-masse-und-bauanleitung.md)) |
-| `models/ghouls-grip-print.3mf` | One settings-bearing OrcaSlicer project with all four PLA color/spool assignments, 35 print objects and six plates. Same-color parts are grouped; each plate retains its Anycubic Kobra S1/Textured PEI settings, filament mapping, process overrides and verified slice metadata. |
+| `models/ghouls-grip-print.3mf` | One settings-bearing OrcaSlicer project with four PLA color/spool assignments and 37 objects on the user's preserved five plates. The rear-wall correction adds two small lid-transfer gears without moving the original 35 objects or resetting their settings. See the recorded slice/profile status and the separate existing floor-pivot interference before printing. |
 | `models/ghouls-grip-preview.stl` | Deployed assembly-only multi-body preview; printable parts regenerate from `scripts/` |
 | `model-sources/ghouls-grip/ghouls-grip-master.blend` | Blender CLI/MCP scene checkpoint; technical objects are frozen and organic objects are separately marked |
 
