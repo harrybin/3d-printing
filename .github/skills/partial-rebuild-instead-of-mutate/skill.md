@@ -112,6 +112,10 @@ After rejoining:
 - confirm frozen datums did not move
 - re-check the photo or silhouette match only in the intended zone
 
+### 6b. Rebuild around a swept volume
+
+For moving assemblies, the trusted datum is often the motion envelope rather than the old support geometry. Freeze the pivot chain and accepted organic part, sample the full sweep, and rebuild any intersecting tray, bridge or bracket as an open yoke or perimeter frame around that envelope. Validate with manifold intersection volume at every sampled state. A closed-state render that hides interference is not evidence.
+
 ## Strategy patterns
 
 - **Wrong internal chamber, right outer shell:** freeze shell, rebuild chamber from measured sections.

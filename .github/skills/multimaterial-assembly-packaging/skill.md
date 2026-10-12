@@ -1,6 +1,6 @@
 ---
 name: multimaterial-assembly-packaging
-description: Package complex models as an assembled master 3MF and printable plate 3MFs, preferring separately printed keyed color parts to reduce purge waste.
+description: Package complex models as an assembled multi-state view 3MF and one consolidated printable 3MF, preferring separately printed keyed color parts to reduce purge waste.
 ---
 
 # Multimaterial assembly packaging
@@ -10,18 +10,23 @@ that need different print orientations.
 
 ## Required deliverables
 
-For new complex models or substantial revisions, produce:
+For a new complex model or substantial revision with an assembled deliverable,
+produce exactly two 3MF files:
 
-- `models/<model>-master.3mf`: the complete assembled object with named, separate
-  bodies and intended material/color semantics
-- `models/<model>-print-<plate-or-material>.3mf`: one or more project files arranged
-  for actual printing
-- `models/<model>-part-<name>.stl`: optional per-body interchange or validation
-  meshes
+- `models/<model>-view.3mf`: the complete assembled object, with named bodies and
+  intended material/color semantics. For a mechanism, use additional plates in
+  this same file to show meaningful assembly states (for example, deployed,
+  intermediate and retracted).
+- `models/<model>-print.3mf`: one settings-bearing OrcaSlicer project containing
+  the complete print BOM, every material/color/spool assignment and all print
+  plates. Parts of the same material and color share a plate when safe; use
+  additional plates for bed size, orientation, support or print-risk isolation.
 
-The master file is the overview and assembly source. Print files optimize
-orientation, plate use, supports, material, and print order. A collection of STL
-files does not replace the master 3MF.
+Do not split a project's print BOM into separate per-material 3MF files. The
+print project must carry each filament profile and object-to-filament mapping,
+plus material-tuned process settings and object-specific overrides. Optional
+part STLs are useful for interchange or validation but do not replace either
+project.
 
 ## Purge-minimizing color strategy
 
@@ -59,15 +64,40 @@ joint controls an expensive print.
 
 Do not use glue as an undocumented substitute for missing alignment geometry.
 
+Material/color separation is not complete until the separated bodies can be
+physically assembled in the real mechanism. For every interface between print
+projects:
+
+- define an unobstructed insertion direction and a feasible assembly order;
+- keep fasteners, pins, keys, retaining clips and tool access reachable after the
+  surrounding parts are installed;
+- prove the insertion sweep against already-installed bodies, not only the final
+  static pose;
+- verify zero unintended intersection between the assembled bodies; gear contact,
+  coaxial bearings and press fits must be represented by explicit clearances rather
+  than overlapping solids;
+- split an integral cross-material shaft/gear into a keyed coupling when the
+  integral part cannot pass through its bearings or enclosure;
+- document which material project contains every half of the joint and how it is
+  retained against axial withdrawal.
+
+A render showing parts in the right final location is not assembly proof. Reject a
+design when a part can reach its final pose only by passing through another solid.
+
 ## Packaging checks
 
-- Names and transforms are stable across master and print files.
-- Master assembly has the correct final relative positions.
+- Names and transforms are stable across view and print files.
+- Each view plate has the correct relative positions for its documented state.
 - Print plates contain every required body exactly once unless duplicates are
   intentional.
+- The one print project contains every material/color/spool combination and the
+  correct object-to-filament mapping; plate boundaries do not create extra files.
 - Material and color assignments match the documentation.
 - Every body passes mesh validation independently.
 - Mating pairs preserve their measured clearance after export.
+- Every cross-project joint has a collision-free insertion path, reachable
+  retention feature and documented assembly sequence.
+- The final assembly has no unintended material/material intersections.
 - A bill of parts maps master objects to print plates and optional STL files.
 
 ## OrcaSlicer handoff
@@ -80,7 +110,7 @@ decision. Record the chosen strategy and evidence.
 
 Provide:
 
-- a rendered assembled view of the master 3MF
+- a rendered assembled view showing the view-3MF states
 - a slicer preview of every print plate
 - the bill of parts and assembly order
 - any required hardware, adhesive, or post-processing

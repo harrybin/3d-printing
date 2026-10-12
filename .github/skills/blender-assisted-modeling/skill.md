@@ -18,12 +18,44 @@ clearances, keyed joints, and other fit-critical geometry.
 | --- | --- |
 | Measured envelope, datums, fit surfaces, holes, joints | Python/build123d |
 | Organic shell, sculpted detail, visual surface transitions | Blender |
+| Reproducible scene creation, bulk import/export, render builds | Blender CLI |
+| Interactive inspection and bounded visual edits | Blender MCP |
 | Simple transforms, arrangement, centering | `mesh_tool.py` |
 | Mesh integrity and feature proof | `validate-stl-mesh` |
 | Final print settings and time | `orcaslicer-print-validation` |
 
+### Switch to Blender as soon as the target is "realistic"
+
+Do not keep stacking Python primitives, voxel fuses and shear tricks when the
+user asks for realistic, photorealistic, organic or sculptural results such as
+ornaments, creatures, skulls, bones, foliage, scrollwork or drapery. That is the
+signal to move the region into Blender.
+
+Before sculpting, search online for a license-compatible motif, scan, sculpt or
+relief asset that already comes close to the target, and adapt it. Run
+`research-reusable-3d-assets` and record source, author, license, modification
+and redistribution rights. Only build from scratch when no usable asset exists.
+
+Relief direction is a free choice: raised, engraved or mixed. Engraving is
+allowed wherever the remaining wall thickness keeps the part structurally sound.
+Whatever direction is chosen, slice the decorated part against a matched
+undecorated control with automatic support enabled and prove it does not add
+support paths or support extrusion.
+
 For mixed objects, export the technical geometry as frozen reference bodies. Lock or
 otherwise protect them in Blender. Sculpt only the explicitly allowed region.
+
+Use Blender CLI and MCP together when useful; they are complementary rather than
+exclusive:
+
+- Prefer the CLI for deterministic, reviewable scripts, repeatable `.blend`
+  generation, batch imports/exports, final renders, and CI-like checks.
+- Prefer MCP for inspecting a live scene, small approved edits, modifier tuning,
+  viewport comparisons, and iterative visual work.
+- Save the CLI-built baseline before MCP changes, and keep MCP edits recoverable in
+  a new `.blend` checkpoint.
+- Never replace a deterministic Python motion/collision verifier with viewport or
+  MCP inspection.
 
 ## Availability and installation
 
@@ -40,9 +72,10 @@ Prefer the official Blender Lab MCP Server and current official installation
 instructions. Re-check version requirements before setup; do not copy stale commands
 from this skill.
 
-The repository template is `.vscode/mcp.json`; set `BLENDER_MCP_DIR` locally rather
-than committing a machine-specific path. Setup details and the security checklist
-are in `docs/mcp-setup.md`.
+The repository template is `.vscode/mcp.json`; set `BLENDER_MCP_DIR` locally to the
+official checkout's `mcp` directory rather than committing a machine-specific path.
+The server reads `BLENDER_MCP_HOST` and `BLENDER_MCP_PORT`. Setup details and the
+security checklist are in `docs/mcp-setup.md`.
 
 ## MCP safety
 

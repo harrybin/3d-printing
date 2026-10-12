@@ -2,9 +2,13 @@ import { createServer } from "node:http";
 import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, statSync } from "node:fs";
 import { resolve, join, dirname } from "node:path";
 import { homedir } from "node:os";
+import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { inflateRawSync } from "node:zlib";
 import { joinSession, createCanvas, CanvasError } from "@github/copilot-sdk/extension";
+import { compose3mfTransforms, transform3mfPoint as apply3mfTransform } from "./viewer-app.mjs";
+import { launchOrcaSlicer, validateOrcaModelPath } from "./orca-launcher.mjs";
+import { createModelApiPayload, handleOrcaOpenRequest } from "./canvas-server-helpers.mjs";
 
 const extensionDir = dirname(fileURLToPath(import.meta.url));
 const viewerAppPath = join(extensionDir, "viewer-app.mjs");
@@ -281,14 +285,17 @@ function readZipEntry(buffer, entryName) {
 
 function transform3mfPoint(point, transform) {
     if (!transform) return point;
-    const values = transform.trim().split(/\s+/).map(Number);
-    if (values.length !== 12 || values.some((value) => !Number.isFinite(value))) return point;
-    const [x, y, z] = point;
-    return [
-        values[0] * x + values[3] * y + values[6] * z + values[9],
-        values[1] * x + values[4] * y + values[7] * z + values[10],
-        values[2] * x + values[5] * y + values[8] * z + values[11],
-    ];
+    return apply3mfTransform(point, transform);
+}
+
+function parse3mfTransform(raw) {
+    if (!raw) return null;
+    const values = raw.trim().split(/[,\s]+/).map(Number);
+    return values.length === 12 && values.every(Number.isFinite) ? values : null;
+}
+
+function xmlAttribute(tag, name) {
+    return tag.match(new RegExp(`(?:^|\\s)(?:[\\w.-]+:)?${name}="([^"]*)"`))?.[1] || "";
 }
 
 function parse3mfDocument(xml, transform, triangles, triangleColors) {
@@ -311,21 +318,107 @@ function parse3mfDocument(xml, transform, triangles, triangleColors) {
     }
 }
 
+function parse3mfPlateAssignments(buffer) {
+    let xml;
+    try {
+        xml = readZipEntry(buffer, "Metadata/model_settings.config").toString("utf8");
+    } catch {
+        return new Map();
+    }
+    const assignments = new Map();
+    for (const plateMatch of xml.matchAll(/<plate>([\s\S]*?)<\/plate>/g)) {
+        const plateXml = plateMatch[1];
+        const plateId = [...plateXml.matchAll(/<metadata\b[^>]*\/?>/g)]
+            .map((match) => match[0])
+            .find((tag) => xmlAttribute(tag, "key") === "plater_id");
+        const id = plateId ? xmlAttribute(plateId, "value") : "";
+        if (!id) continue;
+        for (const instanceMatch of plateXml.matchAll(/<model_instance>([\s\S]*?)<\/model_instance>/g)) {
+            const objectTag = [...instanceMatch[1].matchAll(/<metadata\b[^>]*\/?>/g)]
+                .map((match) => match[0])
+                .find((tag) => xmlAttribute(tag, "key") === "object_id");
+            const objectId = objectTag ? xmlAttribute(objectTag, "value") : "";
+            if (objectId) assignments.set(objectId, id);
+        }
+    }
+    return assignments;
+}
+
+function parse3mfProjectMetadata(buffer) {
+    let xml;
+    try {
+        xml = readZipEntry(buffer, "Metadata/ghouls_grip_print_metadata.xml").toString("utf8");
+    } catch {
+        return {};
+    }
+    const metadata = {};
+    for (const match of xml.matchAll(
+        /<metadata\b[^>]*\bname=(["'])(.*?)\1[^>]*\bvalue=(["'])(.*?)\3[^>]*\/?>/g,
+    )) {
+        metadata[match[2]] = match[4];
+    }
+    return metadata;
+}
+
 function parse3mfBuffer(buffer) {
     const rootXml = readZipEntry(buffer, "3D/3dmodel.model").toString("utf8");
     const triangles = [];
     const triangleColors = [];
     parse3mfDocument(rootXml, null, triangles, triangleColors);
+    const projectMetadata = parse3mfProjectMetadata(buffer);
+    const plateAssignments = parse3mfPlateAssignments(buffer);
+    const plateGroups = new Map();
 
-    const buildTransform = rootXml.match(/<item\b[^>]*\btransform="([^"]+)"/)?.[1];
-    const externalDocuments = new Set(
-        [...rootXml.matchAll(/<component\b[^>]*\bp:path="\/([^"]+)"/g)].map((match) => match[1]),
-    );
-    for (const entryName of externalDocuments) {
-        const xml = readZipEntry(buffer, entryName).toString("utf8");
-        parse3mfDocument(xml, buildTransform, triangles, triangleColors);
+    const componentsByObject = new Map();
+    for (const objectMatch of rootXml.matchAll(/<object\b([^>]*)>([\s\S]*?)<\/object>/g)) {
+        const objectId = xmlAttribute(objectMatch[1], "id");
+        const componentTag = objectMatch[2].match(/<component\b[^>]*\/?>/)?.[0];
+        if (!objectId || !componentTag) continue;
+        const path = xmlAttribute(componentTag, "path").replace(/^\/+/, "");
+        if (!path) continue;
+        componentsByObject.set(objectId, {
+            path,
+            transform: parse3mfTransform(xmlAttribute(componentTag, "transform")),
+        });
     }
-    return { ...meshStats(triangles, "3mf"), triangles, triangleColors };
+    for (const itemMatch of rootXml.matchAll(/<item\b[^>]*\/?>/g)) {
+        const itemTag = itemMatch[0];
+        const objectId = xmlAttribute(itemTag, "objectid");
+        const component = componentsByObject.get(objectId);
+        if (!component) continue;
+        const transform = compose3mfTransforms(
+            parse3mfTransform(xmlAttribute(itemTag, "transform")),
+            component.transform,
+        );
+        const xml = readZipEntry(buffer, component.path).toString("utf8");
+        const itemTriangles = [];
+        const itemColors = [];
+        parse3mfDocument(xml, transform, itemTriangles, itemColors);
+        triangles.push(...itemTriangles);
+        triangleColors.push(...itemColors);
+        const plateId = plateAssignments.get(objectId) || "1";
+        const plate = plateGroups.get(plateId) || {
+            id: plateId,
+            triangles: [],
+            triangleColors: [],
+        };
+        plate.triangles.push(...itemTriangles);
+        plate.triangleColors.push(...itemColors);
+        plateGroups.set(plateId, plate);
+    }
+    const plates = [...plateGroups.values()]
+        .sort((left, right) => Number(left.id) - Number(right.id))
+        .map((plate) => ({
+            ...plate,
+            stats: meshStats(plate.triangles, "3mf"),
+        }));
+    return {
+        ...meshStats(triangles, "3mf"),
+        triangles,
+        triangleColors,
+        plates,
+        projectMetadata,
+    };
 }
 
 function parseModelBuffer(modelPath, buffer) {
@@ -339,6 +432,7 @@ function readStlFile(modelPath) {
         path: modelPath.split(/[\\/]/).pop(),
         format: parsed.format,
         stats: { ...parsed, triangles: undefined, triangleColors: undefined },
+        projectMetadata: parsed.projectMetadata || {},
         content: parsed.format === "ascii" ? raw.toString("utf8") : "",
         triangles: parsed.triangles || [],
         triangleColors: parsed.triangleColors || [],
@@ -360,13 +454,16 @@ function escapeHtml(value) {
         .replace(/"/g, "&quot;");
 }
 
-function renderHtml(title, defaultFile) {
+function renderHtml(title, defaultFile, openInOrcaNonce) {
     const config = escapeJsonForScript(JSON.stringify({
         dataSource: "extension",
         defaultModelFile: defaultFile,
         viewApiUrl: "/api/view",
         modelsApiUrl: "/api/models",
         modelApiUrl: "/api/model",
+        modelDownloadApiUrl: "/api/model-file",
+        openInOrcaApiUrl: "/api/open-in-orca",
+        openInOrcaNonce,
     }));
     return `<!doctype html>
 <html>
@@ -387,7 +484,9 @@ function renderHtml(title, defaultFile) {
 }
 
 async function startServer(modelPath) {
-    const server = createServer((req, res) => {
+    const instanceDefaultFile = modelPath.split(/[\\/]/).pop();
+    const openInOrcaNonce = randomBytes(32).toString("hex");
+    const server = createServer(async (req, res) => {
         const url = new URL(req.url || '/', 'http://127.0.0.1');
         if (url.pathname === '/viewer-app.mjs') {
             try {
@@ -439,10 +538,42 @@ async function startServer(modelPath) {
             res.end(JSON.stringify({ files: listWorkspaceStlFiles(), mtimes: listWorkspaceModelVersions() }));
             return;
         }
+        if (url.pathname === "/api/model-file") {
+            try {
+                const requested = (url.searchParams.get("file") || instanceDefaultFile).split(/[\\/]/).pop();
+                const resolved = modelLabelToPath(requested);
+                if (!existsSync(resolved)) throw new Error(`Model file not found: models/${requested}`);
+                const extension = requested.toLowerCase().endsWith(".3mf") ? "model/3mf" : "model/stl";
+                res.setHeader("Content-Type", extension);
+                res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(requested)}`);
+                res.setHeader("Cache-Control", "no-store");
+                res.end(readFileSync(resolved));
+            } catch (err) {
+                res.statusCode = 404;
+                res.setHeader("Content-Type", "text/plain; charset=utf-8");
+                res.end(String(err));
+            }
+            return;
+        }
+        if (url.pathname === "/api/open-in-orca") {
+            if (req.method !== "POST") {
+                res.statusCode = 405;
+                res.setHeader("Allow", "POST");
+                res.end("Method not allowed");
+                return;
+            }
+            await handleOrcaOpenRequest(req, res, {
+                defaultModelPath: modelPath,
+                expectedNonce: openInOrcaNonce,
+                validate: (requestedPath) => validateOrcaModelPath(requestedPath, process.cwd()),
+                launch: launchOrcaSlicer,
+            });
+            return;
+        }
         if (req.url && req.url.startsWith("/api/model")) {
             try {
                 const url = new URL(req.url, "http://127.0.0.1");
-                const requested = (url.searchParams.get("file") || defaultModelFile).split(/[\\/]/).pop();
+                const requested = (url.searchParams.get("file") || instanceDefaultFile).split(/[\\/]/).pop();
                 const resolved = modelLabelToPath(requested);
                 if (!existsSync(resolved)) throw new Error(`Model file not found: models/${requested}`);
                 const raw = readFileSync(resolved);
@@ -450,14 +581,13 @@ async function startServer(modelPath) {
                 const content = parsed.format === "ascii" ? raw.toString("utf8") : "";
                 res.setHeader("Content-Type", "application/json; charset=utf-8");
                 res.setHeader("Cache-Control", "no-store");
-                res.end(JSON.stringify({
-                    path: requested,
-                    stats: { ...parsed, triangles: undefined },
-                    triangles: parsed.triangles || [],
-                    triangleColors: parsed.triangleColors || [],
+                res.end(JSON.stringify(createModelApiPayload({
+                    requested,
+                    resolved,
+                    parsed,
                     content,
                     mtime: fileVersion(requested),
-                }));
+                })));
                 return;
             } catch (err) {
                 res.statusCode = 500;
@@ -467,7 +597,7 @@ async function startServer(modelPath) {
             }
         }
         res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.end(renderHtml("STL Canvas", defaultModelFile));
+        res.end(renderHtml("STL Canvas", instanceDefaultFile, openInOrcaNonce));
     });
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
@@ -528,7 +658,15 @@ await joinSession({
                         if (!existsSync(modelPath)) throw new CanvasError("stl_not_found", `Model file not found: ${requested}`);
                         const raw = readFileSync(modelPath);
                         const parsed = parseModelBuffer(modelPath, raw);
-                        return { ...parsed, triangles: undefined, triangleColors: undefined };
+                        return {
+                            ...parsed,
+                            triangles: undefined,
+                            triangleColors: undefined,
+                            plates: (parsed.plates || []).map((plate) => ({
+                                id: plate.id,
+                                stats: plate.stats,
+                            })),
+                        };
                     },
                 },
             ],

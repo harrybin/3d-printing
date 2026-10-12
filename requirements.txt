@@ -9,3 +9,5 @@ matplotlib
 opencv-python-headless
 vedo
 build123d
+lxml
+fast-simplification

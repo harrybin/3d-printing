@@ -35,6 +35,11 @@ directly to `--load-settings "<machine>;<process>"` and `--load-filaments <filam
 Hand-flattened copies of those profiles fail with exit code `-17`
 (`CLI_PROCESS_NOT_COMPATIBLE`), even with emptied compatibility lists.
 
+Computer Use is a fallback only: use it to start or stop OrcaSlicer when no
+usable CLI/MCP path exists, or to enable/configure the local MCP. Once a CLI or
+MCP path is available, perform slicing and inspection through that path rather
+than driving the GUI.
+
 The repository MCP template is `.vscode/mcp.json`, but the OrcaSlicer entry is
 disabled by default because OrcaSlicer officially documents a CLI, not a first-party
 MCP server. Only enable a third-party OrcaSlicer MCP after auditing its source,
@@ -64,6 +69,13 @@ Do not report comparable print estimates unless these settings are held constant
    silently accepting changed geometry.
 7. Re-slice after every geometry, orientation, support, or profile change.
 
+Do not infer `support-free` from a project whose support setting is `none`.
+Generated projects keep `enable_support=1` by default for exactly this reason.
+Validate that claim with automatic support enabled at the intended threshold,
+then confirm the generated G-code contains neither support nor support-interface
+paths. Also record the analytical maximum ceiling/bridge span; zero generated
+support does not override a span beyond the repository limit.
+
 ## Required report
 
 Write `docs/<model>-druckvalidierung.md` or update the model's existing validation
@@ -75,8 +87,14 @@ document with:
 - plate number and included objects
 - orientation and arrangement
 - layer height and layer count
+- seam position and ironing type
 - estimated print time
 - filament length, mass, and cost when configured
+- support material mass, length and volume whenever supports are generated;
+  recover the share from the G-code by summing positive extruder deltas under
+  `;TYPE:Support` and `;TYPE:Support interface` and scaling it with the
+  slicer's own mm-to-mass ratio. State `none` only for a slice that produced
+  no support path at all.
 - supports, brim/raft, bridges, and notable overhangs
 - material/color changes and purge impact when available
 - slicer warnings and their resolution
@@ -84,6 +102,27 @@ document with:
 
 Capture a slicer preview for every delivered print plate. For multi-color output,
 the preview must make the assigned regions visible.
+
+## 3MF metadata contract
+
+Every generated project 3MF must include a slicer-neutral metadata part named
+`Metadata/ghouls_grip_print_metadata.xml`. It must expose, at minimum:
+
+- `estimatedPrintTimeSeconds`
+- `filamentUsageGrams`
+- `filamentUsageMillimeters`
+- `filamentUsageCubicMillimeters`
+- `supportFilamentGrams`
+- `supportFilamentMillimeters`
+- `supportFilamentCubicMillimeters`
+- printer, nozzle, process/layer height, filament/material, bed, supports,
+  infill, wall loops, and plate count
+
+Values that are not backed by a successful slice must be `unknown`, with
+`status=not-verified`; never invent estimates. The STL Canvas reads and displays
+these fields alongside mesh and plate information. After a successful slice,
+patch the same metadata entry with the exact slicer-reported values and set
+`status=verified`.
 
 ## Acceptance
 
@@ -93,6 +132,9 @@ the preview must make the assigned regions visible.
 - no unresolved collision, out-of-bed, empty-layer, or invalid-toolpath warning
 - removable supports where supports are used
 - acceptable bridges, first layer, seams, and color/material transitions
+- random seam placement, ironing on all top surfaces and enabled automatic
+  support are present unless a documented project-specific exception overrides
+  the repository default
 - recorded print time and material estimate from that successful slice
 
 Do not call a model print-ready when OrcaSlicer validation failed or was skipped.

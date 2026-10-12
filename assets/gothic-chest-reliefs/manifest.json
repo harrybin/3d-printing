@@ -1,0 +1,19 @@
+{
+  "generator": "scripts/blender_chest_reliefs.py",
+  "blender": "5.2.2 LTS",
+  "meta_resolution_mm": 0.6,
+  "noise_strength_mm": 0.55,
+  "noise_scale_mm": 2.4,
+  "panels": [
+    {
+      "panel": "rear",
+      "grid": [
+        82,
+        246
+      ],
+      "sculpt_peak_mm": 2.682,
+      "coverage_fraction": 0.1984,
+      "pitch_mm": 0.62
+    }
+  ]
+}

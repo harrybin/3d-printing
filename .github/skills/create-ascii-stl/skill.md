@@ -88,6 +88,21 @@ Hand-written meshes (raw `Trimesh(vertices, faces)` constructions, manual `solid
 - Keep trimesh + manifold3d for simple prismatic CSG and as the validation layer.
 - Every generator script must print: facets, bounds, extents, watertight, winding consistency, volume, degenerate-face count.
 
+## Organic reference meshes and moving assemblies
+
+- For realistic anatomy or other high-complexity organic subjects, first research a downloadable model with a redistribution-compatible license. Prefer NIH, Wikimedia Commons, Smithsonian or similarly attributable repositories over anonymous marketplace uploads.
+- Keep the original organic mesh separate from engineering geometry. Canonicalize and classify its components, preserve real proportions, then create printable derivatives through controlled decimation, voxel/morphological fusion, sockets, flexures and tendon channels. Do not replace recognizable anatomy with cylinders and boxes merely because they are easier to generate.
+- Validate mechanics independently from appearance. A static hero render cannot prove a mechanism: generate at least the two end states and a sampled sweep, assert pivot closure, slot travel and enclosure margins, and use manifold boolean intersection volumes to reject collisions.
+- If the swept volume intersects a tray or support, rebuild that support as an open yoke/frame around the envelope instead of shrinking or clipping the organic part.
+- For complex assemblies, deliver exactly one `models/<name>-view.3mf` with the
+  complete assembled object (and separate mechanism-state plates when relevant)
+  plus one `models/<name>-print.3mf` containing the complete print BOM and all
+  filament/spool mappings. Group same-material/color parts on shared plates when
+  safe; use multiple plates rather than per-material project files. The print
+  project must embed the Kobra S1 machine, Textured PEI bed, filament profiles,
+  material/process values and object-level overrides; a geometry-only 3MF is
+  not print-ready.
+
 ## Anycubic Kobra S1 Combo defaults
 
 - Stock nozzle: **0.4 mm** (supports 0.25/0.6/0.8 mm).
@@ -119,8 +134,8 @@ Hand-written meshes (raw `Trimesh(vertices, faces)` constructions, manual `solid
 
 For a complex assembly or multiple print orientations, produce:
 
-- an assembled `models/<name>-master.3mf`
-- one or more `models/<name>-print-<plate-or-material>.3mf` files
+- `models/<name>-view.3mf` for the assembled object and meaningful mechanism states
+- one combined `models/<name>-print.3mf` with every material group and print plate
 - optional `models/<name>-part-<part>.stl` files for independent validation
 
 Every print 3MF must pass `orcaslicer-print-validation`. Do not report print time or
@@ -135,8 +150,8 @@ final print readiness from analytical estimates alone.
 - If the requested geometry cannot be made printable within the stated constraints without fundamental redesign, explain the specific conflict and propose an alternative geometry before generating the output.
 - Reusable-asset source, license, and attribution decisions are documented.
 - Blender exports, when used, preserve frozen datums and pass full mesh validation.
-- Complex outputs include both the assembled master 3MF and print-optimized 3MF
-  files.
+- Complex outputs include exactly one assembled multi-state `-view.3mf` and one
+  settings-bearing `-print.3mf` containing all print plates.
 - OrcaSlicer validation status and profiles are reported; unavailable slicing is
   labeled `not verified`.
 - For STL outputs: the finished STL was opened in the STL canvas and the previewed path is reported.

@@ -301,12 +301,46 @@ def cmd_overhang(args) -> None:
     mesh = load_mesh(args.file)
     normals = mesh.face_normals
     areas = mesh.area_faces
-    # angle of the face from the horizontal build plane; 90 deg = vertical wall
+    # Angle of the face from the horizontal build plane:
+    # 0 deg = horizontal ceiling, 90 deg = vertical wall.  The previous
+    # arcsin(|normal.z|) calculation measured the complementary normal angle,
+    # which could classify nearly vertical faces as unsupported while omitting
+    # true horizontal ceilings from the unsupported total.
     down = normals[:, 2] < 0
-    angle_from_horizontal = np.degrees(np.arcsin(np.clip(np.abs(normals[:, 2]), 0, 1)))
+    angle_from_horizontal = np.degrees(np.arccos(
+        np.clip(np.abs(normals[:, 2]), 0, 1)
+    ))
     steep = down & (angle_from_horizontal < (90.0 - args.limit))
-    flat_down = down & (angle_from_horizontal > 89.0)
+    flat_down = down & (angle_from_horizontal < 1.0)
     bed = flat_down & (mesh.triangles[:, :, 2].max(axis=1) <= mesh.bounds[0][2] + 1e-3)
+    ceiling_faces = set(np.flatnonzero(flat_down & ~bed).tolist())
+    parents = {face: face for face in ceiling_faces}
+
+    def find(face: int) -> int:
+        while parents[face] != face:
+            parents[face] = parents[parents[face]]
+            face = parents[face]
+        return face
+
+    for first, second in mesh.face_adjacency:
+        first, second = int(first), int(second)
+        if first not in ceiling_faces or second not in ceiling_faces:
+            continue
+        if abs(mesh.triangles_center[first, 2] - mesh.triangles_center[second, 2]) > 1e-3:
+            continue
+        root_first, root_second = find(first), find(second)
+        if root_first != root_second:
+            parents[root_second] = root_first
+
+    groups: dict[int, list[int]] = {}
+    for face in ceiling_faces:
+        groups.setdefault(find(face), []).append(face)
+    bridge_spans = []
+    for faces in groups.values():
+        points = mesh.triangles[faces].reshape(-1, 3)
+        bridge_spans.append(min(float(np.ptp(points[:, 0])),
+                                float(np.ptp(points[:, 1]))))
+    max_bridge_span = max(bridge_spans, default=0.0)
 
     total = float(areas.sum())
     print(f"overhang limit {args.limit} deg from vertical (self-supporting up to that)")
@@ -316,6 +350,7 @@ def cmd_overhang(args) -> None:
           f"({float(areas[steep & ~bed].sum()) / total * 100:.1f} %)")
     print(f"  ceilings (>=89 deg) {float(areas[flat_down & ~bed].sum()):9.2f} mm^2  "
           "-> bridges, check span")
+    print(f"  max ceiling short span {max_bridge_span:7.2f} mm")
     if float(areas[steep & ~bed].sum()) > 0:
         print("  reduce by reorienting, adding 45 deg chamfers, or using teardrop holes")
 
