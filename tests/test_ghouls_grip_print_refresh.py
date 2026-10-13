@@ -84,7 +84,7 @@ class SavedPrintRefreshTests(unittest.TestCase):
                        for node in new_settings.findall("object")}
         for node in old_settings.findall("object"):
             self.assertEqual(ET.tostring(node), new_configs[node.get("id")])
-        self.assertEqual(len(new_settings.findall("plate")), 5)
+        self.assertEqual(len(new_settings.findall("plate")), 4)
         for old, new in zip(old_settings.findall("plate"),
                             new_settings.findall("plate")):
             old_ids = {node.find("metadata[@key='object_id']").get("value")

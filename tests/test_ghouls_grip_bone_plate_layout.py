@@ -48,7 +48,7 @@ class BonePlateLayoutTests(unittest.TestCase):
         model = ET.fromstring(after["3D/3dmodel.model"])
         settings = ET.fromstring(after["Metadata/model_settings.config"])
         names_to_ids = _build_id_by_name(settings)
-        self.assertEqual(len(settings.findall("plate")), 5)
+        self.assertEqual(len(settings.findall("plate")), 4)
         self.assertEqual(len(model.findall("c:build/c:item", NS)), 37)
         self.assertEqual(after["Metadata/project_settings.config"],
                          before["Metadata/project_settings.config"])

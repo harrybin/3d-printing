@@ -15,7 +15,7 @@ A collection of ASCII STL models for the Anycubic Kobra S1 Combo + ACE Pro (250 
 | `models/lampe-5-leuchtflaechen.stl` | All four translucent lamp panels arranged together on the 250 × 250 mm bed |
 | `models/modellauto-reifen.stl` / `models/modellauto-reifen-print.3mf` | Completed PLA toy-car replacement tyre, 37.2 mm diameter × 26 mm width ([3MF project preview](docs/images/modellauto-reifen-print-preview.png)); [archived measurements and print notes](docs/modellauto-reifen-masse.md) |
 | `models/ghouls-grip-view.3mf` | Assembled multi-material view on three plates: deployed, intermediate at a 48° scissor angle, and retracted ([project preview](docs/images/ghouls-grip-view-preview.png); [dimensions and assembly](docs/ghouls-grip-masse-und-bauanleitung.md)) |
-| `models/ghouls-grip-print.3mf` | One settings-bearing OrcaSlicer project with four PLA color/spool assignments and 37 objects on the user's five plates ([all-plate preview](docs/images/ghouls-grip-print-preview.png)). The seven bone-beige parts on plate 2 are compactly arranged with at least 6 mm between footprints and at least 69 mm edge clearance. Rebuilt open floor-bearing yokes clear the unchanged arms in all 61 states; the rear-wall fix remains intact. See [slice/profile status and physical fit risks](docs/ghouls-grip-druckvalidierung.md). |
+| `models/ghouls-grip-print.3mf` | One settings-bearing OrcaSlicer project with four PLA color/spool assignments and 37 objects on four plates ([all-plate preview](docs/images/ghouls-grip-print-preview.png)). The 27 natural-white mechanism parts share one plate; the seven bone-beige parts on plate 2 are compactly arranged with at least 6 mm between footprints and at least 69 mm edge clearance. Rebuilt open floor-bearing yokes clear the unchanged arms in all 61 states. See [slice/profile status and physical fit risks](docs/ghouls-grip-druckvalidierung.md). |
 | `models/ghouls-grip-preview.stl` | Deployed assembly-only multi-body preview; printable parts regenerate from `scripts/` |
 | `model-sources/ghouls-grip/ghouls-grip-master.blend` | Blender CLI/MCP scene checkpoint; technical objects are frozen and organic objects are separately marked |
 
@@ -31,26 +31,27 @@ and crank sit below a sealed black service hood with a continuous 2.0 mm roof;
 only its assembly cavity opens toward the inside of the chest. The intended
 external skull knob remains accessible at the front.
 
-The current user-edited print project contains **37 physical objects on five plates**.
+The current user-edited print project contains **37 physical objects on four plates**.
 The file has been sliced with OrcaSlicer CLI 2.4.2; its saved profile settings
 differ from repository defaults, so print-profile compliance is not verified.
 
 | Plate group | Plates | Main contents | Slice material / support / time |
 | --- | ---: | --- | ---: |
-| Black PLA | 1 | chest and lid | 338.28 g / 7.16 g / 12 h 10 min 35 s |
-| Bone-beige PLA | 1 | forearm, palm, five flexure fingers | 43.51 g / 5.90 g / 3 h 04 min 12 s |
-| Natural-white PLA | 2 | complete mechanism, gears, shafts and pivot pins | 122.91 g / 13.33 g / 5 h 18 min 44 s |
+| Black PLA | 1 | chest and lid | 338.28 g / 7.16 g / 12 h 11 min 19 s |
+| Bone-beige PLA | 1 | forearm, palm, five flexure fingers | 43.85 g / 6.25 g / 3 h 04 min 39 s |
+| Natural-white PLA | 1 | all 27 mechanism parts, gears, shafts and pivot pins | 122.82 g / 13.33 g / 5 h 08 min 18 s |
 | Gray PLA | 1 | anatomical skull drive knob | 24.05 g / 3.40 g / 1 h 11 min 05 s |
-| **Total** | **5** | **37 print objects** | **528.75 g / 29.79 g / 21 h 44 min 36 s** |
+| **Total** | **4** | **37 print objects** | **529.00 g / 30.15 g / 21 h 35 min 21 s** |
 
 Floor-bearing repair: two 4 mm cheeks around each open 12 mm arm channel,
 unchanged pivots and arm geometry. Actual per-arm/chest Boolean volumes are
 0.000 mm³ to three decimals across 18–78° (maximum numerical residual
-0.000020464 mm³, acceptance tolerance 0.001 mm³). The saved five-plate
-layout and all 36 unaffected mesh payloads remain unchanged. The floor pins
-insert from the chest centre; dimensions introduced for clearance and strength
-are design estimates requiring a physical PLA fit/load test. Profile compliance
-remains **not-verified**, not print-ready.
+0.000020464 mm³, acceptance tolerance 0.001 mm³). The 16 former connector-plate
+objects now share the mechanism plate with the 11 main parts; the complete
+37-object BOM remains intact. All 36 unaffected mesh payloads remain unchanged.
+The floor pins insert from the chest centre; dimensions introduced for clearance
+and strength are design estimates requiring a physical PLA fit/load test.
+Profile compliance remains **not-verified**, not print-ready.
 Complex projects follow the two-file convention: `-view.3mf` is the assembled
 overview (with additional state plates for mechanisms), and `-print.3mf` is the
 single all-material print project. Same-color parts share plates when safe;
@@ -75,10 +76,10 @@ Every 3MF also has a complete-project preview at
 has a G-code-derived support screenshot at
 `docs/images/<3mf-stem>-plate-<n>-supports.png`; both the Canvas and Web viewer
 provide buttons for these images, including in the expandable per-plate details.
-The current print-project preview shows all five plates and their material
+The current print-project preview shows all four plates and their material
 grouping:
 
-![Ghoul's Grip complete print project, all five plates](docs/images/ghouls-grip-print-preview.png)
+![Ghoul's Grip complete print project, all four plates](docs/images/ghouls-grip-print-preview.png)
 
 Assembly order, connector use and dimensions are in
 [`docs/ghouls-grip-masse-und-bauanleitung.md`](docs/ghouls-grip-masse-und-bauanleitung.md);

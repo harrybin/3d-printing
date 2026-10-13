@@ -152,15 +152,47 @@ class FloorBearingTests(unittest.TestCase):
                         not entry.rsplit("/", 1)[-1].startswith("chest_")):
                     self.assertEqual(old.read(entry), new.read(entry), entry)
             ns = {"c": "http://schemas.microsoft.com/3dmanufacturing/core/2015/02"}
-            for entry, selector in (
-                ("3D/3dmodel.model", "c:build/c:item"),
-                ("Metadata/model_settings.config", "object"),
-                ("Metadata/model_settings.config", "plate/model_instance"),
-            ):
-                before = ET.fromstring(old.read(entry)).findall(selector, ns)
-                after = ET.fromstring(new.read(entry)).findall(selector, ns)
-                self.assertEqual([ET.tostring(node) for node in before],
-                                 [ET.tostring(node) for node in after], entry)
+            old_settings = ET.fromstring(
+                old.read("Metadata/model_settings.config"))
+            new_settings = ET.fromstring(
+                new.read("Metadata/model_settings.config"))
+            old_mechanism_ids = {
+                obj.get("id") for obj in old_settings.findall("object")
+                if obj.find("metadata[@key='extruder']").get("value") == "3"
+            }
+            new_configs = {
+                obj.get("id"): obj for obj in new_settings.findall("object")
+            }
+            for obj in old_settings.findall("object"):
+                self.assertEqual(
+                    ET.tostring(obj), ET.tostring(new_configs[obj.get("id")]))
+
+            old_model = ET.fromstring(old.read("3D/3dmodel.model"))
+            new_model = ET.fromstring(new.read("3D/3dmodel.model"))
+            old_build = {
+                item.get("objectid"): item.attrib
+                for item in old_model.findall("c:build/c:item", ns)
+            }
+            new_build = {
+                item.get("objectid"): item.attrib
+                for item in new_model.findall("c:build/c:item", ns)
+            }
+            for object_id, attributes in old_build.items():
+                if object_id not in old_mechanism_ids:
+                    self.assertEqual(attributes, new_build[object_id])
+
+            plates = new_settings.findall("plate")
+            self.assertEqual(len(plates), 4)
+            mechanism_plate = next(
+                plate for plate in plates
+                if "Hauptteile" in plate.find(
+                    "metadata[@key='plater_name']").get("value")
+            )
+            mechanism_ids = {
+                instance.find("metadata[@key='object_id']").get("value")
+                for instance in mechanism_plate.findall("model_instance")
+            }
+            self.assertEqual(mechanism_ids, old_mechanism_ids)
 
 
 if __name__ == "__main__":
