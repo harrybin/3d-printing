@@ -130,3 +130,12 @@ Kontaktblatt der 25 aus dem Referenzvideo (`PXL_20261014_105222309.mp4`) extrahi
 | 22 | frame_23_f0704.jpg | Schrägansicht von oben mit 2-Euro-Münze |
 | 23 | frame_24_f0736.jpg | Draufsicht Gesamtproportionen mit 2-Euro-Münze |
 | 24 | frame_25_f0768.jpg | Abschlussansicht mit 2-Euro-Münze |
+
+## butterfly-messer-referenzfotos-index.png
+
+Kontaktblatt des Referenzfotos zu `models/butterfly-messer-view.3mf`, `models/butterfly-messer-print.3mf` und `models/butterfly-messer.stl` (Generator: `scripts/butterfly_messer.py`, Quellen & Lizenzen: `docs/butterfly-messer-quellen-und-lizenzen.md`, Maße & Mechanik: `docs/butterfly-messer-masse-und-mechanik.md`, Druckvalidierung: `docs/butterfly-messer-druckvalidierung.md`).
+
+| Kachel | Originaldatei | Nachweis / Perspektive |
+| ---: | --- | --- |
+| 00 | 01-referenz-balisong.png | Klassisches skelettiertes Edelstahl-Butterfly-Messer (geschlossen & verriegelt oben auf schwarzem Etui, geöffnet mit T-Latch unten) |
+
