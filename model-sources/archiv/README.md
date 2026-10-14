@@ -98,3 +98,35 @@ Die zwei Konzeptbilder bleiben waehrend der Prototypenphase unter
 | ---: | --- | --- |
 | 00 | 01-blueprint-concept.jpg | Stil, Scherenhub, Totenkopf-Ausloeser |
 | 01 | 02-render-concept.jpg | Materialwirkung, offene Suessigkeiten-Hand |
+
+## drache-referenzfotos-index.png
+
+Kontaktblatt der 25 aus dem Referenzvideo (`PXL_20261014_105222309.mp4`) extrahierten Standbilder zu `models/drache-view.3mf`, `models/drache-print.3mf` und `models/drache.stl` (Generatoren: `scripts/build_drache_blender.py` und `scripts/drache.py`, Maße: `docs/drache-masze.md`, Prüfbericht: `docs/drache-montage-und-kollisionspruefung.md`).
+
+| Kachel | Originaldatei | Nachweis / Perspektive |
+| ---: | --- | --- |
+| 00 | frame_01_f0000.jpg | Vorderansicht schräg rechts mit 2-Euro-Münze |
+| 01 | frame_02_f0032.jpg | Vorderansicht mit 2-Euro-Münze |
+| 02 | frame_03_f0064.jpg | Haupt-Vorderansicht mit 2-Euro-Münze (Kalibrierreferenz 25,75 mm) |
+| 03 | frame_04_f0096.jpg | Schrägansicht rechts vorn |
+| 04 | frame_05_f0128.jpg | Seitenansicht rechts |
+| 05 | frame_06_f0160.jpg | Seitenansicht rechts hinten |
+| 06 | frame_07_f0192.jpg | Rück-/Seitenansicht rechts |
+| 07 | frame_08_f0224.jpg | Rückansicht mit roter/schwarzer Schwanzflosse (weggelassener Fabrikcode `41204AFS`) |
+| 08 | frame_09_f0256.jpg | Rückansicht schräg links |
+| 09 | frame_10_f0288.jpg | Schrägansicht hinten links, Rückenkamm-Noppen |
+| 10 | frame_11_f0320.jpg | Seitenansicht links hinten |
+| 11 | frame_12_f0352.jpg | Seitenansicht links |
+| 12 | frame_13_f0384.jpg | Haupt-Seitenansicht links (Längen- und Höhenkalibrierung) |
+| 13 | frame_14_f0416.jpg | Schrägansicht links vorn |
+| 14 | frame_15_f0448.jpg | Vorderansicht schräg links |
+| 15 | frame_16_f0480.jpg | Vorderansicht Augen & Ohrenhörner |
+| 16 | frame_17_f0512.jpg | Schrägansicht oben vorn |
+| 17 | frame_18_f0544.jpg | Draufsicht schräg, Flügelspannweite & Sattelkragen |
+| 18 | frame_19_f0576.jpg | Detailaufnahme rote Schwanzflossen-Prothese mit weißem Schädel-Emblem |
+| 19 | frame_20_f0608.jpg | Detailaufnahme Schwanzflosse & Flügelkante |
+| 20 | frame_21_f0640.jpg | Detailaufnahme Kopf & grüne Augen |
+| 21 | frame_22_f0672.jpg | Detailaufnahme Brust, Vorderpfoten & Krallen |
+| 22 | frame_23_f0704.jpg | Schrägansicht von oben mit 2-Euro-Münze |
+| 23 | frame_24_f0736.jpg | Draufsicht Gesamtproportionen mit 2-Euro-Münze |
+| 24 | frame_25_f0768.jpg | Abschlussansicht mit 2-Euro-Münze |
