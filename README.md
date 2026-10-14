@@ -4,6 +4,25 @@ A collection of ASCII STL models for the Anycubic Kobra S1 Combo + ACE Pro (250 
 
 ## Models
 
+### Token-efficient command evidence
+
+`scripts/compact_output.py` retains full command logs while returning bounded
+JSON summaries with deduplicated diagnostics, result lines and a short tail.
+It uses only Python's standard library and preserves command exit codes:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\compact_output.py run --log build\tests.log -- .\.venv\Scripts\python.exe -m unittest discover -s tests
+.\.venv\Scripts\python.exe scripts\compact_output.py log build\tests.log --limit 12 --tail 8
+.\.venv\Scripts\python.exe scripts\compact_output.py project models\ghouls-grip-print.3mf
+```
+
+The project mode reports plate membership counts and selected Orca settings
+without dumping meshes/XML. Summaries are not validation: omitted diagnostics
+are counted, full logs remain available, and unknown warnings or failures need
+targeted inspection. The Ghoul's Grip slice wrapper uses log summaries
+automatically. Run the helper's tests with
+`.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_compact_output.py`.
+
 | File | Description |
 |------|-------------|
 | `models/wedge_100x20x40.stl` | 100 × 20 × 40 mm wedge |

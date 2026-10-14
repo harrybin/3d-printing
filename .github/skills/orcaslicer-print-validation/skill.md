@@ -24,6 +24,14 @@ If installation is declined or unavailable:
 
 ## Version and automation
 
+Keep full slicer diagnostics locally and inspect them through
+`.\.venv\Scripts\python.exe scripts\compact_output.py log <log-path>`.
+`scripts\slice_ghouls_grip.ps1` prints these bounded summaries automatically.
+Use `compact_output.py project <project.3mf>` for plate counts and key settings
+instead of dumping entire project XML. A summary never establishes slice
+success: require the real exit code and expected G-codes, and inspect targeted
+log ranges for unknown/omitted warnings or errors before final approval.
+
 Record the installed OrcaSlicer version. Verify supported CLI options against the
 local executable's help before using them; CLI behavior can change between versions.
 Use the GUI when the installed CLI cannot expose the required project, plate, or
