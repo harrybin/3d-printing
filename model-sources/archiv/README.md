@@ -98,3 +98,17 @@ Die zwei Konzeptbilder bleiben waehrend der Prototypenphase unter
 | ---: | --- | --- |
 | 00 | 01-blueprint-concept.jpg | Stil, Scherenhub, Totenkopf-Ausloeser |
 | 01 | 02-render-concept.jpg | Materialwirkung, offene Suessigkeiten-Hand |
+
+## skelett_kapuzenfigur-referenzfotos-index.png
+
+Kontaktblatt der 24 extrahierten Videostandbilder (`1 fps`) aus `PXL_20261014_103834751.mp4` zu `models/skelett_kapuzenfigur.stl` (Generator: `scripts/skelett_kapuzenfigur.py`, Maße & Lizenzrecherche: `docs/skelett-kapuzenfigur-masse.md`).
+
+| Kachel | Originaldatei | Nachweis / Ansicht |
+| ---: | --- | --- |
+| 01 | frame_01.jpg (`t = 0,0 s`) | Schrägansicht vorn links mit 2-Euro-Münze (`Ø 25,75 mm`) auf Standebene `z = 0` |
+| 02–05 | frame_02.jpg .. frame_05.jpg (`t = 1,0..4,0 s`) | Übergang Schrägansicht vorn links zu linkem Seitenprofil |
+| 06–09 | frame_06.jpg .. frame_09.jpg (`t = 5,0..8,0 s`) | Linkes Seitenprofil (`#08`: Gesamthöhe `58,7 mm`, Kapuzentiefe `27,2 mm`, 3 Ellbogenfalten) |
+| 10–14 | frame_10.jpg .. frame_14.jpg (`t = 9,0..13,0 s`) | Rückansicht (`#11`: Kapuzenbreite `28,6 mm`, Ellbogenspannweite `22,9 mm`, hintere Kragenfalte) |
+| 15–19 | frame_15.jpg .. frame_19.jpg (`t = 14,0..18,0 s`) | Rechtes Seitenprofil und 3/4-Ansicht vorn rechts |
+| 20–24 | frame_20.jpg .. frame_24.jpg (`t = 19,0..23,0 s`) | Front- und Aufsicht mit 2-Euro-Münze (`#21`, `#24`: Stirnnaht, vernähtes Grinsen, Taschenpose, Sneaker) |
+
