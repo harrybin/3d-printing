@@ -27,6 +27,13 @@ $proc = Start-Process -FilePath $orca -PassThru -Wait -NoNewWindow `
                    '--debug=3', "--logfile=`"$log`"")
 $gcode = Get-ChildItem $dir -Filter 'plate_*.gcode' -ErrorAction SilentlyContinue
 Write-Host "print project exit=$($proc.ExitCode) plates=$($gcode.Count)"
+$python = Join-Path $root '.venv\Scripts\python.exe'
+foreach ($diagnosticLog in @($stdout, $stderr, $log)) {
+    if (Test-Path $diagnosticLog) {
+        & $python (Join-Path $PSScriptRoot 'compact_output.py') log $diagnosticLog --limit 6 --tail 3
+        if ($LASTEXITCODE -ne 0) { throw "Could not summarize $diagnosticLog; inspect the full log" }
+    }
+}
 if ($proc.ExitCode -ne 0 -or $gcode.Count -ne $plateCount) {
     throw "slicing failed or expected $plateCount plates, found $($gcode.Count)"
 }

@@ -15,6 +15,24 @@ This repository contains parametric STL generation workflows for FDM printing on
 
 ## Build And Validation Commands
 
+### Bounded tool output
+
+Use `scripts\compact_output.py` for verbose commands and log inspection. Keep
+complete logs under `build\`; return only bounded summaries to the agent:
+
+- Run tests/builds: `.\.venv\Scripts\python.exe scripts\compact_output.py run --log build\tests.log -- .\.venv\Scripts\python.exe -m unittest discover -s tests`
+- Inspect logs: `.\.venv\Scripts\python.exe scripts\compact_output.py log build\tests.log`
+- Inspect Orca projects: `.\.venv\Scripts\python.exe scripts\compact_output.py project models\ghouls-grip-print.3mf`
+
+The runner preserves the command exit code. Summaries are heuristic, not proof
+of success; read targeted full-log ranges for failures, unknown warnings or
+omitted diagnostic kinds. Never replace error evidence with a success-shaped
+summary. Do not pipe output to an arbitrary first-N-lines cutoff.
+For source/docs, use targeted searches and line ranges instead of full reads or
+overlapping rereads. Use `git diff --stat` first, then only relevant hunks.
+Do not print whole 3MF XML, G-code, environment dumps or archive member lists.
+These helpers need no additional packages and do not change model geometry.
+
 ### Batch model changes before the final quality phase
 
 When several requested tasks change model geometry or assembly objects, complete

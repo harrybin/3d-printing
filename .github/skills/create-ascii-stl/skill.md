@@ -143,6 +143,13 @@ final print readiness from analytical estimates alone.
 
 ## Output checklist
 
+Use `scripts\compact_output.py run --log build\<name>.log -- <command>` for
+verbose generators/tests so full evidence stays local and the agent receives
+bounded results. Use its `log` and `project` modes for diagnostics and Orca
+metadata. Summaries are heuristic; check actual exit codes and inspect targeted
+failure/unknown-warning details. Read only required source/doc ranges and avoid
+overlapping rereads, rather than introducing lossy source-code compression.
+
 For multiple requested model/object changes, finish all related source geometry
 changes before starting the consolidated optimization and final quality phase.
 Run final mesh/mechanism validation, slicing, metadata updates and presentation
