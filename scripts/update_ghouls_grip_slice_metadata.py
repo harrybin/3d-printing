@@ -21,6 +21,10 @@ FILAMENT_NAMES = {
     "#d8c6a5": "Bone-beige PLA",
     "#f1ebdd": "Natural-white PLA",
     "#777777": "Gray PLA",
+    "#1c1e21": "Black PLA (Drache)",
+    "#4cc936": "Green PLA (Augen)",
+    "#d62828": "Red PLA (Schwanzflosse)",
+    "#f4f5f7": "White PLA (Emblem)",
 }
 
 
