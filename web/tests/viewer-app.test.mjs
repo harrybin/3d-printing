@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import {
   APP_HTML,
   createOrcaLaunchRequest,
-  createOrcaSlicerOpenUrl,
+  create3mfOpenUrl,
   formatPrintMetadataSummary,
   plateSupportImagePath,
   projectPreviewImagePath,
@@ -27,32 +27,22 @@ test('keeps advanced controls and metadata in collapsible surfaces', () => {
   assert.doesNotMatch(APP_HTML, /<div class="toolbar secondary">/)
 })
 
-test('builds the official OrcaSlicer open URL for a current 3MF file', () => {
-  assert.equal(
-    createOrcaSlicerOpenUrl(
-      'project.3mf',
-      './models/project.3mf',
-      'https://example.test/viewer/',
-    ),
-    'orcaslicer://open/?file=https%3A%2F%2Fexample.test%2Fviewer%2Fmodels%2Fproject.3mf',
-  )
+test('labels the 3MF action for the default application', () => {
+  assert.match(APP_HTML, />3mf öffnen<\/button>/)
+  assert.doesNotMatch(APP_HTML, /Open in OrcaSlicer/)
 })
 
-test('percent-encodes the complete nested URL for OrcaSlicer to decode once', () => {
+test('resolves an absolute download URL for the current 3MF file', () => {
   assert.equal(
-    createOrcaSlicerOpenUrl(
-      'Project Copy.3MF',
-      './models/Project Copy.3MF?download=1&return=%2Fmodels%2Fnext%3Fa%3D1%26b%3D2',
-      'https://example.test/',
-    ),
-    'orcaslicer://open/?file=https%3A%2F%2Fexample.test%2Fmodels%2FProject%2520Copy.3MF%3Fdownload%3D1%26return%3D%252Fmodels%252Fnext%253Fa%253D1%2526b%253D2',
+    create3mfOpenUrl('project.3mf', './models/project.3mf', 'https://example.test/viewer/'),
+    'https://example.test/viewer/models/project.3mf',
   )
 })
 
 test('does not expose the action for non-3MF or unsafe URLs', () => {
-  assert.equal(createOrcaSlicerOpenUrl('part.stl', 'https://example.test/part.stl', 'https://example.test/'), '')
-  assert.equal(createOrcaSlicerOpenUrl('part.3mf', 'javascript:alert(1)', 'https://example.test/'), '')
-  assert.equal(createOrcaSlicerOpenUrl('part.3mf', 'https://user:secret@example.test/part.3mf', 'https://example.test/'), '')
+  assert.equal(create3mfOpenUrl('part.stl', 'https://example.test/part.stl', 'https://example.test/'), '')
+  assert.equal(create3mfOpenUrl('part.3mf', 'javascript:alert(1)', 'https://example.test/'), '')
+  assert.equal(create3mfOpenUrl('part.3mf', 'https://user:pw@example.test/part.3mf', 'https://example.test/'), '')
 })
 
 test('formats verified print time and material usage for the visible summary', () => {

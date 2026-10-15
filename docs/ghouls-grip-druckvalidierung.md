@@ -328,8 +328,8 @@ der Übersicht und die Projekt-Gesamtwerte. Einzelplattenwahl, Reload,
 Dateiwechsel zur View-3MF und Auto-Reload einer anderen Mehrplatten-Datei
 wurden ebenfalls geprüft.
 
-In der lokalen Copilot-Canvas-Erweiterung öffnet **Open in OrcaSlicer** die
-exakt ausgewählte Workspace-3MF über einen lokalen POST-Endpunkt mit
+In der lokalen Copilot-Canvas-Erweiterung öffnet **3mf öffnen** die
+exakt ausgewählte Workspace-3MF mit dem registrierten Standardprogramm über einen lokalen POST-Endpunkt mit
 Nonce-Prüfung und Pfadvalidierung. Der Button wird für STL, unsichere Pfade und
 die öffentliche Web-SPA nicht als Desktop-Startweg angeboten.
 

@@ -1,25 +1,17 @@
 import { existsSync, realpathSync } from "node:fs";
-import { isAbsolute, join, relative, resolve, win32, posix } from "node:path";
+import { win32, posix } from "node:path";
 import { spawn } from "node:child_process";
 
-export function findOrcaSlicer({
+export function defaultOpenCommand(modelPath, {
     platform = process.platform,
     env = process.env,
-    exists = existsSync,
 } = {}) {
-    const candidates = [
-        env.ORCA_SLICER_BIN,
-        platform === "win32" && env.ProgramW6432 ? join(env.ProgramW6432, "OrcaSlicer", "orca-slicer.exe") : "",
-        platform === "win32" && env.ProgramFiles ? join(env.ProgramFiles, "OrcaSlicer", "orca-slicer.exe") : "",
-        platform === "win32" && env.LOCALAPPDATA
-            ? join(env.LOCALAPPDATA, "Programs", "OrcaSlicer", "orca-slicer.exe")
-            : "",
-        platform === "win32" ? String.raw`C:\Program Files\OrcaSlicer\orca-slicer.exe` : "",
-        platform === "darwin" ? "/Applications/OrcaSlicer.app/Contents/MacOS/OrcaSlicer" : "",
-        platform === "linux" ? "/usr/bin/orca-slicer" : "",
-        platform === "linux" ? "/usr/local/bin/orca-slicer" : "",
-    ].filter(Boolean);
-    return candidates.find((candidate) => exists(candidate)) || "";
+    if (platform === "win32") {
+        const windir = env.SystemRoot || env.windir || String.raw`C:\Windows`;
+        return { command: win32.join(windir, "explorer.exe"), args: [modelPath] };
+    }
+    if (platform === "darwin") return { command: "open", args: [modelPath] };
+    return { command: "xdg-open", args: [modelPath] };
 }
 
 export function validateOrcaModelPath(modelPath, workspaceRoot, {
@@ -29,7 +21,7 @@ export function validateOrcaModelPath(modelPath, workspaceRoot, {
 } = {}) {
     const resolved = path.resolve(String(modelPath || ""));
     if (!resolved.toLowerCase().endsWith(".3mf")) {
-        throw new Error("Only 3MF projects can be opened in OrcaSlicer.");
+        throw new Error("Only 3MF projects can be opened.");
     }
     if (!exists(resolved)) throw new Error(`Model file not found: ${resolved}`);
     const canonicalModelPath = canonicalize(resolved);
@@ -41,15 +33,12 @@ export function validateOrcaModelPath(modelPath, workspaceRoot, {
     return canonicalModelPath;
 }
 
-export async function launchOrcaSlicer(modelPath, {
-    findExecutable = findOrcaSlicer,
+export async function launchDefault3mfApp(modelPath, {
+    resolveCommand = defaultOpenCommand,
     spawnProcess = spawn,
 } = {}) {
-    const executable = findExecutable();
-    if (!executable) {
-        throw new Error("OrcaSlicer executable not found. Set ORCA_SLICER_BIN or install OrcaSlicer.");
-    }
-    const child = spawnProcess(executable, [modelPath], {
+    const { command, args } = resolveCommand(modelPath);
+    const child = spawnProcess(command, args, {
         detached: true,
         stdio: "ignore",
         windowsHide: false,
@@ -59,5 +48,5 @@ export async function launchOrcaSlicer(modelPath, {
         child.once("spawn", resolveSpawn);
     });
     child.unref();
-    return executable;
+    return command;
 }

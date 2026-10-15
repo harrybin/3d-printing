@@ -2,18 +2,19 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
-  findOrcaSlicer,
-  launchOrcaSlicer,
+  defaultOpenCommand,
+  launchDefault3mfApp,
   validateOrcaModelPath,
 } from '../../.github/extensions/stl-canvas/orca-launcher.mjs'
 
-test('finds OrcaSlicer from Windows environment paths', () => {
-  const expected = String.raw`C:\Apps\OrcaSlicer\orca-slicer.exe`
-  assert.equal(findOrcaSlicer({
-    platform: 'win32',
-    env: { ORCA_SLICER_BIN: expected },
-    exists: (candidate) => candidate === expected,
-  }), expected)
+test('resolves the OS default-application opener per platform', () => {
+  const file = String.raw`D:\repo\models\part.3mf`
+  assert.deepEqual(
+    defaultOpenCommand(file, { platform: 'win32', env: { SystemRoot: String.raw`C:\Windows` } }),
+    { command: String.raw`C:\Windows\explorer.exe`, args: [file] },
+  )
+  assert.deepEqual(defaultOpenCommand('/m/p.3mf', { platform: 'darwin', env: {} }), { command: 'open', args: ['/m/p.3mf'] })
+  assert.deepEqual(defaultOpenCommand('/m/p.3mf', { platform: 'linux', env: {} }), { command: 'xdg-open', args: ['/m/p.3mf'] })
 })
 
 test('rejects a missing or non-3MF OrcaSlicer model path', () => {
@@ -56,8 +57,8 @@ test('preserves the exact canonical path for a 3MF inside the workspace', () => 
   )
 })
 
-test('launches OrcaSlicer with the exact model path as one argument', async () => {
-  const executable = String.raw`C:\Program Files\OrcaSlicer\orca-slicer.exe`
+test('launches the default 3MF application with the exact model path as one argument', async () => {
+  const executable = String.raw`C:\Windows\explorer.exe`
   const modelPath = String.raw`D:\Print Projects\Ghoul's Grip\black plate.3mf`
   let spawnCall
   const child = {
@@ -68,8 +69,8 @@ test('launches OrcaSlicer with the exact model path as one argument', async () =
     unref() {},
   }
 
-  const result = await launchOrcaSlicer(modelPath, {
-    findExecutable: () => executable,
+  const result = await launchDefault3mfApp(modelPath, {
+    resolveCommand: (file) => ({ command: executable, args: [file] }),
     spawnProcess(command, args, options) {
       spawnCall = { command, args, options }
       return child
