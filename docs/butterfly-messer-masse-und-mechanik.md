@@ -57,6 +57,8 @@ Alle 12 beweglichen bzw. einzusetzenden Bauteile wurden in [`scripts/butterfly_m
 | 10 | `clip-safe-vorn` & `clip-bite-vorn` | `+X` `(+1, 0, 0)` | Zugehörige Griffschalen + D-Bolzen | `0.000000` | **PASS** |
 | 11 | `clip-safe-hinten` & `clip-bite-hinten` | `-X` `(-1, 0, 0)` | Zugehörige Griffschalen + D-Bolzen | `0.000000` | **PASS** |
 
+![Explosionszeichnung Butterfly-Messer](images/butterfly-messer-explosion.png)
+
 ---
 
 ## 4. Kinematische Verifikation über den gesamten Schwenkbereich (`0° .. 180°`)
