@@ -17,8 +17,8 @@ Referenzbild: [`model-sources/archiv/butterfly-messer-referenzfotos-index.png`](
 | Drehpunkt-Abstand (`±Y_PIVOT`) | `±10.20 mm` (`20.40 mm` Stichmaß) | Symmetrischer Abstand der beiden Griff-Hauptachsen; ergibt `0.50 mm` Spalt zwischen Safe- und Bite-Handle bei `0°` und `180°` | Hoch (kinematisch verifiziert) |
 | Integrierter Zen-Pin-Anschlag (`X_ZEN`, `±Y_ZEN`, `R_ZEN`) | `X = 0.00 mm`, `Y = ±10.20 mm` (lokal `u = 10.20 mm`), `Ø 5.20 mm` | In die unteren Griffschalen integrierter Anschlagpfosten; greift bei `0°` (geöffnet) und `180°` (geschlossen) exakt in die vier halbrunden Tang-Mulden (`R = 2.85 mm`) der Klingenwurzel | Hoch (analytisch & mit Manifold-Sweeps bewiesen) |
 | Skelett-Lochbild der Griffe | 5 große Senkbohrungen (`Ø 6.80 mm`) + 6 Paare kleiner Bohrungen (`Ø 2.50 mm`) | Exakt nach Kachel `00` (5 große Mittellöcher im Wechsel mit 6 paarweisen Niet-/Stiftlöchern entlang beider Griffhälften) | Hoch (direkter Nachweis in Kachel `00`) |
-| Drehgelenk-Spiel radial (`PIVOT_CLEARANCE_RAD`) | `0.30 mm` (`Ø 5.30 mm` Bohrung auf `Ø 4.70 mm` Bolzenschaft) | Vom Benutzer gewähltes leichtgängiges PLA-Drehgelenk-Spiel | Bestätigt (Benutzer-Interview) |
-| Rast- & Steck-Spiel (`CLIP_CLEARANCE`) | `0.15 mm` | Vom Benutzer gewähltes Spiel für U-Clips und D-Bolzen-Sitz | Bestätigt (Benutzer-Interview) |
+| Drehgelenk- & D-Loch-Spiel (`R_BOLT_SHAFT`, `D_FLAT_BOLT`) | `0.86 mm` Gesamtspiel (`Ø 5.30 mm × 4.80 mm` D-Bohrung auf `Ø 4.44 mm × 3.94 mm` Bolzenschaft) | Nach Testdruck verschlankter Bolzenschaft mit Einführfase (`Z = 11.35 .. 11.60 mm`) für leichtgängiges Einschieben | Bestätigt (Testdruck-Anpassung) |
+| U-Clip-Ringnut-Spiel (`X_NOTCH_HALF`, `U_CLIP_SLOT_HALF`) | `2.30 mm` Bolzen-Stegbreite in `3.32 mm` Clip-Maulweite (`1.65 mm` Nutbreite für `1.00 mm` Clip) | Vertiefte und verbreiterte Ringnut (`Z = 9.25 .. 10.90 mm`), kompatibel auch mit bereits gedruckten Clips | Bestätigt (Testdruck-Anpassung) |
 
 ---
 
@@ -27,11 +27,11 @@ Referenzbild: [`model-sources/archiv/butterfly-messer-referenzfotos-index.png`](
 Um das Messer komplett **ohne Klebstoff**, **ohne Metallschrauben** und mit **0,00 g Stützstruktur** zu drucken und dennoch jederzeit zerlegen/warten zu können, wurden folgende formschlüssige Verbindungen konstruiert:
 
 1. **4× Verdrehgesicherte D-Bolzen (`butterfly-messer-bolzen-*`):**
-   - Schaft-Nenndurchmesser `Ø 4.70 mm` (`R = 2.35 mm`) mit durchgehender Abflachung bei `y_local = -2.00 mm` (D-Profil).
-   - Dadurch liegt der Bolzen beim Drucken auf Platte 3 komplett flach auf seiner D-Abflachung (`Z_print = 0.00 mm`) — die Schichten verlaufen **längs zur Bolzenachse**, was maximale Scher- und Biegefestigkeit quer zum Gelenk garantiert!
-   - Der Übergang vom Senkkopf (`R = 3.60 mm`) zum Schaft erfolgt über eine selbsttragende **45°-Fase**, passend zur 45°-Senkung in den unteren Griffschalen.
+   - Verschlankter Schaft-Durchmesser `Ø 4.44 mm` (`R = 2.22 mm`) mit durchgehender Abflachung bei `y_local = -1.72 mm` (`3.94 mm` D-Höhe) und oberer Einführfase (`Z = 11.35 .. 11.60 mm`).
+   - Dadurch liegt der Bolzen beim Drucken komplett flach auf seiner D-Abflachung (`Z_print = 0.00 mm`) — die Schichten verlaufen **längs zur Bolzenachse**, was maximale Scher- und Biegefestigkeit quer zum Gelenk garantiert!
+   - Der Übergang vom Senkkopf (`R = 3.25 mm`, `Ø 6.50 mm`) zum Schaft erfolgt über eine selbsttragende **45°-Fase**, passend zur 45°-Senkung in den unteren Griffschalen.
 2. **4× Formschlüssige U-Sicherungsclips (`butterfly-messer-clip-*`):**
-   - Greifen seitlich (`±X`) in eine 3-seitige Ringnut (`x_local = ±1.45 mm`, `y_local = +1.45 mm`, `Z = 9.45 .. 10.75 mm`) am oberen Bolzenende ein und liegen versenkt in den Taschen der oberen Griffschalen (`Z = 9.45 .. 10.65 mm`).
+   - Greifen seitlich (`±X`) mit `3.32 mm` Maulweite (`±1.66 mm`) in die vertiefte 3-seitige Ringnut (`x_local = ±1.15 mm` = `2.30 mm` Stegbreite, `Z = 9.25 .. 10.90 mm` = `1.65 mm` Nutbreite) am oberen Bolzenende ein und liegen versenkt in den Taschen der oberen Griffschalen (`Z = 9.45 .. 10.65 mm`).
 3. **Integrierte Passzapfen zwischen Unter- und Oberschale:**
    - Jede untere Griffschale (`griff-*-unten`) besitzt am Zen-Pin (`u = 10.20 mm`) und im hinteren Distanzblock (`u = 99.00 mm`) je einen Zentrierzapfen (`Ø 3.10 mm`, `Z = 8.40 .. 9.65 mm`), der in eine passende Senktasche (`Ø 3.40 mm` mit selbsttragendem **45°-Kegeldach**) der oberen Griffschale (`griff-*-oben`) eingreift.
 4. **Schwenkbarer T-Latch (`butterfly-messer-riegel`):**

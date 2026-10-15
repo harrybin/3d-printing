@@ -70,15 +70,20 @@ Z_BLADE_BOT = 4.00              # Blade bottom Z in assembled pose (0.35 mm axia
 Z_BLADE_TOP = 7.60              # Blade top Z in assembled pose (T_BLADE = 3.60 mm)
 T_BLADE = Z_BLADE_TOP - Z_BLADE_BOT
 
-R_SHAFT = 2.50                  # Nominal Ø 5.00 mm pivot bolt shaft radius
-D_FLAT_Y = -2.00                # Coplanar D-flat across bolt head and shaft (0.50 mm flat depth)
-R_HEAD = 3.45                   # Bolt head radius (Ø 6.90 mm)
+R_SHAFT = 2.50                  # Nominal bore reference radius (Ø 5.30 mm bore with clearance)
+D_FLAT_Y = -2.00                # Nominal bore D-flat reference (-2.15 mm bore flat with clearance)
+R_HEAD = 3.45                   # Nominal counterbore reference radius (Ø 7.20 mm counterbore with clearance)
+
+R_BOLT_SHAFT = 2.22             # Thinned Ø 4.44 mm bolt shaft radius (0.86 mm total clearance in Ø 5.30 mm bore)
+D_FLAT_BOLT = -1.72             # Thinned 3.94 mm bolt D-height (0.86 mm total clearance in 4.80 mm D-bore)
+R_BOLT_HEAD = 3.25              # Thinned Ø 6.50 mm bolt head radius for easy drop-in counterbore fit
 Z_HEAD_TOP = 1.40               # Bolt head height (Z = 0.00 .. 1.40 mm)
 Z_CBORE_FLOOR = 1.55            # Counterbore shoulder in lower scale (0.15 mm axial clearance)
 Z_POCKET_FLOOR = 9.45           # Clip pocket floor in upper scale
-Z_NOTCH_BOT = 9.45              # Bolt clip-groove bottom Z
-Z_NOTCH_TOP = 10.75             # Bolt clip-groove top Z
-X_NOTCH_HALF = 1.45             # Bolt neck half-width inside clip groove
+Z_NOTCH_BOT = 9.25              # Widened bolt clip-groove bottom Z (1.65 mm groove width for 1.00 mm clip)
+Z_NOTCH_TOP = 10.90             # Widened bolt clip-groove top Z
+X_NOTCH_HALF = 1.15             # Thinned 2.30 mm bolt neck inside clip groove (1.02 mm clearance in 3.32 mm clip slot)
+U_CLIP_SLOT_HALF = 1.66         # Widened 3.32 mm U-clip inner slot half-width
 Z_CLIP_BOT = 9.60               # Retaining clip bottom Z in assembly (0.15 mm clearance)
 Z_CLIP_TOP = 10.60              # Retaining clip top Z in assembly (1.00 mm thick = 5 layers)
 
@@ -286,29 +291,32 @@ def _extrude_polygon_frustum(pts_bot: np.ndarray, pts_top: np.ndarray, z0: float
 def make_d_bolt_local(clearance: float = 0.0) -> trimesh.Trimesh:
     """Build the D-profile bolt centered at (0, 0) along Z = [0.00, 11.60 mm].
 
-    The flat chord at `y = D_FLAT_Y` (-2.00 mm) runs continuously across both the
+    The flat chord at `y = D_FLAT_BOLT` (-1.72 mm) runs continuously across both the
     head and the shaft so the bolt lies 100% flat on the print bed (`Z_print = 0.00 mm`)
     with 0.00 g support and continuous axial XY perimeters.
-    The head transitions to the shaft via a 45° conical bevel (`Z = 0.85 .. 1.80 mm`)
-    so the matching counterbore in `griff-*-unten` prints with 0.00 g support.
+    The shaft is thinned (`Ø 4.44 mm`, `3.94 mm` D-height) with a top lead-in bevel
+    (`Z = 11.35 .. 11.60 mm`) and a deep `2.30 mm` × `1.65 mm` clip groove (`Z = 9.25 .. 10.90 mm`)
+    so the bolt slides smoothly through all bores and the U-clip snaps on without binding.
     """
-    r_shaft = R_SHAFT + clearance
-    flat_y = D_FLAT_Y - clearance
-    r_head = R_HEAD + clearance
+    r_shaft = (R_BOLT_SHAFT if clearance == 0.0 else R_SHAFT) + clearance
+    flat_y = (D_FLAT_BOLT if clearance == 0.0 else D_FLAT_Y) - clearance
+    r_head = (R_BOLT_HEAD if clearance == 0.0 else R_HEAD) + clearance
 
     head_pts = _make_d_head_points(r_head, flat_y, r_shaft, sections=72)
     shaft_pts = make_d_profile_xy(r_shaft, flat_y, sections=72)
+    tip_pts = make_d_profile_xy(r_shaft - 0.25, flat_y, sections=72)
 
     head_base = extrude_polygon_xy(head_pts, 0.0, 0.85)
     head_taper = _extrude_polygon_frustum(head_pts, shaft_pts, 0.85, 1.80)
-    shaft = extrude_polygon_xy(shaft_pts, 1.60, Z_TOTAL)
+    shaft = extrude_polygon_xy(shaft_pts, 1.60, Z_TOTAL - 0.25)
+    tip_taper = _extrude_polygon_frustum(shaft_pts, tip_pts, Z_TOTAL - 0.25, Z_TOTAL)
 
-    bolt = manifold_union([head_base, head_taper, shaft])
+    bolt = manifold_union([head_base, head_taper, shaft, tip_taper])
 
     if clearance == 0.0:
         # Cut the 3-sided U-retaining groove at Z = [Z_NOTCH_BOT, Z_NOTCH_TOP]
-        # (both lateral sides x_local = ±1.45 mm and top face y_local = +1.45 mm;
-        # the bottom D-flat y_local = -2.00 mm stays continuous on the print bed!)
+        # (both lateral sides x_local = ±1.15 mm and top face y_local = +1.15 mm;
+        # the bottom D-flat y_local = -1.72 mm stays continuous on the print bed!)
         notch_h = Z_NOTCH_TOP - Z_NOTCH_BOT
         z_mid = 0.5 * (Z_NOTCH_BOT + Z_NOTCH_TOP)
         cutters = []
@@ -361,8 +369,8 @@ def make_u_clip_local(entry_sign: float = 1.0) -> trimesh.Trimesh:
     # Let's make the U-clip outer profile a stadium along `u` from u = -3.60 to +3.60 mm,
     # width in `v` = 6.80 mm (radius 3.40 mm), with an inner slot of half-width `v_inner`
     # that straddles the bolt neck!
-    r_outer = 3.35
-    v_slot_half = X_NOTCH_HALF + CLIP_FIT_CLEARANCE  # 1.45 + 0.15 = 1.60 mm
+    r_outer = 3.30
+    v_slot_half = U_CLIP_SLOT_HALF  # 1.66 mm (3.32 mm slot width vs 2.30 mm bolt neck = 1.02 mm clearance)
     if entry_sign > 0:
         u0_out, u1_out = -1.80, -0.35
         slot_u0, slot_u1 = -v_slot_half, 5.0
