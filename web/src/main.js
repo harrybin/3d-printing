@@ -69,6 +69,7 @@ function renderShell() {
             <span class="button-label">Download model</span>
           </a>
           <a id="newIssueLink" class="action-link primary" href="https://github.com/harrybin/3d-printing/issues/new?template=model-request.yml" target="_blank" rel="noreferrer">Work on new model</a>
+          <a class="action-link" href="https://gist.github.com/harrybin/b65029b5b28ee25d016bec93fd898af6" target="_blank" rel="noreferrer">Example: Ghoul's Grip Box</a>
         </div>
       </header>
 
