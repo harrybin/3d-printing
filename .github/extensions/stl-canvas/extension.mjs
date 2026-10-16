@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { inflateRawSync } from "node:zlib";
 import { joinSession, createCanvas, CanvasError } from "@github/copilot-sdk/extension";
 import { compose3mfTransforms, transform3mfPoint as apply3mfTransform, orcaMaterialAssignments } from "./viewer-app.mjs";
-import { launchOrcaSlicer, validateOrcaModelPath } from "./orca-launcher.mjs";
+import { launchDefault3mfApp, validateOrcaModelPath } from "./orca-launcher.mjs";
 import { createModelApiPayload, handleOrcaOpenRequest } from "./canvas-server-helpers.mjs";
 
 const extensionDir = dirname(fileURLToPath(import.meta.url));
@@ -633,7 +633,7 @@ async function startServer(modelPath) {
                 defaultModelPath: modelPath,
                 expectedNonce: openInOrcaNonce,
                 validate: (requestedPath) => validateOrcaModelPath(requestedPath, process.cwd()),
-                launch: launchOrcaSlicer,
+                launch: launchDefault3mfApp,
             });
             return;
         }

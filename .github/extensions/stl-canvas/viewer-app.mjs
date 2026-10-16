@@ -13,7 +13,7 @@ export const APP_HTML = `
     <div class="plate-support-actions" id="plateSupportActions" role="group" aria-label="Support previews by plate" hidden></div>
   </div>
   <div class="field" id="orcaField" hidden>
-    <button type="button" id="openInOrcaBtn" title="Open the current 3MF project in OrcaSlicer">Open in OrcaSlicer</button>
+    <button type="button" id="openInOrcaBtn" title="Open the current 3MF project with the default 3MF application">3mf öffnen</button>
     <span id="orcaStatus" class="action-status" role="status" aria-live="polite" hidden></span>
   </div>
   <details class="tool-drawer">
@@ -105,12 +105,12 @@ export const APP_HTML = `
 
 `
 
-export function createOrcaSlicerOpenUrl(file, accessibleUrl, baseUrl = globalThis.location?.href) {
+export function create3mfOpenUrl(file, accessibleUrl, baseUrl = globalThis.location?.href) {
   if (!/\.3mf$/i.test(String(file || '').trim()) || !accessibleUrl || !baseUrl) return ''
   try {
     const url = new URL(accessibleUrl, baseUrl)
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return ''
-    return `orcaslicer://open/?file=${encodeURIComponent(url.href)}`
+    return url.href
   } catch {
     return ''
   }
@@ -1208,7 +1208,7 @@ projectImageDialog.addEventListener('close', () => {
 
 function updateOrcaAction(file = '', modelPath = '') {
   const source = file ? modelSource(file) : null
-  const openUrl = createOrcaSlicerOpenUrl(file, source?.downloadUrl || '', window.location.href)
+  const openUrl = create3mfOpenUrl(file, source?.downloadUrl || '', window.location.href)
   const canOpenLocally = runtimeMode === 'extension' && /\.3mf$/i.test(String(file || '').trim()) &&
     Boolean(openInOrcaApiUrl) && Boolean(openInOrcaNonce)
   orcaField.hidden = !openUrl && !canOpenLocally
@@ -2538,7 +2538,7 @@ openInOrcaBtn.addEventListener('click', async () => {
   const modelPath = openInOrcaBtn.dataset.modelPath || ''
   if (!openUrl && !modelPath) return
   openInOrcaBtn.disabled = true
-  orcaStatus.textContent = 'Opening OrcaSlicer…'
+  orcaStatus.textContent = 'Opening 3MF…'
   orcaStatus.hidden = false
   clearTimeout(orcaStatusTimer)
   if (runtimeMode === 'extension' && openInOrcaApiUrl && openInOrcaNonce && modelPath) {
@@ -2546,23 +2546,31 @@ openInOrcaBtn.addEventListener('click', async () => {
       const request = createOrcaLaunchRequest(openInOrcaApiUrl, modelPath, openInOrcaNonce)
       const response = await fetch(request.url, request.options)
       const result = await response.json()
-      if (!response.ok || !result.ok) throw new Error(result.error || 'OrcaSlicer launch failed')
-      orcaStatus.textContent = 'Opened in OrcaSlicer.'
+      if (!response.ok || !result.ok) throw new Error(result.error || '3MF launch failed')
+      orcaStatus.textContent = 'Opened with the default 3MF application.'
     } catch (error) {
-      orcaStatus.textContent = `Could not open OrcaSlicer: ${error}`
+      orcaStatus.textContent = `Could not open 3MF: ${error}`
     } finally {
       openInOrcaBtn.disabled = false
     }
     return
   }
+  // Browsers cannot launch local applications directly; hand the 3MF to the
+  // browser download flow so the OS opens it with the registered 3MF handler.
   try {
-    window.location.assign(openUrl)
+    const link = document.createElement('a')
+    link.href = openUrl
+    link.download = file.split('/').pop() || 'model.3mf'
+    link.rel = 'noopener'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    orcaStatus.textContent = 'Downloaded. Open the file from your downloads to use the default 3MF application.'
   } catch {
-    orcaStatus.textContent = 'Could not launch OrcaSlicer. Download the 3MF and open it manually.'
+    orcaStatus.textContent = 'Could not download the 3MF. Use the download button instead.'
   }
   orcaStatusTimer = setTimeout(() => {
     openInOrcaBtn.disabled = false
-    orcaStatus.textContent = 'If nothing opened, install OrcaSlicer or register the orcaslicer:// protocol.'
   }, 1500)
 })
 autoReloadInput.addEventListener('change', () => {

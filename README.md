@@ -357,8 +357,9 @@ Erweiterung, zeigt also lokale Vorschauen konsistent im Web und im Agent-UI an.
   Material, Stützmaterial, Filamentlänge und Status pro Plate
 - ein einziges einklappbares Menü für Reload/Auto-Reload, Zoom, Shading,
   Wireframe, Ansichten, Modellrotation, Hilfsanzeigen und Messwerkzeuge
-- lokaler Canvas-Button **Open in OrcaSlicer**, der genau die aktuell gewählte
-  Workspace-3MF über den validierten lokalen Launcher öffnet
+- lokaler Canvas-Button **3mf öffnen**, der genau die aktuell gewählte
+  Workspace-3MF über den validierten lokalen Launcher mit dem für `.3mf`
+  registrierten Standardprogramm öffnet
 - direkter Download der aktuell gewählten Datei
 - GitHub-Link zurück zum Repository
 - Button für ein neues Modell-Ticket über
