@@ -22,7 +22,7 @@ import {
 test('keeps advanced controls and metadata in collapsible surfaces', () => {
   assert.match(APP_HTML, /<details class="tool-drawer">/)
   assert.match(APP_HTML, /View &amp; model controls/)
-  assert.match(APP_HTML, /<details id="metaPanel" class="meta-panel" open>/)
+  assert.match(APP_HTML, /<details id="metaPanel" class="meta-panel">/)
   assert.match(APP_HTML, /<div id="meta">Loading model…<\/div>/)
   assert.doesNotMatch(APP_HTML, /<div class="toolbar secondary">/)
 })
@@ -302,6 +302,13 @@ test('all-plates summary retains whole-project totals and exposes plate count', 
   assert.match(APP_HTML, /id="summaryPlates"/)
 })
 
+test('model and print details are collapsed by default', () => {
+  const panelTag = APP_HTML.match(/<details\b[^>]*\bid="metaPanel"[^>]*>/)?.[0]
+  assert.ok(panelTag)
+  assert.doesNotMatch(panelTag, /\sopen(?:\s|=|>)/)
+  assert.match(APP_HTML, /<summary>Model &amp; print details<\/summary>/)
+})
+
 test('APP_HTML includes loading spinner element with accessible feedback', () => {
   assert.match(APP_HTML, /id="loadingSpinner"/)
   assert.match(APP_HTML, /class="loading-spinner"/)
@@ -369,4 +376,3 @@ test('calculateTouchRotation maps horizontal/vertical drags to rotY and rotX del
   assert.deepEqual(calculateTouchRotation(30, 20), { deltaRotX: 10, deltaRotY: 15 })
   assert.deepEqual(calculateTouchRotation(-40, 50), { deltaRotX: 25, deltaRotY: -20 })
 })
-

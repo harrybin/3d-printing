@@ -90,7 +90,7 @@ export const APP_HTML = `
   </div>
   <div id="info" hidden></div>
   <div id="measurePanel" hidden></div>
-  <details id="metaPanel" class="meta-panel" open>
+  <details id="metaPanel" class="meta-panel">
     <summary>Model &amp; print details</summary>
     <div id="meta">Loading model…</div>
   </details>
@@ -2342,7 +2342,11 @@ document.addEventListener('mousemove', (e) => {
   }
   const dx = e.clientX - lastX; const dy = e.clientY - lastY;
   dragMoved += Math.abs(dx) + Math.abs(dy);
-  if (isRightDrag) { objectX += dx * 0.05; objectY -= dy * 0.05; } else if (isShiftDrag) { panX += dx * 0.5; panY += dy * 0.5; } else { rotY += dx * 0.5; rotX += dy * 0.5; }
+  if (isRightDrag) {
+    // Pan the whole view (plates, grid, axes and model) so it follows the cursor.
+    const pxPerMm = MM_TO_PX * (parseFloat(zoomInput.value) || 1);
+    panX += dx / pxPerMm; panY -= dy / pxPerMm;
+  } else if (isShiftDrag) { panX += dx * 0.5; panY += dy * 0.5; } else { rotY += dx * 0.5; rotX += dy * 0.5; }
   lastX = e.clientX; lastY = e.clientY; draw();
 });
 document.addEventListener('mouseup', () => { if (isDragging) { isDragging = false; saveView(); } });
