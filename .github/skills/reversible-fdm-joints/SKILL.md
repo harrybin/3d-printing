@@ -149,6 +149,127 @@ Only propose these after reversible options have been considered and rejected:
 - Every generated helper mesh is watertight, winding-consistent, positive
   volume, and one connected body.
 
+## Mechanism and assembly audit (mandatory for multi-part mechanisms)
+
+Run this audit whenever a design contains moving parts, pins, gears, racks,
+cams, sliders, snap features, or more than one printed body that must be put
+together. A whitelist check of "expected contacts" is not enough: earlier
+projects passed such a verifier while the slider could not be inserted, arms
+collided and pins had no retention. Automate the audit as a script (example:
+`scripts/audit_ghouls_grip_assembly.py`) and write a PASS/FAIL report under
+`docs/`. Never declare a mechanism done from renders alone.
+
+1. **Completeness and BOM**
+   - Derive the BOM from the assembled scene, not from memory. Every scene body
+     must map to exactly one printable part name, and every print quantity must
+     equal the number of scene instances (no missing parts, no extras).
+   - Every pivot, shaft, follower and gear has a named retainer part in the BOM
+     (pin, cross-pin, snap nose, clip). Removed features must also leave the
+     print project, docs and tests.
+   - **Non-printed fasteners** (filament cross-pins, hinge filament, dowels,
+     screws) belong in the BOM with length and bore. Model each as a
+     proxy cylinder in the audit: it must not collide with any part and must
+     engage every host it is meant to pass through. A proxy hit is how a
+     knuckle bore that a later union silently refilled was found — drill
+     shared axes once, after every union of the host body.
+   - The assembled scene must place each part by the **same datum the real
+     joint uses** (pin axis, shoulder, seat). Apply every seat offset to all
+     bodies located through that joint; an offset applied to only one side
+     (forearm shifted 4 mm, hand not) hides a misaligned cross pin.
+   - Every gear or wheel needs a defined axial stop on **both** sides (hub
+     shoulder, collar, pin head, wall) with 0.2–0.5 mm total play; free axial
+     float larger than about 1 mm can walk a narrow gear off its mate.
+
+2. **Function across the full motion range**
+   - Solve every pivot/linkage analytically and sample the full range (ends,
+     dwell boundaries and at least five interior poses).
+   - Run an **all-pairs** boolean intersection of every body at every pose.
+     Any intersection above about 0.5 mm³ is a failure unless it is a
+     documented intended contact (pin in bore, tooth flank); fix geometry, do
+     not whitelist collisions.
+   - Check drive signs and phase: input rotation direction, rack/pinion
+     direction, cam law and output timing must match the intended motion (for
+     example, the lid must start opening when planned, not after a dwell).
+   - Check flexible members under expected load (cantilever racks, long
+     arms): estimate deflection; add webs, skids or second supports when a
+     deflection can disengage teeth or jam a slide.
+
+3. **Fits with print inaccuracy** (start values, then confirm with a coupon on
+   the Kobra S1 / 0.4 mm nozzle)
+   - Rotating pin in printed bore: ≥ 0.5–0.6 mm diametral clearance for
+     printed pins (for example Ø4.0 pin in Ø4.6 bore); horizontal bores print
+     oval and undersized, so test the worst orientation.
+   - Sliding guides and rails: ≥ 0.4–0.5 mm per side; plug-in keys and
+     D-shafts: 0.3–0.4 mm diametral (`CLEARANCE_SERVICE`).
+   - Axial stack-ups (lugs, arms, washers, gears on one pin): ≥ 0.2 mm axial
+     play per moving interface; sum the stack and verify the pin grip length.
+   - Gears and racks: keep module ≥ 1 for printed teeth where possible, give
+     0.15–0.35 mm backlash per flank and ≥ 0.25 mm tip-to-root clearance;
+     measure backlash and tip clearance numerically at several mesh phases.
+   - Account for elephant foot (chamfer the first 0.4 mm of mating edges) and
+     for support-contact surfaces, which are rough and need extra clearance.
+
+4. **Pins, Splinte and latching**
+   - Every pin needs a positive axial lock: head plus snap barb (split shank
+     with a flat catch face and a lead-in cone), a cross-pin, an R-clip or a
+     captured position. A plain friction pin is a failure; defined crush ribs
+     (0.1–0.2 mm interference) are acceptable only where a split is
+     impossible and the pin carries no axial load — document the exception.
+   - Snap barbs: verify the split slot gives enough deflection space
+     (barb overlap < slot width), estimate bending strain
+     ε ≈ 3·δ·c/L² (δ = closure per half, c = half-section fibre distance,
+     L = split root to barb; ≤ about 2 % for PETG/PLA one-time, ≤ 1 % for
+     repeated use; a stiff head at the root does not lengthen L) and sink the
+     barb in a counterbore so it neither rubs moving parts nor protrudes into
+     a sweep.
+   - Prove the closed-state envelope numerically: shift each split half by
+     the available closure and check the barb against the bore radius. A
+     revolved (round) barb on a split pin never passes its bore, because
+     closing only narrows the flex direction while the slot-plane width
+     stays oversize; use per-half barb arcs offset outward by the closure.
+   - Avoid running a split section as a journal in a slot or bearing: each
+     load then bends a single cantilever half and the slot gap makes the
+     journal non-round. Keep the split in the retained zone or use a solid pin.
+   - Snap noses on sliders/covers: flat catch face, 30–45° lead-in, deflection
+     room behind the spring arm along the whole insertion path, and a release
+     path for service.
+   - Print pins lying flat (layers along the shank) with a small flat; never
+     print a load-carrying pin upright. Offer a metal dowel alternative below
+     Ø5 mm.
+
+5. **Assembly order and insertion sweeps**
+   - Write the full assembly order. For each step, sweep the inserted part
+     (and the finger/tool path for pins) against everything already installed.
+   - Check that guides have an entry (a slider wider than the cavity cannot be
+     inserted into closed full-length grooves), that pins can be pushed in from
+     a reachable side, and that the barb exit side has free space.
+   - Verify the final installed state and disassembly path as well.
+   - Gear meshing: insert a gear along the **line of centres** of its mating
+     gear. When that line is not parallel to the insertion direction (for
+     example a platform dropped vertically onto a gear whose line of centres
+     is 64° from vertical), approach offset away from the mesh, then slide
+     into mesh; sweep both segments and install the driven gear before the
+     sub-assembly that would block it.
+   - Enclosed retainers (spacers, washers, keys trapped between two shells):
+     prove they can still be placed after both shells are joined. If not,
+     sub-assemble them on the loose part first and sweep the whole unit,
+     including any offset-then-slide path into mesh.
+   - Packaging: after adding or removing objects, re-check the 3MF
+     `model_settings.config` `<assemble>` section and plate lists. OrcaSlicer
+     aborts loading ("parsing aborted") when an assemble item references a
+     missing object ID; a stale section is a delivery defect, not a cosmetic
+     one.
+
+6. **Printability per part**
+   - Each part is watertight, one body, and has a stated print orientation that
+     puts the governing bending/tension in XY.
+   - Spring arms and snap noses print with layers along the arm; slots and
+     bore roofs either bridge cleanly or are listed as supported.
+   - Minimum wall/stroke ≥ 2 perimeters (0.8–1.2 mm) around every bore.
+
+Record each check with numbers (clearance, volume, strain, backlash) in the
+PASS/FAIL report and keep the audit script runnable by tests.
+
 ## Edge cases
 
 - If no removal path exists, change the part split or assembly order before

@@ -23,15 +23,49 @@ from __future__ import annotations
 import numpy as np
 import trimesh
 
-from mesh_kit import (box, clean, cylinder, difference, rounded_box, sphere,
-                      union, fuse)
+import fdm_joints
+from mesh_kit import (box, clean, cylinder, difference, intersection,
+                      rounded_box, sphere, union, fuse)
 from sdf_bones import bone, segment_mesh, sphere as sdf_sphere
 
 ARM_L = 72.0
 ARM_W = 12.0
 ARM_T = 4.0
-PIVOT_D = 3.2
-PIN_D = 3.0
+# Snap pivot pins: printed Ø4 split pins in Ø4.6 bores (0.3 mm radial running
+# clearance absorbs FDM hole shrink).  A Ø4 steel dowel with the same bores is
+# the documented alternative.  Barbs land in Ø6 x 1.6 counterbores so nothing
+# protrudes into the neighbouring arm plane.
+PIVOT_D = 4.6
+PIN_D = 4.0
+PIN_HEAD_D = 7.5
+PIN_HEAD_T = 1.6
+PIN_BARB_R = 2.55       # relaxed barb reach in the flex direction
+PIN_BARB_ARC_R = 2.2    # barb arc radius: 0.1 mm clearance once closed
+PIN_BARB_OFFSET = PIN_BARB_R - PIN_BARB_ARC_R   # 0.35 mm closure per half
+PIN_CRUSH_R = 2.45      # follower-pin crush ribs: 0.15 mm interference
+PIN_BARB_LAND = 0.4
+PIN_BARB_CONE = 1.0
+PIN_AXIAL_PLAY = 0.2
+PIN_SLOT_W = 1.4
+PIN_SLOT_REACH = 7.0    # split length behind the catch face (strain ~1 %)
+PIN_FLAT_Y = -1.6       # 0.4 mm print flat on the shank
+PIN_CBORE_D = 6.0
+PIN_CBORE_DEPTH = 1.6
+# Grip = head underside to the face the barb catches on (stack thickness).
+PIN_GRIPS = {
+    "floor": 18.4,      # wange 30..34, False arm 35..39, wange 46..50 (cbore)
+    "slider": 11.2,     # lug 36.6..40.6, True arm 41..45, lug 45.4..49.4
+    "centre": 8.4,      # False arm 35..39, True arm 41..45 (cbore)
+    "gear": 16.4,       # +plane top: lug, True arm, scissor-drive gear 47..53
+    "short": 6.8,       # -plane top (lug + True cbore) and both slot pins
+    "idler": 11.4,      # idler 47..52 (head sunk 1 mm) plus rail 40.6..46.6
+    "follower": 4.0,    # follower bar 46..50: crush-rib press pin, no barb
+}
+PIN_TAILS = {"follower": 6.2}   # plain tail to u 56.2 in the cam slot
+PIN_QUANTITIES = {
+    "floor": 2, "slider": 2, "centre": 2, "gear": 1,
+    "short": 3, "idler": 3, "follower": 1,
+}
 THETA_MIN = 18.0
 THETA_MAX = 78.0
 
@@ -113,17 +147,46 @@ LID_OPEN_ANGLE = 108.0
 LID_OPEN_TRAVEL = 7.0
 LID_HINGE_Y = 61.0
 LID_HINGE_Z = 93.0
-LID_LINK_PIN_Z = 70.0
 LID_SECTOR_R = LID_OPEN_TRAVEL / np.deg2rad(LID_OPEN_ANGLE)
 LID_TRANSFER_STEP = 2.0 * LID_SECTOR_R
 LID_TRANSFER_Y = LID_HINGE_Y - 2.0 * LID_TRANSFER_STEP
 LID_IDLER_Y = LID_HINGE_Y - LID_TRANSFER_STEP
 LID_RACK_Y = LID_TRANSFER_Y - LID_SECTOR_R
 LID_TRANSFER_BEARING_X = -DRIVE_PITCH_R - 8.0
+LID_TRANSFER_BLOCK_W = 4.0
+# Transfer-gear journal: local z = world x + DRIVE_PITCH_R (gear face at 0).
+_TRANSFER_INNER_Z = LID_TRANSFER_BEARING_X + LID_TRANSFER_BLOCK_W / 2.0 \
+    + DRIVE_PITCH_R
+_TRANSFER_OUTER_Z = _TRANSFER_INNER_Z - LID_TRANSFER_BLOCK_W
+TRANSFER_HUB_R = 2.2
+TRANSFER_HUB_LEN = -_TRANSFER_INNER_Z - 0.2
+TRANSFER_CROSS_Z = _TRANSFER_OUTER_Z - 0.33 - 1.75 / 2.0
+# Hinge-filament spacer between the lid crank (-x face at -DRIVE_PITCH_R) and
+# the lid knuckle in the service channel (x = -43): keeps the crank coupling
+# engaged in the lid socket (crank axial play ~0.2 + 0.2 mm).
+CRANK_SPACER_LEN = 43.0 - DRIVE_PITCH_R - 0.2
+CRANK_SPACER_R = 2.5
+CRANK_SPACER_BORE_R = 1.0
 LID_TOOTH_PHASE = 15.0
-LID_LINK_FRONT_Y = -38.0
-LID_YOKE_SPAN = LID_RACK_Y - LID_LINK_FRONT_Y
+# Slider cam: the follower pin climbs 7 mm during the first 6 mm of slider
+# travel (lid fully open), then dwells on a level track for the rest. The
+# ramp must be this short: the rising hand/forearm sweeps the closed-lid
+# envelope from theta ~20 deg, so the lid has to out-run it (audit sweep).
+LID_CAM_TRAVEL = 6.0
+FOLLOWER_X = -25.0              # world x of the vertical lid follower
+FOLLOWER_PIN_Z = 10.0           # closed follower pin height
+FOLLOWER_RACK_PHASE_Z = 2.9     # tuned by audit_ghouls_grip_assembly
+DRIVE_RACK_PHASE_X = 0.0        # tuned by audit_ghouls_grip_assembly
 
+SLIDER_SKID_Z = 2.2             # 0.2 mm above the floor top (z 2)
+SLIDER_SIDE_U = 56.8            # cavity wall at u 58
+SLIDER_FINGER_U = (55.0, 56.6)
+SLIDER_NOSE_U = 59.4            # groove bottom u 60, groove z 8..12
+DRIVE_GEAR_Y = (-46.0, -54.0)
+
+IDLER_HEAD_CBORE_D = PIN_HEAD_D + 0.4
+IDLER_HEAD_CBORE_DEPTH = 1.0
+GEAR_RAIL_START = 14.0          # along the gear line from the fixed pin
 FIT = 0.4               # running clearance on printed sliding fits
 
 
@@ -194,16 +257,26 @@ def drive_angle(theta: float) -> float:
     )
 
 
+def lid_cam_fraction(theta: float) -> float:
+    """Fraction of the cam rise reached at scissor angle ``theta``."""
+    travel = RETRACTED_SLIDER_X - slider_x(theta)
+    return float(np.clip(travel / LID_CAM_TRAVEL, 0.0, 1.0))
+
+
+def lid_follower_rise(theta: float) -> float:
+    """Vertical lift of the cam-driven lid follower rack."""
+    return LID_OPEN_TRAVEL * lid_cam_fraction(theta)
+
+
 def lid_angle_from_travel(rise: float) -> float:
-    """Lid sector angle after the lost-motion rack has taken up."""
+    """Lid sector angle for a given follower-rack rise."""
     used = np.clip(rise, 0.0, LID_OPEN_TRAVEL)
     return -float(np.rad2deg(used / LID_SECTOR_R))
 
 
 def lid_angle(theta: float) -> float:
-    """Fast cam opening followed by a captured vertical dwell."""
-    rise = min(RETRACTED_SLIDER_X - slider_x(theta), SLIDER_TRAVEL)
-    return lid_angle_from_travel(rise)
+    """Fast cam opening followed by a captured level dwell."""
+    return lid_angle_from_travel(lid_follower_rise(theta))
 
 
 def _spur_gear(root_r: float, tooth_h: float, teeth: int,
@@ -294,55 +367,139 @@ def build_scissor_arm() -> trimesh.Trimesh:
     body = union([shaft, *ends])
     bores = [cylinder(PIVOT_D / 2.0, ARM_T + 4.0, (x, 0.0, ARM_T / 2.0))
              for x in (-ARM_L / 2.0, 0.0, ARM_L / 2.0)]
+    # Snap-pin barbs sit flush in these top-face counterbores.  The assembly
+    # lays every arm with this face outboard.
+    counterbores = [
+        cylinder(PIN_CBORE_D / 2.0, PIN_CBORE_DEPTH + 1.0,
+                 (x, 0.0, ARM_T - PIN_CBORE_DEPTH / 2.0 + 0.5))
+        for x in (-ARM_L / 2.0, 0.0, ARM_L / 2.0)
+    ]
+    # Key holes 8 mm from each end bore take the scissor-drive gear peg.
+    key_holes = [cylinder(3.4 / 2.0, ARM_T + 4.0, (x, 0.0, ARM_T / 2.0))
+                 for x in (-ARM_L / 2.0 + 8.0, ARM_L / 2.0 - 8.0)]
     lightening = [
         rounded_box((18.0, 5.6, ARM_T + 2.0), 2.4,
                     (sx * 14.0, 0.0, ARM_T / 2.0))
         for sx in (-1.0, 1.0)
     ]
-    body = difference(body, [*bores, *lightening])
+    body = difference(body, [*bores, *counterbores, *key_holes, *lightening])
     return clean(body)
 
 
+def _prism_yz(points, x0: float, x1: float) -> trimesh.Trimesh:
+    """Extrude a convex (y, z) outline along X between ``x0`` and ``x1``."""
+    pts = np.asarray(points, dtype=float)
+    cloud = np.vstack([
+        np.column_stack([np.full(len(pts), x), pts[:, 0], pts[:, 1]])
+        for x in (x0, x1)
+    ])
+    return clean(trimesh.convex.convex_hull(cloud))
+
+
+def _slot_xz(p0, p1, width: float, y_centre: float,
+             y_len: float) -> trimesh.Trimesh:
+    """Rounded slot cutter in the XZ plane, cut through along Y."""
+    p0 = np.asarray(p0, dtype=float)
+    p1 = np.asarray(p1, dtype=float)
+    delta = p1 - p0
+    length = float(np.hypot(*delta))
+    bar = box((length, y_len, width), (0.0, 0.0, 0.0))
+    bar.apply_transform(trimesh.transformations.rotation_matrix(
+        -np.arctan2(delta[1], delta[0]), (0.0, 1.0, 0.0)))
+    mid = (p0 + p1) / 2.0
+    bar.apply_translation((mid[0], y_centre, mid[1]))
+    ends = [cylinder(width / 2.0, y_len, (p[0], y_centre, p[1]),
+                     (0.0, 1.0, 0.0)) for p in (p0, p1)]
+    return union([bar, *ends])
+
+
+def _box_span(x0, x1, y0, y1, z0, z1) -> trimesh.Trimesh:
+    return box((x1 - x0, y1 - y0, z1 - z0),
+               ((x0 + x1) / 2.0, (y0 + y1) / 2.0, (z0 + z1) / 2.0))
+
+
+def _u_span(sign: float, u0: float, u1: float):
+    lo, hi = sorted((sign * u0, sign * u1))
+    return lo, hi
+
+
+def slider_cam_path() -> list[tuple[float, float]]:
+    """Follower-pin centreline in slider-local (x, z)."""
+    start = FOLLOWER_X - RETRACTED_SLIDER_X
+    end = FOLLOWER_X - slider_x(THETA_MAX)
+    # 1 mm level over-travel at both ends keeps the pin off the slot caps.
+    return [
+        (start - 1.0, FOLLOWER_PIN_Z),
+        (start, FOLLOWER_PIN_Z),
+        (start + LID_CAM_TRAVEL, FOLLOWER_PIN_Z + LID_OPEN_TRAVEL),
+        (end + 1.0, FOLLOWER_PIN_Z + LID_OPEN_TRAVEL),
+    ]
+
+
+def drive_rack_tooth_x() -> np.ndarray:
+    """Slider-local x of the drive rack teeth (tooth centres)."""
+    pitch = 2.0 * np.pi * DRIVE_PITCH_R / DRIVE_TEETH
+    first = -RETRACTED_SLIDER_X + DRIVE_RACK_PHASE_X
+    ks = np.arange(-30, 30)
+    xs = first + ks * pitch
+    return xs[(xs > -71.0) & (xs < 7.0)]
+
+
 def build_slider() -> trimesh.Trimesh:
-    """Rack-driven carriage running in the 4 x 3 mm wall grooves."""
-    inner = CHEST_W / 2.0 - WALL           # 57.0
-    span = 2.0 * inner - FIT               # between the walls
-    # The carriage is asymmetric around its pivot. Its short rear overhang and
-    # forward band hooks preserve positive clearance to the fixed posts at the
-    # compact 78 degree deployed stop.
-    frame_z = RAIL_Z + 3.0
-    frame_wall = 4.0
-    body = union([
-        box((30.0, frame_wall, 10.0),
-            (7.0, sy * (span - frame_wall) / 2.0, frame_z))
-        for sy in (-1.0, 1.0)
-    ] + [
-        box((frame_wall, span - 2.0 * frame_wall, 10.0),
-            (7.0 + sx * (30.0 - frame_wall) / 2.0, 0.0, frame_z))
-        for sx in (-1.0, 1.0)
-    ] + [
-        box((5.0, span - 2.0 * frame_wall, 10.0),
-            (0.0, 0.0, frame_z))
-    ])
+    """Rack-driven carriage held in the wall grooves by snap fingers.
 
-    tongues = [box((30.0, 2.0 * (RAIL_D - 0.4), RAIL_W - 0.4),
-                   (7.0, sy * inner, RAIL_Z + RAIL_W / 2.0))
-               for sy in (-1.0, 1.0)]
+    Slider-local x = world x - slider_x(theta).  The carriage rests on skids
+    0.2 mm above the floor.  Two spring fingers per side carry 45-degree
+    lead-in noses that click into the full-length wall grooves when the
+    slider is pressed down; their flat catch faces sit 0.5 mm below the
+    groove top flank and stop the carriage from lifting.  The open lug pair
+    on each side carries the slider pivot of the True arm at z = RAIL_Z.
+    """
+    z0 = SLIDER_SKID_Z
+    parts = []
+    cuts = []
+    for sy in (-1.0, 1.0):
+        for u0, u1 in ((36.6, 40.6), (45.4, 49.4)):
+            y0, y1 = _u_span(sy, u0, u1)
+            parts.append(cylinder(4.6, u1 - u0, (0.0, (y0 + y1) / 2.0, RAIL_Z),
+                                  (0.0, 1.0, 0.0)))
+            parts.append(_box_span(0.0, 11.5, y0, y1, z0, 16.0))
+        parts.append(_box_span(7.5, 11.5, *_u_span(sy, 36.6, SLIDER_SIDE_U),
+                               z0, 16.0))
+        parts.append(_box_span(0.0, 22.0, *_u_span(sy, 52.8, SLIDER_SIDE_U),
+                               z0, 16.0))
+        # Snap finger: horizontal cantilever anchored in the side wall.
+        parts.append(_box_span(-26.0, 0.5, *_u_span(sy, *SLIDER_FINGER_U),
+                               z0, 11.7))
+        nose = [(56.6, 7.4), (SLIDER_NOSE_U, 10.2),
+                (SLIDER_NOSE_U, 11.5), (56.6, 11.5)]
+        parts.append(_prism_yz([(sy * u, z) for u, z in nose], -26.0, -20.0))
+        cuts.append(cylinder(PIVOT_D / 2.0, 16.0, (0.0, sy * 42.4, RAIL_Z),
+                             (0.0, 1.0, 0.0)))
+        cuts.append(cylinder(PIN_CBORE_D / 2.0, 2.2,
+                             (0.0, sy * 48.9, RAIL_Z), (0.0, 1.0, 0.0)))
+    parts.append(_box_span(18.0, 22.0, -SLIDER_SIDE_U, SLIDER_SIDE_U,
+                           z0, 16.0))
 
-    lugs = [_lug(PIVOT_D, 16.0, ARM_T + 2.0 * FIT + 2.0,
-                 (0.0, sy * SCISSOR_Y, RAIL_Z + 8.0 + 8.0))
-            for sy in (-1.0, 1.0)]
-
-    rack_bar = box((80.0, 8.0, 5.0), (-32.0, -50.0, 15.5))
-    rack_bar = difference(rack_bar, [
-        box((8.0, 4.8, 3.8), (x, -50.0, 14.4))
-        for x in np.arange(-65.0, 2.0, 11.0)
-    ])
-    rack_teeth = _rack_teeth(
-        np.arange(-70.0, 8.1, GEAR_PITCH), -50.0, 18.0
+    # -Y: drive rack on a floor-skid web (stiff against pinion tooth load).
+    parts.append(_box_span(-72.0, 8.0, -54.0, -46.0, 13.0, 17.5))
+    parts.append(_box_span(-72.0, 11.5, -53.0, -50.6, z0, 13.2))
+    parts.extend(
+        _box_span(x - 1.05, x + 1.05, -53.5, -46.5, 17.4, 19.9)
+        for x in drive_rack_tooth_x()
     )
 
-    return clean(union([body, *tongues, *lugs, rack_bar, *rack_teeth]))
+    # +Y: lid cam plate.  The follower pin rides the slot: 7 mm rise over the
+    # first 10 mm of travel, then a level dwell.
+    parts.append(_box_span(-98.3, -33.0, 53.4, 56.6, z0, 23.0))
+    parts.append(_box_span(-35.0, 11.5, 50.6, 53.0, z0, 23.0))
+    parts.append(_box_span(-35.0, -33.0, 50.6, 56.6, z0, 23.0))
+    path = slider_cam_path()
+    for p0, p1 in zip(path[:-1], path[1:]):
+        cuts.append(_slot_xz(p0, p1, PIVOT_D, 55.0, 8.0))
+
+    body = difference(union(parts), cuts)
+    return clean(body)
 
 
 def build_platform() -> trimesh.Trimesh:
@@ -376,17 +533,29 @@ def build_platform() -> trimesh.Trimesh:
         for y in (-40.5, -14.0, 0.0, 14.0, 40.5)
     ])
 
-    pins = [_lug(PIVOT_D, 16.0, ARM_T + 2.0 * FIT + 2.0,
-                 (PLATFORM_PIN_X, sy * SCISSOR_Y, -8.0))
-            for sy in (-1.0, 1.0)]
-
-    slots = []
+    # Fixed top pivot: one inboard lug per side (u 36.6..40.6) beside the
+    # True arm (u 41..45).  A round lug keeps 2.5+ mm from the False arm.
+    fixed_lugs = []
     for sy in (-1.0, 1.0):
-        rail = box((68.0, ARM_T + 2.0 * FIT + 4.0, 12.0),
-                   (8.0, sy * SCISSOR_Y, -6.0))
-        rail = difference(rail, [box((68.0, ARM_T + 2.0 * FIT, 6.0),
-                                     (8.0, sy * SCISSOR_Y, -7.0))])
-        slots.append(rail)
+        y0, y1 = _u_span(sy, 36.6, 40.6)
+        yc = (y0 + y1) / 2.0
+        fixed_lugs.append(cylinder(5.5, 4.0, (PLATFORM_PIN_X, yc, -8.0),
+                                   (0.0, 1.0, 0.0)))
+        fixed_lugs.append(_box_span(PLATFORM_PIN_X - 5.5, PLATFORM_PIN_X + 5.5,
+                                    y0, y1, -8.0, 0.5))
+
+    # Slot pivot: inboard slot beams (u 30.6..34.6) guide the False arm's top
+    # pin over the full slider stroke.
+    slot_beams = []
+    slot_cuts = []
+    slot_x = (slider_x(THETA_MAX) + PLATFORM_PIN_X,
+              slider_x(THETA_MIN) + PLATFORM_PIN_X)
+    for sy in (-1.0, 1.0):
+        y0, y1 = _u_span(sy, 30.6, 34.6)
+        slot_beams.append(_box_span(-24.0, 47.5, y0, y1, -13.3, PLATFORM_T))
+        slot_cuts.append(_slot_xz(
+            (slot_x[0] - 1.0, -8.0), (slot_x[1] + 1.0, -8.0),
+            PIVOT_D, sy * 32.6, 6.0))
 
     arm_ears = [_lug(FOREARM_BEARING_D, 26.0, 6.0,
                      (ARM_HINGE_X, sy * ARM_EAR_Y, ARM_HINGE_Z))
@@ -395,25 +564,18 @@ def build_platform() -> trimesh.Trimesh:
     gear_start, idler_centres, gear_end = forearm_gear_centres()
     gear_vector = gear_end - gear_start
     gear_distance = float(np.linalg.norm(gear_vector[[0, 2]]))
-    gear_rail = box(
-        (gear_distance - 8.0, 6.0, 6.0),
-        (0.0, 0.0, 0.0),
-    )
+    gear_unit = gear_vector / gear_distance
+    rail_from, rail_to = GEAR_RAIL_START, gear_distance - 4.0
+    gear_rail = box((rail_to - rail_from, 6.0, 6.0), (0.0, 0.0, 0.0))
     gear_rail.apply_transform(trimesh.transformations.rotation_matrix(
         -np.arctan2(gear_vector[2], gear_vector[0]),
         (0.0, 1.0, 0.0),
     ))
-    # Keep the support on the inboard side of the gear plane. The original rail
-    # occupied the same Y volume as all five gears, making the rendered assembly
-    # impossible. Inboard placement also leaves the outboard side open so the
-    # output gear and its long D-shaft can be inserted axially.
-    gear_rail.apply_translation((gear_start + gear_end) / 2.0
-                                + np.array([0.0, -6.0, 0.0]))
-    idler_posts = [
-        cylinder(1.4, 12.0, centre + np.array([0.0, -3.0, 0.0]),
-                 (0.0, 1.0, 0.0))
-        for centre in idler_centres
-    ]
+    # The rail runs inboard of the gear plane (u 40.6..46.6) and starts clear
+    # of the True arm's swept band; idlers turn on snap pins through it.
+    gear_rail.apply_translation(
+        gear_start + gear_unit * (rail_from + rail_to) / 2.0
+        + np.array([0.0, -(FOREARM_GEAR_Y - 43.6), 0.0]))
 
     hinge_gussets = [
         box((3.2, 8.0, ARM_HINGE_Z - 13.0),
@@ -422,22 +584,17 @@ def build_platform() -> trimesh.Trimesh:
         for sy in (-1.0, 1.0)
         for dx in (-6.4, 0.0, 6.4)
     ]
-    body = union([*side_rails, *pivot_links, hinge_bridge,
-                  *pins, *slots, *arm_ears, *idler_posts,
-                  gear_rail, *hinge_gussets])
-    # Axial installation tunnel for the removable D-shaft/output gear.
-    input_key_slot = [
-        cylinder(
-            1.8,
-            12.0,
-            (
-                PLATFORM_PIN_X + 8.0 * np.cos(np.deg2rad(theta)),
-                SCISSOR_Y,
-                -8.0 - 8.0 * np.sin(np.deg2rad(theta)),
-            ),
-            (0.0, 1.0, 0.0),
-        )
-        for theta in np.linspace(THETA_MIN - 3.0, THETA_MAX + 3.0, 25)
+    body = union([*side_rails, *pivot_links, hinge_bridge, *fixed_lugs,
+                  *slot_beams, *arm_ears, gear_rail, *hinge_gussets])
+    idler_bores = [
+        cylinder(PIVOT_D / 2.0, 14.0, centre + np.array([0.0, -6.4, 0.0]),
+                 (0.0, 1.0, 0.0))
+        for centre in idler_centres
+    ]
+    fixed_bores = [
+        cylinder(PIVOT_D / 2.0, 6.0,
+                 (PLATFORM_PIN_X, sy * 38.6, -8.0), (0.0, 1.0, 0.0))
+        for sy in (-1.0, 1.0)
     ]
     body = difference(body, [
         cylinder(
@@ -446,7 +603,7 @@ def build_platform() -> trimesh.Trimesh:
             (ARM_HINGE_X, 20.0, ARM_HINGE_Z),
             (0.0, 1.0, 0.0),
         ),
-        *input_key_slot,
+        *idler_bores, *fixed_bores, *slot_cuts,
     ])
     # The long coaxial cut can leave sub-mm boolean crumbs at tangent edges.
     # They are not part of the platform and must not become loose print bodies.
@@ -454,62 +611,83 @@ def build_platform() -> trimesh.Trimesh:
     return clean(max(components, key=lambda component: abs(component.volume)))
 
 
+DRIVE_SHAFT_FLAT = 1.0          # D-flat depth on the knob end of the shaft
+DRIVE_SHAFT_END_Z = 28.0        # pinion-local; world y = -46 - z
+DRIVE_CROSS_PIN_Z = 23.0        # 1.75 mm filament cross pin through the knob
+
+
 def build_drive_pinion() -> trimesh.Trimesh:
-    """Main pinion with an integral bearing shaft through the front wall."""
+    """Main pinion with an integral bearing shaft through the front wall.
+
+    Gear face z 0..8 (world y -46..-54), round bearing journal through the
+    Ø8.8 chest bore, then a D-flat end that keys the skull knob.  A 1.75 mm
+    filament cross pin through knob stem and shaft retains the knob axially.
+    """
     gear = _spur_gear(
         DRIVE_ROOT_R, GEAR_TOOTH_H, DRIVE_TEETH, 8.0,
         hub_r=7.2, rim=3.0,
     )
-    shaft = cylinder(DRIVE_SHAFT_D / 2.0, 24.0, (0.0, 0.0, 12.0))
-    collar = cylinder(7.0, 3.0, (0.0, 0.0, 9.5))
-    return clean(union([gear, shaft, collar]))
+    journal = cylinder(DRIVE_SHAFT_D / 2.0, 17.5, (0.0, 0.0, 8.75))
+    d_len = DRIVE_SHAFT_END_Z - 17.0
+    d_end = fdm_joints.d_shaft(
+        DRIVE_SHAFT_D, d_len, DRIVE_SHAFT_FLAT,
+        center=(0.0, 0.0, 17.0 + d_len / 2.0),
+    )
+    body = union([gear, journal, d_end])
+    cross = fdm_joints.cross_pin_hole(
+        DRIVE_SHAFT_D, axis=(0.0, 1.0, 0.0),
+        center=(0.0, 0.0, DRIVE_CROSS_PIN_Z))
+    return clean(difference(body, [cross]))
 
 
-def build_lid_rack() -> trimesh.Trimesh:
-    """Main vertical rack with a downward lost-motion slot for the lid."""
-    spine = box((67.0, 8.0, 5.0), (6.5, 0.0, 0.0))
-    spine = difference(spine, [
-        box((8.4, 5.6, 7.0), (x, 0.0, 0.0))
-        for x in np.arange(-20.0, 34.0, 10.0)
-    ])
-    teeth = [
-        box((2.1, 7.0, GEAR_TOOTH_H),
-            (x, 0.0, -(5.0 + GEAR_TOOTH_H) / 2.0))
-        for x in np.arange(-24.0, 38.1, GEAR_PITCH)
-    ]
-    dwell = SLIDER_TRAVEL - LID_OPEN_TRAVEL
-    flange = box(
-        (dwell + 12.0, 18.0, 8.0),
-        (40.0 - dwell / 2.0, 9.0, 0.0),
-    )
-    lost_slot = rounded_box(
-        (dwell + 8.0, 7.2, 12.0), 3.0,
-        (40.0 - dwell / 2.0, 12.0, 0.0),
-    )
-    return clean(difference(union([spine, flange, *teeth]), [lost_slot]))
+FOLLOWER_X_SPAN = (FOLLOWER_X - 3.0, FOLLOWER_X + 3.0)
+FOLLOWER_SPINE_X = (FOLLOWER_X - 2.0, FOLLOWER_X + 2.0)
+FOLLOWER_BAR_U = (46.0, 50.0)
+FOLLOWER_SPINE_U = (37.4, 41.0)
+FOLLOWER_TOOTH_U = (41.0, 43.4)
+FOLLOWER_TOP_Z = 97.0
+
+
+def follower_rack_tooth_z() -> np.ndarray:
+    """Closed-pose world z of the follower rack tooth centres."""
+    teeth = max(6, int(round(2.0 * np.pi * LID_SECTOR_R / GEAR_PITCH)))
+    pitch = 2.0 * np.pi * LID_SECTOR_R / teeth
+    zs = LID_HINGE_Z + FOLLOWER_RACK_PHASE_Z + np.arange(-6, 6) * pitch
+    return zs[(zs > 83.0) & (zs < FOLLOWER_TOP_Z - 0.8)]
+
+
+def lid_follower_world() -> trimesh.Trimesh:
+    """Cam-driven lid follower rack in closed world pose (+Y side).
+
+    A vertical bar (u 46..50) rides the chest guide channel; its cross pin
+    at z 10 runs in the slider cam slot.  Above the guide it jogs inboard to
+    a spine whose rack teeth (u 41..43.4) drive the lid transfer gear.
+    """
+    x0, x1 = FOLLOWER_X_SPAN
+    s0, s1 = FOLLOWER_SPINE_X
+    bar = _box_span(x0, x1, *FOLLOWER_BAR_U, 6.0, 80.0)
+    jog = _box_span(s0, s1, FOLLOWER_SPINE_U[0], FOLLOWER_BAR_U[1],
+                    72.0, 80.0)
+    spine = _box_span(s0, s1, *FOLLOWER_SPINE_U, 72.0, FOLLOWER_TOP_Z)
+    teeth = [_box_span(s0, s1, FOLLOWER_SPINE_U[1] - 0.1, FOLLOWER_TOOTH_U[1],
+                       z - 0.8, z + 0.8)
+             for z in follower_rack_tooth_z()]
+    body = union([bar, jog, spine, *teeth])
+    hole = cylinder(PIVOT_D / 2.0, 8.0,
+                    (FOLLOWER_X, 48.0, FOLLOWER_PIN_Z), (0.0, 1.0, 0.0))
+    return clean(difference(body, [hole]))
+
+
+# Print the follower lying on its -X face: world X becomes print Z.
+FOLLOWER_PRINT_MATRIX = trimesh.transformations.rotation_matrix(
+    -np.pi / 2.0, (0.0, 1.0, 0.0))
 
 
 def build_lid_follower_rack() -> trimesh.Trimesh:
-    """Seven-millimetre yoke linking the front lost slot to the lid gear."""
-    rear_spine = box((18.0, 2.4, 6.0),
-                    (0.0, LID_YOKE_SPAN - 2.7, 0.0))
-    teeth = [
-        box((1.6, GEAR_TOOTH_H, 6.0),
-            (x, LID_YOKE_SPAN - 0.4, 0.0))
-        for x in np.arange(-6.0, 6.1, GEAR_PITCH)
-    ]
-    connector = box(
-        (6.0, LID_YOKE_SPAN + 5.0, 6.0),
-        (-20.0, LID_YOKE_SPAN / 2.0, 0.0),
-    )
-    connector = difference(connector, [
-        box((2.8, 9.0, 8.0), (-20.0, y, 0.0))
-        for y in np.arange(8.0, LID_YOKE_SPAN - 4.0, 12.0)
-    ])
-    rear_link = box((19.0, 5.0, 6.0),
-                    (-12.5, LID_YOKE_SPAN - 3.7, 0.0))
-    pin = cylinder(3.0, 14.0, (-20.0, 0.0, 0.0))
-    return clean(union([rear_spine, connector, rear_link, pin, *teeth]))
+    """Lid follower rack in print orientation (see ``lid_follower_world``)."""
+    body = lid_follower_world()
+    body.apply_transform(FOLLOWER_PRINT_MATRIX)
+    return clean(body)
 
 
 def build_lid_crank() -> trimesh.Trimesh:
@@ -528,6 +706,15 @@ def build_lid_crank() -> trimesh.Trimesh:
     ]))
 
 
+def build_crank_spacer() -> trimesh.Trimesh:
+    """Loose tube on the hinge filament that pins the crank into the socket."""
+    return clean(difference(
+        cylinder(CRANK_SPACER_R, CRANK_SPACER_LEN,
+                 (0.0, 0.0, CRANK_SPACER_LEN / 2.0)),
+        [cylinder(CRANK_SPACER_BORE_R, CRANK_SPACER_LEN + 2.0,
+                  (0.0, 0.0, CRANK_SPACER_LEN / 2.0))]))
+
+
 def build_lid_transfer_gear() -> trimesh.Trimesh:
     """Equal-ratio transfer gear with an integral, axially inserted journal."""
     teeth = max(6, int(round(2.0 * np.pi * LID_SECTOR_R / GEAR_PITCH)))
@@ -536,8 +723,13 @@ def build_lid_transfer_gear() -> trimesh.Trimesh:
     gear.apply_transform(trimesh.transformations.rotation_matrix(
         np.deg2rad(LID_TOOTH_PHASE), (0.0, 0.0, 1.0)))
     journal = cylinder(1.4, 18.0, (0.0, 0.0, -5.0))
-    return clean(difference(union([gear, journal]), [
-        cylinder(0.95, 6.0, (0.0, 0.0, -12.0), (1.0, 0.0, 0.0)),
+    # Shoulder hub: stops 0.2 mm before the bearing block's inner face so the
+    # gear cannot drift off its 4 mm rack/crank mesh; the cross pin sits
+    # 0.33 mm outside the outer face.  Axial play totals ~0.5 mm.
+    hub = cylinder(TRANSFER_HUB_R, TRANSFER_HUB_LEN,
+                   (0.0, 0.0, -TRANSFER_HUB_LEN / 2.0 + 0.01))
+    return clean(difference(union([gear, journal, hub]), [
+        cylinder(0.95, 6.0, (0.0, 0.0, TRANSFER_CROSS_Z), (1.0, 0.0, 0.0)),
     ]))
 
 
@@ -553,7 +745,8 @@ def build_scissor_drive_gear() -> trimesh.Trimesh:
     gear.apply_transform(trimesh.transformations.rotation_matrix(
         np.deg2rad(FOREARM_INPUT_TOOTH_PHASE), (0.0, 0.0, 1.0)
     ))
-    key_peg = cylinder(1.4, 10.0, (8.0, 0.0, 5.0))
+    # Peg reaches local z 11.5 (world u 41.5) into the True arm key hole.
+    key_peg = cylinder(1.4, 11.5, (8.0, 0.0, 5.75))
     return clean(difference(union([gear, key_peg]), [
         cylinder(PIVOT_D / 2.0, 10.0, (0.0, 0.0, 3.0))
     ]))
@@ -567,8 +760,12 @@ def build_idler_gear() -> trimesh.Trimesh:
         FOREARM_IDLER_TEETH,
         6.0,
     )
+    # The snap-pin head sinks 1 mm into the outboard face (local z 0) so it
+    # clears the opened lid's rear rim at full lift.
     return clean(difference(gear, [
-        cylinder(3.2 / 2.0, 10.0, (0.0, 0.0, 3.0))
+        cylinder(PIVOT_D / 2.0, 10.0, (0.0, 0.0, 3.0)),
+        cylinder(IDLER_HEAD_CBORE_D / 2.0, 2.0,
+                 (0.0, 0.0, IDLER_HEAD_CBORE_DEPTH - 1.0)),
     ]))
 
 
@@ -642,11 +839,118 @@ def build_forearm(length: float = FOREARM_LENGTH) -> trimesh.Trimesh:
     return clean(body)
 
 
-def build_pin(diameter: float, length: float) -> trimesh.Trimesh:
-    """Printed pivot pin with a small head."""
-    shank = cylinder(diameter / 2.0 - 0.15, length, (0.0, 0.0, length / 2.0))
-    head = cylinder(diameter / 2.0 + 1.6, 1.6, (0.0, 0.0, 0.8))
-    return clean(union([shank, head]))
+def _barb_half(side: float, catch: float) -> trimesh.Trimesh:
+    """One barb half: an r 2.2 arc offset outward by ``PIN_BARB_OFFSET``.
+
+    A revolved barb cannot work in a split pin: closing the halves only moves
+    them in the flex direction, so its width in the slot plane would stay
+    above the bore.  The offset arc instead becomes a centred r 2.2 circle
+    (0.1 mm radial clearance in the Ø4.6 bore) once each half has closed by
+    the offset, while overhanging the bore edge by 0.25 mm when relaxed.
+    """
+    land_end = catch + PIN_BARB_LAND
+    cone_end = land_end + PIN_BARB_CONE
+    angles = np.linspace(0.0, 2.0 * np.pi, 48, endpoint=False)
+    ring = np.column_stack([np.cos(angles), np.sin(angles)])
+    points = []
+    for z in (catch, land_end):
+        xy = ring * PIN_BARB_ARC_R + [side * PIN_BARB_OFFSET, 0.0]
+        points.append(np.column_stack([xy, np.full(len(xy), z)]))
+    xy = ring * (PIN_D / 2.0 - 0.1)
+    points.append(np.column_stack([xy, np.full(len(xy), cone_end)]))
+    barb = trimesh.convex.convex_hull(np.vstack(points))
+    keep = box((4.0, 8.0, cone_end - catch + 0.2),
+               (side * 2.0, 0.0, (catch + cone_end) / 2.0))
+    return intersection([barb, keep])
+
+
+def build_pin(grip: float, tail: float = 0.0) -> trimesh.Trimesh:
+    """Split snap pivot pin along +Z, head underside at z = 0.
+
+    ``grip`` is the stack thickness from the head underside to the face the
+    barb catches on; the catch face sits ``PIN_AXIAL_PLAY`` beyond it.  The
+    two halves, separated by a 1.4 mm slot, each carry an offset barb arc
+    (see ``_barb_half``) that overhangs the Ø4.6 bore by 0.25 mm; they flex
+    0.35 mm inward on insertion and spring out in the Ø6 counterbore.  The
+    0.4 mm flat at y = -1.6 is the print bed face; the slot plane is
+    perpendicular to it so the halves flex in the print plane.
+    """
+    r = PIN_D / 2.0
+    catch = grip + PIN_AXIAL_PLAY
+    cone_end = catch + PIN_BARB_LAND + PIN_BARB_CONE
+    tip = cone_end + tail
+    profile = [
+        (0.0, -PIN_HEAD_T),
+        (PIN_HEAD_D / 2.0, -PIN_HEAD_T),
+        (PIN_HEAD_D / 2.0, 0.0),
+        (r, 0.0),
+        (r, tip - 0.3),
+        (r - 0.3, tip),
+        (0.0, tip),
+    ]
+    body = clean(trimesh.creation.revolve(np.asarray(profile), sections=64))
+    body = union([body, _barb_half(1.0, catch), _barb_half(-1.0, catch)])
+    slot_from = max(catch - PIN_SLOT_REACH, 0.8)
+    cuts = [
+        box((PIN_SLOT_W, 10.0, tip - slot_from + 1.0),
+            (0.0, 0.0, (slot_from + tip + 1.0) / 2.0)),
+        box((10.0, 4.0, tip + PIN_HEAD_T + 2.0),
+            (0.0, PIN_FLAT_Y - 2.0, (tip - PIN_HEAD_T) / 2.0)),
+    ]
+    return clean(difference(body, cuts))
+
+
+def build_press_pin(grip: float, tail: float) -> trimesh.Trimesh:
+    """Solid pin held by crush ribs in its first ``grip`` mm (follower pin).
+
+    The 4 mm follower bar leaves too short a split for PLA (bending strain
+    > 5 %), and a split tail would run as a non-round journal of single
+    cantilever halves in the slider cam slot.  The pin carries no axial load,
+    so three 0.8 mm crush ribs reaching r 2.45 (0.15 mm interference in the
+    Ø4.6 bar bore, stopping 0.3 mm short of its far face) hold it; the plain
+    Ø4 tail runs with 0.3 mm clearance in the cam slot.
+    """
+    r = PIN_D / 2.0
+    tip = grip + tail
+    profile = [
+        (0.0, -PIN_HEAD_T),
+        (PIN_HEAD_D / 2.0, -PIN_HEAD_T),
+        (PIN_HEAD_D / 2.0, 0.0),
+        (r, 0.0),
+        (r, tip - 0.3),
+        (r - 0.3, tip),
+        (0.0, tip),
+    ]
+    body = clean(trimesh.creation.revolve(np.asarray(profile), sections=64))
+    ribs = []
+    rib_end = grip - 0.3
+    for angle in (0.0, 90.0, 180.0):
+        c, s = np.cos(np.deg2rad(angle)), np.sin(np.deg2rad(angle))
+        pts = []
+        for z, reach in ((0.0, PIN_CRUSH_R), (rib_end - 1.0, PIN_CRUSH_R),
+                         (rib_end, r)):
+            for t in (-0.4, 0.4):
+                for depth in (r - 0.6, np.sqrt(reach ** 2 - t ** 2)):
+                    pts.append((depth * c - t * s, depth * s + t * c, z))
+        ribs.append(trimesh.convex.convex_hull(np.asarray(pts)))
+    body = union([body, *ribs])
+    flat = box((10.0, 4.0, tip + PIN_HEAD_T + 2.0),
+               (0.0, PIN_FLAT_Y - 2.0, (tip - PIN_HEAD_T) / 2.0))
+    return clean(difference(body, [flat]))
+
+
+def pin_print_pose(pin: trimesh.Trimesh) -> trimesh.Trimesh:
+    """Lay a pin from ``build_pin`` on its 0.4 mm flat for printing."""
+    result = pin.copy()
+    result.apply_transform(trimesh.transformations.rotation_matrix(
+        np.pi / 2.0, (1.0, 0.0, 0.0)))
+    return clean(result)
+
+
+def build_pin_variant(variant: str) -> trimesh.Trimesh:
+    if variant == "follower":
+        return build_press_pin(PIN_GRIPS[variant], PIN_TAILS[variant])
+    return build_pin(PIN_GRIPS[variant], PIN_TAILS.get(variant, 0.0))
 
 
 PARTS = {
@@ -656,8 +960,8 @@ PARTS = {
     "lid-follower-rack": build_lid_follower_rack,
     "platform": build_platform,
     "drive-pinion": build_drive_pinion,
-    "lid-rack": build_lid_rack,
     "lid-crank": build_lid_crank,
+    "crank-spacer": build_crank_spacer,
     "lid-transfer-gear": build_lid_transfer_gear,
     "scissor-drive-gear": build_scissor_drive_gear,
     "idler-gear": build_idler_gear,

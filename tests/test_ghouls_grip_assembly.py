@@ -67,13 +67,19 @@ class GhoulAssemblyTests(unittest.TestCase):
         ))
 
     def test_printed_pin_inventory_matches_scissor_joint_contract(self) -> None:
-        self.assertEqual(PRINT_QUANTITIES["pivot-pin-3"], 10)
-        self.assertNotIn("pivot-pin-4", PRINT_QUANTITIES)
+        # 10 scissor snap pins + 3 idler pins + 1 lid-follower pin.
+        counts = {variant: PRINT_QUANTITIES.get(f"pivot-pin-{variant}", 1)
+                  for variant in mechanism.PIN_GRIPS}
+        self.assertEqual(counts, mechanism.PIN_QUANTITIES)
+        self.assertEqual(sum(counts.values()), 14)
+        self.assertNotIn("pivot-pin-3", PRINT_QUANTITIES)
         arm = mechanism.build_scissor_arm()
+        # x +-28 now carries the scissor-drive gear key hole; its boss ring
+        # must stay solid (no stray joint hole cut through the arm).
         former_false_joint = cylinder(
             1.0,
             mechanism.ARM_T + 1.0,
-            (mechanism.ARM_L / 2.0 - 8.0, 0.0, mechanism.ARM_T / 2.0),
+            (mechanism.ARM_L / 2.0 - 11.0, 0.0, mechanism.ARM_T / 2.0),
         )
         overlap = intersection([arm, former_false_joint])
         self.assertIsNotNone(overlap)

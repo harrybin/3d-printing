@@ -49,7 +49,12 @@ class BonePlateLayoutTests(unittest.TestCase):
         settings = ET.fromstring(after["Metadata/model_settings.config"])
         names_to_ids = _build_id_by_name(settings)
         self.assertEqual(len(settings.findall("plate")), 4)
-        self.assertEqual(len(model.findall("c:build/c:item", NS)), 37)
+        self.assertEqual(len(model.findall("c:build/c:item", NS)), 41)
+        object_ids = {obj.get("id") for obj in settings.findall("object")}
+        assembled = {item.get("object_id")
+                     for item in settings.find("assemble")}
+        # Orca refuses to load a project whose assemble_item is stale.
+        self.assertEqual(assembled, object_ids)
         self.assertEqual(after["Metadata/project_settings.config"],
                          before["Metadata/project_settings.config"])
         self.assertEqual(after["Metadata/model_settings.config"],

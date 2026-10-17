@@ -36,7 +36,9 @@ class LightweightEnclosureTests(unittest.TestCase):
     def test_chest_is_a_lightweight_single_watertight_body(self) -> None:
         self.assertTrue(self.chest.is_watertight)
         self.assertEqual(len(self.chest.split(only_watertight=False)), 1)
-        self.assertLess(self.chest.volume, 200_000.0)
+        # Budget includes the +Y lid-follower guide rib/channel (~5.6 cm3)
+        # added by the cam-follower lid drive.
+        self.assertLess(self.chest.volume, 203_000.0)
         self.assertAlmostEqual(self.chest.extents[2], 98.0, delta=0.05)
 
     def test_undecorated_control_preserves_functional_envelope(self) -> None:

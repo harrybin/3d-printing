@@ -60,7 +60,7 @@ Er ist durch zwei kurze, direkt mit dem Boden verschmolzene Lagerwangen
 je Scherenpaar ersetzt, nicht durch beschnittene Arme.
 X=0 mm, Pivot-Z=8 mm, Scherenabstand, alle Armbohrungen, Schlittenweg,
 Hub, Deckelantrieb und die geschlossene Wandkorrektur bleiben unverändert.
-Die vorhandenen zehn Pins und die vollständige 37-Objekt-Stückliste bleiben erhalten.
+Diese Änderung allein fügt keine Teile hinzu; den aktuellen Stand zeigt die Stückliste unten.
 
 **Neue Werte sind Konstruktionsschätzungen/Default-Freiräume, keine Messwerte:**
 Wangenmitten ±8 mm relativ zur Scherenebene, Dicke 4 mm, Kopf-Radius 4,6 mm.
@@ -170,119 +170,133 @@ in ausreichend starkem Material.
 
 ## Funktionsprinzip
 
-1. Der graue Totenkopf sitzt direkt auf der Ø8-mm-Welle des Hauptritzels.
-2. Eine Drehung um etwa 114° verschiebt die Schlittenzahnstange um 53,5 mm.
-3. Der Schlitten spreizt zwei parallele Scherenpaare von 18° auf 78° und hebt das offene Hubjoch um 48,2 mm.
-4. Gleichzeitig bewegt das Hauptgetriebe eine starre Deckelzahnstange. Ein gefangener Lost-Motion-Schlitz nimmt zunächst Leerweg auf; anschließend bewegt ein kurzer Folgejochweg von 7 mm das Deckelsegment schnell auf 108°.
-5. Ein mitfahrendes Fünf-Zahnrad-Getriebe mit drei Zwischenrädern überträgt die Drehung eines Scherenarms kontinuierlich und mit dem richtigen Drehsinn auf den Unterarm. Der Unterarm schwenkt von -105° auf -45°.
-6. Beim Zurückdrehen läuft die gesamte Kraftkette positiv rückwärts: Unterarm faltet ein, Schere sinkt, Deckel schließt. Es wird keine Rückstellfeder benötigt.
-
-Der Deckel erreicht 108° bereits bei etwa 32° Scherenwinkel und bleibt während des restlichen Hubs formschlüssig offen. Dadurch kreuzt die Hand den Deckel nicht.
+1. Der graue Totenkopf sitzt auf der D-Welle des Hauptritzels und ist mit einem
+   1,75-mm-Filament-Querstift gesichert.
+2. Eine Drehung um 113,5° verschiebt die Schlittenzahnstange um 53,5 mm.
+3. Der Schlitten spreizt zwei parallele Scherenpaare von 18° auf 78° und hebt
+   die Plattform (Hubjoch) um 48,2 mm.
+4. Eine Kurvenbahn im Schlitten hebt den Deckel-Folger über die ersten 6 mm
+   Schlittenweg um 7 mm und hält ihn danach auf einer Rast. Die Folger-
+   Zahnstange dreht über zwei Übertragungsräder die Deckelkurbel am Scharnier;
+   der Deckel steht bei 30° Scherenwinkel auf 108° und bleibt dann formschlüssig
+   offen. Die Hand kreuzt den Deckel nicht.
+5. Ein mitfahrendes Fünf-Zahnrad-Getriebe mit drei Zwischenrädern überträgt die
+   Drehung eines Scherenarms auf den Unterarm (-105° → -45°).
+6. Beim Zurückdrehen läuft die Kraftkette positiv rückwärts: Unterarm faltet
+   ein, Schere sinkt, Deckel schließt. Es wird keine Rückstellfeder benötigt.
 
 ## Stückliste
 
-Das konsolidierte Orca-Druckprojekt enthält **22 Teiltypen / 37 physische
-Druckobjekte** auf fünf Platten, einschließlich der beiden neuen
-Transferzahnräder. Alle 35 bisherigen
-Objektpositionen, fünf Plattengruppen und Nutzereinstellungen bleiben erhalten.
-Die 31 nicht betroffenen ursprünglichen Mesh-Payloads bleiben byteidentisch.
-Bei den vier geänderten Teilen bleibt die ursprüngliche transformierte
-Bettkontakt-Ebene erhalten; die höhere neue Kurbel wird nicht unter das Bett
-zentriert. Die beiden Zusatzräder liegen in freiem Raum auf der Verbinderplatte.
+Das Orca-Druckprojekt enthält **28 Teiltypen / 41 Druckobjekte** auf vier
+Platten. Dazu kommen **sechs nicht gedruckte Filamentstifte** (1,75-mm-PLA vom
+Spulenrest), die in Kollisions- und Eingriffsprüfung als Ø1,75-Zylinder
+mitgeführt werden.
 
 | Teil | Anzahl | Maße ungefähr | Farbe |
 | --- | ---: | --- | --- |
 | Schatulle | 1 | 209,0 × 130,5 × 98,0 mm | Schwarz |
 | Deckel | 1 | 206,0 × 129,8 × 28,2 mm | Schwarz |
 | Scherenarm | 4 | 84 × 12 × 4 mm | Naturweiß |
-| Schlitten mit Zahnstange | 1 | 94 × 119,2 × 26 mm | Naturweiß |
-| Hubjoch | 1 | 82 × 92 × 51 mm | Naturweiß |
-| Hauptantriebsritzel | 1 | 57,4 × 57,4 × 24 mm | Naturweiß |
-| Deckel-Hauptzahnstange | 1 | 73 × 22 × 8,7 mm | Naturweiß |
-| Deckel-Folgejoch/Zahnstange | 1 | 32 × 85,932 × 14 mm | Naturweiß |
-| Deckelsegment mit Innenschlüssel | 1 | 9,2 × 20,6 × 11 mm in Drucklage | Naturweiß |
-| Deckel-Transferzahnrad mit Journal | 2 | ca. Ø9 × 18 mm | Naturweiß |
-| Scheren-Eingangszahnrad | 1 | 27,4 × 27,5 × 10 mm | Naturweiß |
-| Zwischenrad | 3 | ca. 17 × 17 × 6 mm | Naturweiß |
-| Unterarm-Ausgangszahnrad mit D-Welle | 1 | 27,4 × 65 × 27,5 mm | Naturweiß |
-| Pivot-Pin Ø3 | 10 | Ø6,2 × 26 mm | Naturweiß |
+| Schlitten mit Zahnstange, Kurvenbahn und Schnappfingern | 1 | 120,3 × 118,8 × 20,8 mm | Naturweiß |
+| Plattform (Hubjoch) | 1 | 83,5 × 92,6 × 48,5 mm | Naturweiß |
+| Hauptantriebsritzel mit D-Welle | 1 | 55,8 × 55,7 × 28 mm | Naturweiß |
+| Deckel-Folger mit Zahnstange | 1 | 91 × 12,6 × 6 mm | Naturweiß |
+| Deckelkurbel (Segment mit Mitnehmer) | 1 | 9,2 × 20,6 × 11 mm | Naturweiß |
+| Kurbel-Distanzhülse (axiale Sicherung auf der Scharnierachse) | 1 | Ø5 × 15,8 mm, Bohrung Ø2,0 | Naturweiß |
+| Deckel-Übertragungsrad mit Zapfen und Bund | 2 | Ø9,2 × 18 mm | Naturweiß |
+| Scheren-Eingangszahnrad | 1 | 25,8 × 25,8 × 11,5 mm | Naturweiß |
+| Zwischenrad | 3 | Ø16,5 × 6 mm | Naturweiß |
+| Unterarm-Abtriebsrad mit D-Welle | 1 | 25,8 × 75 × 25,8 mm | Naturweiß |
+| Schnappstift Ø4 Boden (Klemmlänge 18,4) | 2 | Ø7,5 × 21,6 mm | Naturweiß |
+| Schnappstift Ø4 Schlitten (11,2) | 2 | Ø7,5 × 14,4 mm | Naturweiß |
+| Schnappstift Ø4 Mitte (8,4) | 2 | Ø7,5 × 11,6 mm | Naturweiß |
+| Schnappstift Ø4 Zahnrad (16,4) | 1 | Ø7,5 × 19,6 mm | Naturweiß |
+| Schnappstift Ø4 kurz (6,8) | 3 | Ø7,5 × 10,0 mm | Naturweiß |
+| Schnappstift Ø4 Zwischenrad (11,4) | 3 | Ø7,5 × 14,6 mm | Naturweiß |
+| Pressstift Ø4 Folger (Quetschrippen) | 1 | Ø7,5 × 11,8 mm | Naturweiß |
 | Unterarm mit D-Nabe | 1 | 25,8 × 18 × 50 mm | Knochenbeige |
 | Handfläche | 1 | 67,9 × 96,5 × 25,2 mm | Knochenbeige |
-| Fünf Finger | je 1 | 9–66 mm | Knochenbeige |
+| Fünf Finger | je 1 | 36–66 mm | Knochenbeige |
 | Totenkopf-Drehknopf | 1 | 48,5 × 55,1 × 27,0 mm | Grau |
 
-Die frühere separate Sehnenführung ist entfernt. Sie gehörte zum verworfenen
-Seilzugkonzept und hatte in der starren Mechanik keine tragende oder führende
-Funktion. Die kleinen Gelenkkragen und Flexurstege innerhalb der Finger bleiben
-erhalten, weil sie die einzelnen Knochen druckbar verbinden.
+**Nicht gedruckte Teile (Filament Ø1,75 mm, abgelängt):**
+
+| Stift | Länge | Bohrung | Ort |
+| --- | ---: | --- | --- |
+| Deckelscharnier | 198 mm | Ø1,9 Truhe / Ø1,98 Deckel | Scharnierachse, durch alle Knöchel |
+| Knauf-Querstift | 14 mm | Ø1,9 | Knauf und Ritzel-D-Welle |
+| Übertragungsrad-Sicherung | 2 × 5 mm | Ø1,9 | Zapfen außen am Lagerbock |
+| Abtriebswellen-Sicherung | 10 mm | Ø1,9 | D-Welle am Plattformlager |
+| Handgelenk | 16 mm | Ø1,9 | Unterarmzapfen und Handfläche |
+
+Die frühere separate Sehnenführung, die starre Deckel-Hauptzahnstange und die
+Ø3-Pins sind entfallen.
 
 ## Verbinder und formschlüssige Schnittstellen
 
 | Verbindung | Verbinder | Montageprinzip |
 | --- | --- | --- |
-| Scherenarme, Schlitten und Hubjoch | 10 gedruckte Ø3-Pins; optional M3-Schrauben an hoch belasteten Gelenken | Pin durch die fluchtenden 3,2-mm-Bohrungen stecken; Kopf bleibt außen |
-| Unterarm im Hubjoch | lange D-Welle des naturweißen Ausgangszahnrads + 1,75-mm-Filament-Querstift | Unterarm zuerst zwischen die Lagerohren setzen, D-Welle danach axial einschieben und außen sichern |
-| Handfläche am Unterarm | 11,6-mm-Unterarmzapfen in sichtbarer Ø12-mm-Handgelenkaufnahme + 1,75-mm-Filament-Querstift | Zapfen durch die 2-mm-Einführsenkung bis zum Anschlag einschieben, Querbohrungen fluchten lassen, Filamentstift einsetzen |
-| Finger an Handfläche | beschriftete, geneigte MCP-Steckzapfen und passende Sockel | jeden Finger seinem Sockel zuordnen und in Druckrichtung aufstecken |
-| Deckel am Gehäuse | 1,75-mm-Filament als Scharnierachse | durch die fluchtenden Scharnierbohrungen schieben |
-| Totenkopf am Hauptritzel | blinde Ø8-mm-Pressaufnahme mit 0,2 mm Untermaß am Knopf | geschlossene Stellung ausrichten, anschließend axial aufpressen |
+| Scherenarme, Schlitten, Plattform, Zahnräder | 14 gedruckte Ø4-Schnappstifte in 7 Klemmlängen in Ø4,6-Bohrungen | geschlitzter Schaft mit Rastnase; von der Kopfseite einschieben, bis die Nase hinter der Gegenfläche einrastet (0,25 mm Hinterschnitt) |
+| Folger im Kurvenschlitz | massiver Ø4-Pressstift mit Quetschrippen | von innen durch den Folger in den Schlitz drücken |
+| Schlitten in der Schiene | zwei integrierte Schnappfinger | senkrecht aufdrücken, Finger rasten in die Nut |
+| Unterarm in Plattform | D-Welle des Abtriebsrads + Filamentstift 10 mm | Unterarm zwischen die Ohren, Welle axial einschieben, außen sichern |
+| Handfläche am Unterarm | 11,6-mm-Zapfen in Ø12-Aufnahme + Filamentstift 16 mm | Querbohrungen fluchten lassen, Stift quer einsetzen |
+| Finger an Handfläche | beschriftete MCP-Steckzapfen | in Druckrichtung aufstecken |
+| Deckel am Gehäuse | Filament 198 mm als Scharnierachse | von der Stirnseite durch alle Knöchel, Kurbel und Distanzhülse schieben |
+| Totenkopf am Hauptritzel | D-Welle + Filamentstift 14 mm | Knauf aufstecken, Querstift einsetzen |
+| Übertragungsräder | Zapfen Ø2,8 in Ø3,2-Lagerbock, Bund innen, Filamentstift 5 mm außen | axial in -X einschieben, Stift außen quer |
 
-Die Handfläche besitzt ausdrücklich eine offene, verlängerte
-Handgelenkaufnahme; sie ist kein massiver Block. Die Einführsenkung macht die
-Öffnung im Knochen-3MF sichtbar und nimmt Elephant-Foot- oder Supportspuren auf.
+Alle Steckspiele, Rastnasen-Dehnungen, Einführwege und Zahnflankenspiele sind
+in [`ghouls-grip-montage-audit.md`](ghouls-grip-montage-audit.md) gegen die
+Druckungenauigkeit (±0,1–0,2 mm) nachgewiesen.
 
 ## Montage
 
-1. Je zwei Scherenarme zu einem X verbinden und zwei parallele Paare bauen. Zuerst gedruckte Pins trocken testen; für Dauerbetrieb M3-Schrauben verwenden.
-2. Untere Festpunkte von oben in die offenen Doppelwangen setzen, die Bodenpins
-   aus der Kistenmitte nach außen durch beide Wangen und die Armbohrung schieben.
-   Köpfe bleiben zur Kistenmitte; erst danach mittlere Baugruppen einsetzen.
-   Die gegenüberliegenden unteren Enden mit dem Schlitten verbinden.
-   Der Schlitten muss frei zwischen den beiden Endlagen laufen.
-3. Das offene Hubjoch montieren: pro Scherenpaar ein oberes Ende ins feste Auge, das andere in die Kulisse. Der mittlere Handraum bleibt frei.
-4. Hauptantriebsritzel von innen in das Frontlager einsetzen. Die integrierte Welle muss außen frei herausstehen und das Ritzel vollständig in die Schlittenzahnstange greifen.
-5. Totenkopfknopf außen mit der Blindbohrung auf die Ø8-mm-Welle pressen. Vor endgültigem Einpressen die geschlossene Stellung so ausrichten, dass das Gesicht senkrecht und gut greifbar steht.
-6. Deckel-Hauptzahnstange am Antrieb einsetzen. Den Zapfen des Folgejochs
-   vollständig im Lost-Motion-Schlitz fangen. Die beiden neuen
-   Transferzahnräder bei geschlossenem Deckel ausrichten und von der positiven
-   X-Seite in die Innenlager einschieben. Der freie axiale Einführweg beträgt
-   8,5 mm; nicht durch den benachbarten mittleren Scharnierbock führen.
-   Mit je einem 1,75-mm-Filamentstift durch die rückseitigen Journal-Querlöcher
-   sichern. Das hintere Zahnsegment des Folgejochs greift in das innere
-   Transferzahnrad, dieses in das Zwischenrad und dieses in das Deckelsegment.
-   Dessen nach innen gerichteten Schlüssel vor der Scharniermontage axial in
-   die offene Unterseiten-Stecktasche des Deckels einschieben: Kurbel zunächst
-   6 mm links ihrer Endposition von unten in die Haube setzen, dann axial
-   6 mm in die Tasche verschieben. Das ist auch an der exakten gelieferten
-   3MF geprüft; ±5° Relativdrehung trifft beide Taschenflanken und belegt die
-   formschlüssige Drehmomentübertragung.
-7. Das Scheren-Eingangszahnrad auf den formschlüssigen Zapfen eines Scherenarms setzen. Die drei Zwischenräder bleiben bis nach der Unterarmmontage noch ausgebaut.
-8. Den knochenfarbenen Unterarm **ohne Zahnrad** senkrecht von oben
-   zwischen die beiden Lagerohren des Jochs setzen. Die runden Lagerbohrungen
-   und die D-Nabe müssen fluchten. Anschließend das naturweiße
-   Unterarm-Ausgangszahnrad von der offenen Zahnradseite einschieben: Seine
-   lange D-Welle läuft durch das äußere Rundlager, die D-Nabe und das innere
-   Rundlager. Am gegenüberliegenden Wellenende einen 1,75-mm-Filamentstift
-   durch das Querloch stecken. Erst danach die drei Zwischenräder in ihrer
-   linearen Reihenfolge auf die zugänglichen Jochpfosten setzen. Alle fünf
-   Zahnräder müssen über den gesamten Hub im Eingriff bleiben. Das
-   Ausgangszahnrad hält die Welle auf einer Seite,
-   der Filamentstift auf der anderen; Klebstoff ist nicht erforderlich.
-   In geschlossener Stellung liegt der Unterarm bei -105°, ausgefahren bei
-   -45°.
-9. Die sichtbare Ø12-mm-Handgelenkaufnahme der Handfläche auf den
-   11,6-mm-Unterarmzapfen schieben, die Handfläche dabei um -75° rollen und die
-   Querbohrungen ausrichten. Mit 1,75-mm-Filament sichern. Danach die fünf
-   vorgekrümmten Finger auf ihre beschrifteten Sockel setzen.
-10. Deckel mit 1,75-mm-Filament als Scharnierachse einsetzen und das Deckelsegment formschlüssig am Scharnier koppeln.
-11. Ohne Süßigkeiten langsam testen: Totenkopf drehen → Deckel öffnet früh → Schere hebt → Unterarm entfaltet. Danach exakt rückwärts drehen. Nichts darf von selbst zurückschnappen.
+1. Truhe auf den Tisch, Öffnung oben.
+2. Schlitten senkrecht auf die Schiene drücken, bis beide Schnappfinger in die
+   Nut einrasten. Er muss frei zwischen beiden Endlagen laufen.
+3. Antriebsritzel von innen axial durch die Vorderwand-Bohrung schieben; es
+   kämmt mit der Schlittenzahnstange.
+4. Totenkopfknauf in geschlossener Stellung (Gesicht senkrecht) auf die D-Welle
+   stecken und mit Filamentstift 14 mm quer sichern.
+5. Deckel-Folger in den Führungskanal absenken; den Folger-Pressstift von innen
+   durch den Folger in den Kurvenschlitz drücken.
+6. Beide Deckel-Übertragungsräder axial in -X in die Lagerböcke schieben, bis
+   der Bund innen anliegt; außen je Filamentstift 5 mm quer durch den Zapfen.
+7. Scherenarme je Ebene einsetzen; Boden-, Schlitten- und Mittelstifte mit dem
+   Kopf innen einschnappen.
+8. Scheren-Eingangszahnrad **vor** der Plattform setzen: von +Y auf das obere
+   Armauge schieben, Passstift ins Armloch drücken, dann nach oben in Lage.
+9. Plattform-Baugruppe außerhalb vormontieren: Unterarm zwischen die Ohren,
+   Abtriebsrad-D-Welle durchschieben, Filament-Sicherungsstift 10 mm, drei
+   Zwischenräder mit Zwischenradstiften. Baugruppe senkrecht absenken, dabei
+   3 mm vom Scheren-Eingangszahnrad weg (Richtung Zwischenrad 0) versetzt;
+   dann entlang der Achsverbindung in den Eingriff schieben. Die Achsverbindung
+   liegt 64° zur Senkrechten, ein gerades Absenken würde Zahn auf Zahn treffen.
+   Zahnrad-, Fest- und Langlochstifte oben einschnappen.
+10. Handfläche auf den Unterarmzapfen schieben (um -75° gerollt), Filamentstift
+    16 mm quer. Finger auf ihre beschrifteten Sockel setzen.
+11. Deckel-Baugruppe außerhalb vormontieren: Deckel umgedreht, Deckelkurbel von
+    unten einlegen und 5,6 mm in +X in die Mitnehmertasche schieben; die
+    Kurbel-Distanzhülse von unten in den Servicekanal zwischen Kurbel und
+    Deckelauge legen. (Bei aufgesetztem Deckel ist der Kanal geschlossen und die
+    Kurbel nicht mehr einsetzbar.)
+12. Deckel-Baugruppe etwa 108° geöffnet halten, 3 mm nach hinten (+Y) versetzt
+    senkrecht absenken, dann nach vorn in den Eingriff mit dem Zwischenrad
+    schieben, bis die Gelenkaugen fluchten. Das 198-mm-Scharnierfilament von
+    der Stirnseite durch Truhe, Deckel, Kurbel und Hülse schieben. Die Hülse
+    hält die Kurbel axial im Eingriff (Spiel +0,2/−0,1 mm).
+13. Ohne Süßigkeiten langsam testen: Totenkopf drehen → Deckel öffnet früh →
+    Schere hebt → Unterarm entfaltet. Danach exakt rückwärts drehen.
 
+Zum Zerlegen in umgekehrter Reihenfolge: Schnappstifte durch Zusammendrücken
+der Schlitzhälften von der Nasenseite lösen; Filamentstifte herausziehen.
 ## Druckprojekte
 
 - `models/ghouls-grip-view.3mf` – zusammengesetzte Ansichten auf drei Platten:
   vollständig ausgefahren (78°), Zwischenzustand (48°) und eingefahren (18°).
-- `models/ghouls-grip-print.3mf` – ein Orca-Projekt für alle 37 Druckobjekte
-  mit vier Filament-/Farbzuordnungen auf fünf nach Farbe und Baugruppe
+- `models/ghouls-grip-print.3mf` – ein Orca-Projekt für alle 41 Druckobjekte
+  mit vier Filament-/Farbzuordnungen auf vier nach Farbe und Baugruppe
   gruppierten Druckplatten.
 - `models/ghouls-grip-preview.stl` – Canvas-Vorschau.
 

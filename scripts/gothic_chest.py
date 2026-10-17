@@ -54,7 +54,9 @@ RAIL_D = 3.0
 LID_DROP = 74.0         # chest z of the lid local origin when closed
 RAIL_Z = 8.0
 HINGE_Z = 93.0          # lid pin axis, shared by chest and lid knuckles
+LID_HINGE_BORE_R = 0.99  # 1.75 mm filament hinge pin, ~0.12 mm radial play
 HINGE_Y = CHEST_W / 2.0 + PROUD - 2.0  # rear long edge; axis runs along X
+KNUCKLE_INNER_Y = CHEST_W / 2.0 - WALL - 0.7  # chest knuckles' inner face
 SERVICE_HOOD_TOP = 28.2  # sealed roof over the internal lid rack/sector
 
 
@@ -84,6 +86,32 @@ def _rect_frustum(bottom: tuple[float, float], top: tuple[float, float],
     return clean(trimesh.Trimesh(vertices=vertices, faces=faces,
                                  process=True))
 
+
+def _follower_guide() -> list[trimesh.Trimesh]:
+    """+Y wall rib and open guide channel for the vertical lid follower.
+
+    The follower bar (x -28..-22, |y| 46..50) slides in a 0.4 mm/side channel.
+    Both parts start on 45 degree chamfers (z = 26 + (57 - y) [+ (x + 30)])
+    so they print without support and stay above the slider cam plate
+    (z <= 23) and the follower pin (z <= 21).
+    """
+    def plane_z(x: float, y: float, with_x: bool) -> float:
+        return 26.0 + (57.0 - y) + ((x + 30.0) if with_x else 0.0)
+
+    def chamfered_block(x0, x1, y0, y1, z_top, with_x):
+        points = []
+        for x in (x0, x1):
+            for y in (y0, y1):
+                points.append((x, y, z_top))
+                points.append((x, y, plane_z(x, y, with_x)))
+        return clean(trimesh.convex.convex_hull(np.asarray(points)))
+
+    # Inner wall face sits at |y| 58; end the rib 1 mm inside the 2 mm wall.
+    rib = chamfered_block(-34.0, -30.0, 43.0, CHEST_W / 2.0 - 1.0, BODY_H,
+                          False)
+    channel = chamfered_block(-30.0, -20.0, 44.0, 52.0, 71.0, True)
+    channel = difference(channel, [box((6.8, 4.8, 80.0), (-25.0, 48.0, 40.0))])
+    return [rib, channel]
 
 def _extrude_yz_polygon(points: list[tuple[float, float]], length: float,
                         x_centre: float = 0.0) -> trimesh.Trimesh:
@@ -1270,9 +1298,10 @@ def build_chest(include_decoration: bool = True) -> trimesh.Trimesh:
                  (0.0, 1.0, 0.0)),
         [cylinder(31.0 / 2.0, 10.0, (0.0, -CHEST_W / 2.0 - 1.5, 46.0),
                   (0.0, 1.0, 0.0))])
+    # Inner bearing boss stops at y -54.5, 0.5 mm short of the pinion face.
     bearing = cylinder(
-        8.0, 16.0,
-        (mechanism.DRIVE_AXIS[0], -56.0, mechanism.DRIVE_AXIS[2]),
+        8.0, 9.5,
+        (mechanism.DRIVE_AXIS[0], -59.25, mechanism.DRIVE_AXIS[2]),
         (0.0, 1.0, 0.0),
     )
     for index, feature in enumerate((collar, bearing)):
@@ -1366,25 +1395,43 @@ def build_chest(include_decoration: bool = True) -> trimesh.Trimesh:
                  (mechanism.FLOOR_PIVOT_X, sy * mechanism.SCISSOR_Y, RAIL_Z),
                  (0.0, 1.0, 0.0))
         for sy in (-1.0, 1.0)
+    ] + [
+        # Snap-pin barb seat on the outboard face of the outboard cheek.
+        cylinder(mechanism.PIN_CBORE_D / 2.0, 2.0,
+                 (mechanism.FLOOR_PIVOT_X,
+                  sy * (mechanism.SCISSOR_Y + mechanism.FLOOR_BEARING_OFFSET
+                        + mechanism.FLOOR_BEARING_T / 2.0
+                        - mechanism.PIN_CBORE_DEPTH + 1.0),
+                  RAIL_Z),
+                 (0.0, 1.0, 0.0))
+        for sy in (-1.0, 1.0)
     ])
+    for index, guide in enumerate(_follower_guide()):
+        body = union([body, guide])
+        if not body.is_volume:
+            raise RuntimeError(f"follower guide {index} broke the solid")
 
     # Hinge on the long rear edge.  Three chest knuckles alternate with four
     # lid knuckles; 1 mm axial gaps stop elephant-foot swelling from binding.
+    # The knuckle blocks stop 0.7 mm proud of the inner wall (not 2 mm) so
+    # the 113.7 mm slider can still be lowered past them through the opening.
     knuckles = []
     for x in (-66.0, 0.0, 66.0):
         knuckles.append(_extrude_yz_polygon(
             [
-                (HINGE_Y - 5.0, BODY_H - 3.0),
+                (KNUCKLE_INNER_Y, BODY_H - 3.0),
                 (CHEST_W / 2.0, BODY_H - 3.0),
                 (HINGE_Y + 5.0, BODY_H + 3.0),
                 (HINGE_Y + 5.0, BODY_H + 7.0),
-                (HINGE_Y - 5.0, BODY_H + 7.0),
+                (KNUCKLE_INNER_Y, BODY_H + 7.0),
             ],
             28.0,
             x,
         ))
-        knuckles.append(cylinder(5.0, 28.0, (x, HINGE_Y, HINGE_Z),
-                                  (1.0, 0.0, 0.0)))
+        knuckles.append(difference(
+            cylinder(5.0, 28.0, (x, HINGE_Y, HINGE_Z), (1.0, 0.0, 0.0)),
+            [box((30.0, 10.0, 12.0),
+                 (x, KNUCKLE_INNER_Y - 5.0, HINGE_Z))]))
     body = union([body, *knuckles])
     body = difference(body, [cylinder(1.9 / 2.0, CHEST_L + 20.0,
                                       (0.0, HINGE_Y, HINGE_Z),
@@ -1488,7 +1535,10 @@ def build_lid() -> trimesh.Trimesh:
         for sx in (-1.0, 1.0)
         for profile in guide_profiles(21.8)
     ]
-    rib_x = (-80.0, -40.0, 0.0, 40.0, 80.0)
+    # No inner truss/stop pad between x 0 and 80: at full lift the platform
+    # gear train and forearm output gear (x 27..60, |y| 44..54.6) rise into
+    # the opened lid's rear sweep (all-pairs audit, theta 48..78).
+    rib_x = (-80.0, -40.0, 0.0, 80.0)
     rear_pads = [
         box(
             (12.0, spigot_wall, spigot_height),
@@ -1597,20 +1647,7 @@ def build_lid() -> trimesh.Trimesh:
     lid_segments = ((-90.0, 18.0), (-33.0, 36.0),
                     (33.0, 36.0), (90.0, 18.0))
     knuckles = [
-        difference(
-            cylinder(
-                5.0,
-                length,
-                (x, HINGE_Y, LID_H - 5.0),
-                (1.0, 0.0, 0.0),
-            ),
-            [cylinder(
-                2.0 / 2.0,
-                length + 2.0,
-                (x, HINGE_Y, LID_H - 5.0),
-                (1.0, 0.0, 0.0),
-            )],
-        )
+        cylinder(5.0, length, (x, HINGE_Y, LID_H - 5.0), (1.0, 0.0, 0.0))
         for x, length in lid_segments
     ]
     body = union([body, *knuckles])
@@ -1687,6 +1724,16 @@ def build_lid() -> trimesh.Trimesh:
     body = difference(union([body, socket]), [socket_slot])
     if not body.is_volume:
         raise RuntimeError("lid service hood broke the solid")
+    # The lid shell overlaps the knuckle cores, so the 1.75 mm filament axis
+    # is drilled once through the finished lid; the open end faces are the
+    # insertion path for the 198 mm hinge filament.  r 0.99 avoids a tangent
+    # seam with the z 18 rear-trim plane (r 1.0 leaves a non-manifold edge).
+    body = difference(body, [cylinder(
+        LID_HINGE_BORE_R, CHEST_L + 20.0, (0.0, HINGE_Y, LID_H - 5.0),
+        (1.0, 0.0, 0.0),
+    )])
+    if not body.is_volume:
+        raise RuntimeError("lid hinge bore broke the solid")
 
     components = sorted(
         body.split(only_watertight=False),

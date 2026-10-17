@@ -26,7 +26,7 @@ def render():
         chest = part("chest")
         origin = np.array([chest.bounds[:, 0].mean(),
                            chest.bounds[1, 1] - 66, 0])
-        names = ("arm-0-False", "arm-0-True", "pivot-pin-3-0-0", "slider")
+        names = ("arm-0-False", "arm-0-True", "pivot-pin-floor-0", "slider")
         actors = [vedo.Mesh(chest).color("#202124").alpha(0.25)]
         actors.extend(vedo.Mesh(part(name)).color("#F1EBDD").lighting("plastic")
                       for name in names)
