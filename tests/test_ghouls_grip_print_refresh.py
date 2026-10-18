@@ -92,7 +92,7 @@ class SavedPrintRefreshTests(unittest.TestCase):
             new_ids = {node.find("metadata[@key='object_id']").get("value")
                        for node in new.findall("model_instance")}
             self.assertTrue(old_ids <= new_ids)
-        self.assertEqual(len(new_items), 37)
+        self.assertEqual(len(new_items), len(old_model.findall("c:build/c:item", NS)))
         self.assertEqual(after, repeated)
         self.assertIn(b'xmlns:p=', after["3D/3dmodel.model"])
         self.assertIn(b"<Relationships ", after["3D/_rels/3dmodel.model.rels"])
@@ -100,6 +100,55 @@ class SavedPrintRefreshTests(unittest.TestCase):
         metadata = ET.fromstring(after["Metadata/ghouls_grip_print_metadata.xml"])
         self.assertEqual(metadata.find("metadata[@name='status']").get("value"),
                          "not-verified")
+
+    def test_refresh_adds_prunes_and_repacks_only_touched_plates(self):
+        source = ROOT / "models" / "ghouls-grip-print.3mf"
+        before = entries(source)
+        old_settings = ET.fromstring(before["Metadata/model_settings.config"])
+        names = [node.find("metadata[@key='name']").get("value")
+                 for node in old_settings.findall("object")]
+        removed = sorted(names)[0]
+        template = next(name for name in names if name != removed)
+        added = f"{template}-01"
+        parts = {name: trimesh.creation.box(extents=(4, 4, 4))
+                 for name in names if name != removed}
+        parts[added] = trimesh.creation.box(extents=(6, 5, 3))
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory) / source.name
+            shutil.copyfile(source, project)
+            refresh(project, parts, set(), prune=True)
+            after = entries(project)
+            refresh(project, parts, set(), prune=True)
+            repeated = entries(project)
+        self.assertEqual(after, repeated)
+        settings = ET.fromstring(after["Metadata/model_settings.config"])
+        by_name = {node.find("metadata[@key='name']").get("value"): node.get("id")
+                   for node in settings.findall("object")}
+        self.assertNotIn(removed, by_name)
+        self.assertIn(added, by_name)
+        self.assertEqual(set(by_name), set(parts))
+        model = ET.fromstring(after["3D/3dmodel.model"])
+        items = {node.get("objectid") for node in model.findall("c:build/c:item", NS)}
+        self.assertEqual(items, set(by_name.values()))
+        rels = after["3D/_rels/3dmodel.model.rels"].decode()
+        self.assertNotIn(f"/{removed}_", rels)
+        self.assertIn(f"/{added}_", rels)
+        self.assertFalse(any(name.startswith(f"3D/Objects/{removed}_")
+                             for name in after))
+        added_config = next(node for node in settings.findall("object")
+                            if node.get("id") == by_name[added])
+        template_config = next(node for node in old_settings.findall("object")
+                               if node.get("id") == by_name[template])
+        self.assertEqual(
+            added_config.find("metadata[@key='extruder']").get("value"),
+            template_config.find("metadata[@key='extruder']").get("value"))
+        plate_ids = [
+            {node.find("metadata[@key='object_id']").get("value")
+             for node in plate.findall("model_instance")}
+            for plate in settings.findall("plate")]
+        self.assertTrue(any(by_name[added] in ids and by_name[template] in ids
+                            for ids in plate_ids))
+        self.assertEqual(sum(len(ids) for ids in plate_ids), len(parts))
 
 
 if __name__ == "__main__":

@@ -170,12 +170,32 @@ def skull_relief(scale: float = 1.0, depth: float = 5.0) -> trimesh.Trimesh:
     return clean(relief)
 
 
-def build_drive_knob(scale: float = 1.15, shaft_d: float = 8.0) -> trimesh.Trimesh:
-    """Large skull knob with a blind press-fit socket for the drive shaft."""
+def build_drive_knob(scale: float = 1.15, shaft_d: float = 8.0,
+                     flat_depth: float = 1.0, flat_angle: float = 32.0,
+                     cross_pin_z: float = -7.4) -> trimesh.Trimesh:
+    """Large skull knob with a keyed D-socket for the drive shaft.
+
+    The blind socket (z -12..-2) takes the pinion's D-flat with 0.15 mm
+    per-side clearance.  ``flat_angle`` turns the flat so the skull faces
+    forward at the stowed stop (mechanism.KNOB_STOW_ANGLE).  A 1.75 mm
+    filament cross pin through stem and shaft at ``cross_pin_z`` holds the
+    knob axially.
+    """
+    import fdm_joints
+
     knob = build_trigger(scale=scale, stem_d=14.0, stem_len=9.0,
                          flange_d=34.0)
-    socket = cylinder((shaft_d - 0.2) / 2.0, 10.0, (0.0, 0.0, -7.0))
-    return clean(difference(knob, [socket]))
+    socket = fdm_joints.d_bore_cutter(
+        shaft_d, 10.0, flat_depth,
+        clearance=fdm_joints.CLEARANCE_CLOSE_PER_SIDE,
+        center=(0.0, 0.0, -7.0))
+    socket.apply_transform(trimesh.transformations.rotation_matrix(
+        np.deg2rad(flat_angle), (0.0, 0.0, 1.0)))
+    angle = np.deg2rad(flat_angle)
+    cross = fdm_joints.cross_pin_hole(
+        14.0, axis=(-np.sin(angle), np.cos(angle), 0.0),
+        center=(0.0, 0.0, cross_pin_z))
+    return clean(difference(knob, [socket, cross]))
 
 
 def build_trigger(scale: float = 1.0, stem_d: float = 4.0,

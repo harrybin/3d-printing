@@ -186,13 +186,12 @@ def consolidate(project: Path = PROJECT) -> None:
         )
         if connector_plate is not None and plates.index(connector_plate) != main_index + 1:
             raise ValueError("Mechanism plates are not consecutive")
-        expected_counts = (
-            (11, 16) if connector_plate is not None else (27, 0)
-        )
-        if (len(main_instances), len(connector_instances)) != expected_counts:
+        # A legacy split project has 11 + 16 parts; an already consolidated
+        # project keeps whatever the current BOM puts on the main plate.
+        if connector_plate is not None and (
+                len(main_instances), len(connector_instances)) != (11, 16):
             raise ValueError(
-                f"Expected {expected_counts[0]} main parts and "
-                f"{expected_counts[1]} connector parts; "
+                "Expected 11 main parts and 16 connector parts; "
                 f"found {len(main_instances)} and {len(connector_instances)}"
             )
 
@@ -242,9 +241,10 @@ def consolidate(project: Path = PROJECT) -> None:
                 raise ValueError(f"{name} has an invalid build transform")
             bounds = _mesh_bounds(source, outer)
             xy = _transformed_xy_bounds(bounds, transform)
+            # Ignore sub-micron float noise so re-running stays idempotent.
             extents[name] = (
-                math.ceil((xy[2] - xy[0]) * 1000.0) / 1000.0,
-                math.ceil((xy[3] - xy[1]) * 1000.0) / 1000.0,
+                math.ceil((xy[2] - xy[0]) * 1000.0 - 1e-3) / 1000.0,
+                math.ceil((xy[3] - xy[1]) * 1000.0 - 1e-3) / 1000.0,
             )
             current_bounds[name] = xy
             positions[name] = (item, transform)
@@ -356,7 +356,8 @@ def consolidate(project: Path = PROJECT) -> None:
                 output.writestr(original_infos.get(name, name), data)
     os.replace(temporary, project)
     print(
-        f"{project}: consolidated 27 natural-white parts onto one plate; "
+        f"{project}: consolidated {len(object_ids)} natural-white parts onto "
+        f"one plate; "
         f"{len(settings.findall('plate'))} plates, {len(names)} objects"
     )
 

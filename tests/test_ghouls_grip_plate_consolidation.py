@@ -52,7 +52,7 @@ class MechanismPlateConsolidationTests(unittest.TestCase):
                 "metadata[@key='plater_name']").get("value")
         )
         instances = mechanism_plate.findall("model_instance")
-        self.assertEqual(len(instances), 27)
+        self.assertEqual(len(instances), 31)
         object_configs = {
             obj.get("id"): obj for obj in settings.findall("object")
         }
@@ -119,8 +119,8 @@ class MechanismPlateConsolidationTests(unittest.TestCase):
             instance.find("metadata[@key='object_id']").get("value")
             for plate in plates for instance in plate.findall("model_instance")
         ]
-        self.assertEqual(len(assigned), 37)
-        self.assertEqual(len(set(assigned)), 37)
+        self.assertEqual(len(assigned), 41)
+        self.assertEqual(len(set(assigned)), 41)
 
 
 if __name__ == "__main__":

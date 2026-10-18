@@ -313,12 +313,12 @@ def place(mesh: trimesh.Trimesh, translation, rotations=()) -> trimesh.Trimesh:
 PART_MATERIAL = {
     "chest": BLACK, "lid": BLACK,
     "scissor-arm": MECH, "slider": MECH, "platform": MECH,
-    "drive-pinion": MECH, "lid-rack": MECH,
-    "lid-follower-rack": MECH, "lid-crank": MECH,
+    "drive-pinion": MECH,
+    "lid-follower-rack": MECH, "lid-crank": MECH, "crank-spacer": MECH,
     "lid-transfer-gear": MECH,
     "scissor-drive-gear": MECH, "idler-gear": MECH,
     "forearm-output-gear": MECH,
-    "pivot-pin-3": MECH,
+    **{f"pivot-pin-{variant}": MECH for variant in mechanism.PIN_GRIPS},
     "drive-skull-knob": ACCENT,
     "forearm": BONE, "hand-palm": BONE,
 }
@@ -326,7 +326,8 @@ PART_MATERIAL = {
 PRINT_QUANTITIES = {
     "scissor-arm": 4,
     "idler-gear": 3,
-    "pivot-pin-3": 10,
+    **{f"pivot-pin-{variant}": count
+       for variant, count in mechanism.PIN_QUANTITIES.items() if count > 1},
     "lid-transfer-gear": 2,
 }
 
@@ -335,7 +336,9 @@ def build_parts() -> dict:
     parts = {"chest": build_chest(), "lid": build_lid()}
     for name, fn in mechanism.PARTS.items():
         parts[name] = fn()
-    parts["pivot-pin-3"] = mechanism.build_pin(3.0, 26.0)
+    for variant in mechanism.PIN_GRIPS:
+        parts[f"pivot-pin-{variant}"] = mechanism.pin_print_pose(
+            mechanism.build_pin_variant(variant))
     parts["drive-skull-knob"] = build_drive_knob(
         shaft_d=mechanism.DRIVE_SHAFT_D)
     skeleton = load_skeleton()
@@ -567,8 +570,10 @@ def main() -> None:
     print_parts = expand_print_parts(parts)
     if OUT_PRINT_3MF.exists():
         from refresh_ghouls_grip_print_geometry import refresh
-        refresh(OUT_PRINT_3MF, print_parts,
-                {"chest", "lid", "lid-follower-rack", "lid-crank"})
+        # Every BOM part is offered; identical meshes are no-ops, new pin
+        # variants are added and superseded parts (lid-rack, old Ø3 pins)
+        # are pruned while the user's Orca settings stay untouched.
+        refresh(OUT_PRINT_3MF, print_parts, set(print_parts), prune=True)
         print_projects = [OUT_PRINT_3MF]
     else:
         from export_ghouls_grip_orca_projects import export_print_project

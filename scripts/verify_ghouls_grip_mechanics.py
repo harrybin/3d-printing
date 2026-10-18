@@ -70,12 +70,18 @@ def gear_centres(theta: float) -> list[np.ndarray]:
 
 
 def lid_link_pin(theta: float) -> np.ndarray:
-    rise = mechanism.RETRACTED_SLIDER_X - mechanism.slider_x(theta)
+    """World centre of the follower cross pin riding the slider cam."""
     return np.array([
-        -mechanism.DRIVE_PITCH_R,
-        mechanism.LID_LINK_FRONT_Y,
-        mechanism.LID_LINK_PIN_Z + min(rise, mechanism.LID_OPEN_TRAVEL),
+        mechanism.FOLLOWER_X,
+        53.0,
+        mechanism.FOLLOWER_PIN_Z + mechanism.lid_follower_rise(theta),
     ])
+
+
+def cam_path_z(rel_x: float) -> float:
+    """Cam slot centreline height at slider-local x (piecewise linear)."""
+    path = np.asarray(mechanism.slider_cam_path(), dtype=float)
+    return float(np.interp(rel_x, path[:, 0], path[:, 1]))
 
 
 def check() -> dict:
@@ -88,11 +94,12 @@ def check() -> dict:
     min_slot_margin = 999.0
     min_lid_pin_margin = 999.0
 
-    slot_min, slot_max = -26.0, 42.0
-    lid_slot_low = 40.0 - (
-        mechanism.SLIDER_TRAVEL - mechanism.LID_OPEN_TRAVEL
-    ) - 4.0
-    lid_slot_high = 44.0
+    # Platform slot centreline (local x) and the slider cam path ends.
+    slot_min = mechanism.slider_x(mechanism.THETA_MAX) \
+        + mechanism.PLATFORM_PIN_X - 1.0
+    slot_max = mechanism.slider_x(mechanism.THETA_MIN) \
+        + mechanism.PLATFORM_PIN_X + 1.0
+    cam_path = np.asarray(mechanism.slider_cam_path(), dtype=float)
     for theta in np.linspace(mechanism.THETA_MIN, mechanism.THETA_MAX, 31):
         rad = np.deg2rad(theta)
         moving_x = mechanism.slider_x(theta)
@@ -121,16 +128,17 @@ def check() -> dict:
         max_drive_error = max(max_drive_error, abs(travel - drive_travel))
 
         pin = lid_link_pin(float(theta))
-        rack_translation_z = mechanism.LID_LINK_PIN_Z - 40.0 + travel
-        rack_local_x = pin[2] - rack_translation_z
-        used = min(travel, mechanism.LID_OPEN_TRAVEL)
+        rel_x = pin[0] - moving_x
+        # The follower pin must sit on the cam centreline, inside its ends.
+        used = pin[2] - mechanism.FOLLOWER_PIN_Z
+        cam_error = abs(pin[2] - cam_path_z(rel_x))
         sector_arc = abs(np.deg2rad(mechanism.lid_angle(float(theta)))) \
             * mechanism.LID_SECTOR_R
-        max_lid_error = max(max_lid_error, abs(used - sector_arc))
+        max_lid_error = max(max_lid_error, abs(used - sector_arc), cam_error)
         min_lid_pin_margin = min(
             min_lid_pin_margin,
-            rack_local_x - lid_slot_low - 3.0,
-            lid_slot_high - rack_local_x - 3.0,
+            rel_x - cam_path[0, 0],
+            cam_path[-1, 0] - rel_x,
         )
         samples.append({
             "theta": float(theta),
@@ -376,12 +384,6 @@ def check() -> dict:
                 named["slider"], named["chest"]
             ),
             "lid_chest": volume_intersection(named["lid"], named["chest"]),
-            "lid_rack_lid": volume_intersection(
-                named["lid-rack"], named["lid"]
-            ),
-            "lid_rack_chest": volume_intersection(
-                named["lid-rack"], named["chest"]
-            ),
             "lid_yoke_lid": volume_intersection(
                 named["lid-follower-rack"], named["lid"]
             ),

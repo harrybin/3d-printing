@@ -35,12 +35,12 @@ class SkullGeometryTests(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             rear_socket = float(intersection([
-                self.knob, cylinder(3.6, 7.0, (0.0, 0.0, -8.0))
+                self.knob, cylinder(3.0, 7.0, (0.0, 0.0, -8.0))
             ]).volume)
         socket_floor = float(intersection([
             self.knob, cylinder(3.0, 1.0, (0.0, 0.0, -1.0))
         ]).volume)
-        self.assertLess(rear_socket, 1.0, "Ø7.8 mm shaft socket must remain open")
+        self.assertLess(rear_socket, 1.0, "D-flat Ø8 shaft socket must remain open")
         self.assertGreater(socket_floor, 20.0, "shaft socket must remain blind")
 
     def test_zygomatic_buttresses_are_present_beside_the_orbits(self) -> None:

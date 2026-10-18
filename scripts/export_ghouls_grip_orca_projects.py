@@ -113,15 +113,14 @@ OBJECT_OVERRIDES = {
     "drive-pinion": {
         "wall_loops": "5", "sparse_infill_density": "30%",
     },
-    "lid-rack": {
-        "wall_loops": "5", "sparse_infill_density": "25%",
-        "enable_support": "1",
-    },
     "lid-follower-rack": {
         "wall_loops": "5", "sparse_infill_density": "25%",
         "enable_support": "1",
     },
     "lid-crank": {
+        "wall_loops": "5", "sparse_infill_density": "100%",
+    },
+    "crank-spacer": {
         "wall_loops": "5", "sparse_infill_density": "100%",
     },
     "scissor-drive-gear": {
@@ -134,8 +133,12 @@ OBJECT_OVERRIDES = {
         "wall_loops": "6", "sparse_infill_density": "50%",
         "enable_support": "1",
     },
-    "pivot-pin-3": {
-        "wall_loops": "6", "sparse_infill_density": "100%",
+    **{
+        f"pivot-pin-{variant}": {
+            "wall_loops": "6", "sparse_infill_density": "100%",
+        }
+        for variant in ("floor", "slider", "centre", "gear", "short",
+                        "idler", "follower")
     },
     "forearm": {"wall_loops": "4", "sparse_infill_density": "25%"},
     "hand-palm": {"wall_loops": "4", "sparse_infill_density": "25%"},

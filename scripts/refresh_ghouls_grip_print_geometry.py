@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import copy
+import math
 import os
+import re
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from zipfile import ZipFile
@@ -16,6 +18,9 @@ REL = "http://schemas.openxmlformats.org/package/2006/relationships"
 NS = {"c": CORE}
 ET.register_namespace("", CORE)
 ET.register_namespace("p", PRODUCTION)
+BED = 250.0
+PLATE_PITCH = 300.0
+PACK_GAP = 5.0
 
 
 def surface(vertices, faces) -> bytes:
@@ -28,7 +33,30 @@ def surface(vertices, faces) -> bytes:
     return flat[np.lexsort(flat.T[::-1])].astype(np.float64).tobytes()
 
 
-def refresh(project: Path, print_parts: dict, changed: set[str]) -> None:
+def pack(sizes: dict) -> dict:
+    """Shelf-pack XY footprints on one bed; raise when they cannot fit."""
+    placements, x, y, row = {}, 0.0, 0.0, 0.0
+    for key in sorted(sizes, key=lambda k: (-sizes[k][1], -sizes[k][0], k)):
+        width, depth = (float(value) for value in sizes[key])
+        if x > 0.0 and x + width > BED:
+            x, y, row = 0.0, y + row + PACK_GAP, 0.0
+        if x + width > BED or y + depth > BED:
+            raise ValueError(f"plate overflow while packing {key}")
+        placements[key] = (x, y)
+        x += width + PACK_GAP
+        row = max(row, depth)
+    return placements
+
+
+def refresh(project: Path, print_parts: dict, changed: set[str],
+            prune: bool = False) -> None:
+    """Refresh saved meshes, add new BOM parts and optionally prune old ones.
+
+    Only ``changed`` meshes are replaced. Parts absent from the project are
+    added beside a template of the same kind; with ``prune`` saved objects
+    that left the source BOM are removed. Plates are re-packed only when
+    their membership changed or a resized part overlaps or leaves the bed.
+    """
     with ZipFile(project) as archive:
         infos = archive.infolist()
         entries = {info.filename: archive.read(info.filename) for info in infos}
@@ -70,6 +98,13 @@ def refresh(project: Path, print_parts: dict, changed: set[str]) -> None:
             centered = centered + up * offset / np.dot(up, up)
         if surface(old_vertices, old_faces) == surface(centered, mesh.faces):
             return
+        # Same topology within export rounding noise is not a geometry change;
+        # keeping the saved payload avoids churn in untouched parts.
+        if (len(old_faces) == len(mesh.faces)
+                and len(old_vertices) == len(centered)
+                and np.array_equal(np.asarray(old_faces), mesh.faces)
+                and np.max(np.abs(np.asarray(old_vertices) - centered)) <= 0.002):
+            return
         target.clear()
         vertices = ET.SubElement(target, f"{{{CORE}}}vertices")
         for x, y, z in centered:
@@ -81,9 +116,41 @@ def refresh(project: Path, print_parts: dict, changed: set[str]) -> None:
                           v1=str(a), v2=str(b), v3=str(c))
         entries[entry] = ET.tostring(root, encoding="utf-8", xml_declaration=True)
 
+    rels = ET.fromstring(entries["3D/_rels/3dmodel.model.rels"])
+    plates = settings.findall("plate")
+    columns = max(1, math.ceil(math.sqrt(len(plates))))
+
+    def mesh_entry(obj) -> str:
+        component = obj.find("c:components/c:component", NS)
+        return component.get(f"{{{PRODUCTION}}}path").lstrip("/")
+
+    def footprint(object_id: str):
+        item = next(node for node in build if node.get("objectid") == object_id)
+        matrix = np.asarray([float(v) for v in item.get("transform").split()])
+        rotation = matrix[:9].reshape((3, 3))
+        root = ET.fromstring(entries[mesh_entry(objects[object_id])])
+        vertices = np.asarray([
+            [float(node.get(axis)) for axis in ("x", "y", "z")]
+            for node in root.findall(".//c:vertex", NS)
+        ]) @ rotation
+        return item, matrix, vertices.min(axis=0), vertices.max(axis=0)
+
+    def overlap(a, b) -> float:
+        size = np.minimum(a[1], b[1]) - np.maximum(a[0], b[0])
+        return float(np.prod(np.clip(size, 0.0, None)))
+
+    old_xy = {}
+    for object_id in objects:
+        _item, matrix, low, high = footprint(object_id)
+        old_xy[object_id] = (low[:2] + matrix[9:11], high[:2] + matrix[9:11])
+    changed_ids = set()
+
     for name in changed:
-        if name not in configs or name not in print_parts:
-            raise ValueError(f"Missing saved/source part: {name}")
+        if name not in print_parts:
+            raise ValueError(f"Missing source part: {name}")
+        if name not in configs:
+            continue
+        changed_ids.add(configs[name].get("id"))
         obj = objects[configs[name].get("id")]
         component = obj.find("c:components/c:component", NS)
         item = next(node for node in build
@@ -92,52 +159,43 @@ def refresh(project: Path, print_parts: dict, changed: set[str]) -> None:
                      print_parts[name],
                      item.get("transform", "1 0 0 0 1 0 0 0 1 0 0 0"))
 
-    # Add only the new transfer gears to free space on the existing connector
-    # plate. Every original build transform and process override stays intact.
-    connector = next(
-        plate for plate in settings.findall("plate")
-        if any(instance.find("metadata[@key='object_id']").get("value")
-               == configs["idler-gear-01"].get("id")
-               for instance in plate.findall("model_instance"))
-    )
-    template_config = configs["lid-crank"]
-    template_obj = objects[template_config.get("id")]
-    template_component = template_obj.find("c:components/c:component", NS)
-    template_entry = template_component.get(f"{{{PRODUCTION}}}path").lstrip("/")
-    template_data = entries[template_entry]
-    rels = ET.fromstring(entries["3D/_rels/3dmodel.model.rels"])
+    def plate_of(object_id: str):
+        return next((plate for plate in plates
+                     if any(instance.find("metadata[@key='object_id']")
+                            .get("value") == object_id
+                            for instance in plate.findall("model_instance"))),
+                    None)
+
+    touched_plates: set[int] = set()
+
+    # Add source parts missing from the project. Each new object clones the
+    # Orca object config of the closest saved part of the same kind so its
+    # filament mapping and per-object process overrides stay consistent.
+    # Adding runs before pruning so replaced variants (old pin names) can
+    # still serve as templates for their successors.
+    def template_for(name: str) -> str:
+        base = re.sub(r"-\d{2}$", "", name)
+        candidates = [key for key in configs if key.startswith(base)]
+        if not candidates:
+            kind = name.split("-")[0]
+            candidates = [key for key in configs if key.startswith(kind)]
+        if not candidates:
+            candidates = ["lid-crank"] if "lid-crank" in configs else sorted(configs)
+        return sorted(candidates)[0]
+
     next_id = max(int(key) for key in objects) + 2
-    # Keep the new objects consistent with Orca's ID-encoded production UUIDs.
-    for index, name in enumerate(("lid-transfer-gear-01", "lid-transfer-gear-02")):
-        if name in configs:
-            obj = objects[configs[name].get("id")]
-            component = obj.find("c:components/c:component", NS)
-            object_id = int(obj.get("id"))
-            number = object_id // 2
-            entry = component.get(f"{{{PRODUCTION}}}path").lstrip("/")
-            obj.set(f"{{{PRODUCTION}}}UUID",
-                    f"{number:08x}-61cb-4c03-9d28-80fed5dfa1dc")
-            component.set(f"{{{PRODUCTION}}}UUID",
-                          f"{number:04x}0000-b206-40ff-9872-83e8017abed1")
-            item = next(node for node in build
-                        if node.get("objectid") == str(object_id))
-            item.set(f"{{{PRODUCTION}}}UUID",
-                     f"{object_id:08x}-b1ec-4553-aec9-835e5b724bb4")
-            mesh_root = ET.fromstring(entries[entry])
-            mesh_root.find("c:resources/c:object", NS).set(
-                f"{{{PRODUCTION}}}UUID",
-                f"{number:04x}0000-81cb-4c03-9d28-80fed5dfa1dc")
-            entries[entry] = ET.tostring(mesh_root, encoding="utf-8",
-                                         xml_declaration=True)
-            replace_mesh(entry, print_parts[name])
-            continue
+    for name in [key for key in print_parts if key not in configs]:
+        template_config = configs[template_for(name)]
+        template_obj = objects[template_config.get("id")]
+        template_data = entries[mesh_entry(template_obj)]
+        plate = plate_of(template_config.get("id"))
         mesh_id, object_id = next_id - 1, next_id
         next_id += 2
+        number = object_id // 2
         entry = f"3D/Objects/{name}_{mesh_id}.model"
         mesh_root = ET.fromstring(template_data)
         mesh_object = mesh_root.find("c:resources/c:object", NS)
         mesh_object.set("id", str(mesh_id))
-        number = object_id // 2
         mesh_object.set(f"{{{PRODUCTION}}}UUID",
                         f"{number:04x}0000-81cb-4c03-9d28-80fed5dfa1dc")
         entries[entry] = ET.tostring(mesh_root, encoding="utf-8")
@@ -152,12 +210,11 @@ def refresh(project: Path, print_parts: dict, changed: set[str]) -> None:
         component.set(f"{{{PRODUCTION}}}UUID",
                       f"{number:04x}0000-b206-40ff-9872-83e8017abed1")
         resources.append(obj)
-        # Connector plate has its approved global origin at (0,-300).
-        x, y = 45.0 + index * 24.0, -225.0
+        objects[str(object_id)] = obj
         z = float(print_parts[name].extents[2] / 2.0)
         ET.SubElement(build, f"{{{CORE}}}item", {
             "objectid": str(object_id),
-            "transform": f"1 0 0 0 1 0 0 0 1 {x} {y} {z}",
+            "transform": f"1 0 0 0 1 0 0 0 1 0 0 {z}",
             "printable": "1", "auto_drop": "1",
             f"{{{PRODUCTION}}}UUID":
                 f"{object_id:08x}-b1ec-4553-aec9-835e5b724bb4",
@@ -175,13 +232,96 @@ def refresh(project: Path, print_parts: dict, changed: set[str]) -> None:
             elif key.startswith("source_offset_"):
                 element.set("value", "0")
         settings.insert(0, config)
-        instance = ET.SubElement(connector, "model_instance")
-        for key, value in (("object_id", str(object_id)), ("instance_id", "0"),
-                           ("identify_id", str(object_id))):
-            ET.SubElement(instance, "metadata", key=key, value=value)
+        configs[name] = config
+        if plate is not None:
+            touched_plates.add(plates.index(plate))
+            instance = ET.SubElement(plate, "model_instance")
+            for key, value in (("object_id", str(object_id)),
+                               ("instance_id", "0"),
+                               ("identify_id", str(object_id))):
+                ET.SubElement(instance, "metadata", key=key, value=value)
         ET.SubElement(rels, f"{{{REL}}}Relationship", Target="/" + entry,
-                      Id=f"rel-transfer-{index + 1}",
+                      Id=f"rel-{object_id}",
                       Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel")
+
+    # Remove saved objects whose part no longer exists in the source BOM.
+    if prune:
+        for name in sorted(set(configs) - set(print_parts)):
+            config = configs.pop(name)
+            object_id = config.get("id")
+            obj = objects.pop(object_id)
+            entry = mesh_entry(obj)
+            plate = plate_of(object_id)
+            if plate is not None:
+                touched_plates.add(plates.index(plate))
+                for instance in list(plate.findall("model_instance")):
+                    if (instance.find("metadata[@key='object_id']").get("value")
+                            == object_id):
+                        plate.remove(instance)
+            resources.remove(obj)
+            for item in [node for node in build
+                         if node.get("objectid") == object_id]:
+                build.remove(item)
+            settings.remove(config)
+            for relation in list(rels):
+                if relation.get("Target", "").lstrip("/") == entry:
+                    rels.remove(relation)
+            entries.pop(entry, None)
+
+    # Orca aborts loading when an assemble_item names a deleted object, and
+    # objects without an entry lose their assembly-view pose.
+    assemble = settings.find("assemble")
+    if assemble is not None:
+        for item in list(assemble):
+            if item.get("object_id") not in objects:
+                assemble.remove(item)
+        listed = {item.get("object_id") for item in assemble}
+        for node in build:
+            object_id = node.get("objectid")
+            if object_id in objects and object_id not in listed:
+                ET.SubElement(assemble, "assemble_item", {
+                    "object_id": object_id, "instance_id": "0",
+                    "transform": node.get(
+                        "transform", "1 0 0 0 1 0 0 0 1 0 0 0"),
+                    "offset": "0 0 0",
+                })
+
+    # Plates whose membership changed, or whose resized parts now overlap
+    # neighbours more than before or leave the bed, are re-packed. Untouched
+    # plates keep the user's arrangement.
+    for index, plate in enumerate(plates):
+        origin = np.asarray([(index % columns) * PLATE_PITCH,
+                             -(index // columns) * PLATE_PITCH])
+        ids = [instance.find("metadata[@key='object_id']").get("value")
+               for instance in plate.findall("model_instance")]
+        boxes = {}
+        for object_id in ids:
+            item, matrix, low, high = footprint(object_id)
+            boxes[object_id] = (item, matrix, low, high,
+                                low[:2] + matrix[9:11], high[:2] + matrix[9:11])
+        valid = True
+        for object_id in changed_ids & set(boxes):
+            lo, hi = boxes[object_id][4], boxes[object_id][5]
+            if np.any(lo - origin < -1e-3) or np.any(hi - origin > BED + 1e-3):
+                valid = False
+            for other in boxes:
+                if other == object_id:
+                    continue
+                before = (overlap(old_xy[object_id], old_xy[other])
+                          if other in old_xy else 0.0)
+                after = overlap((lo, hi), (boxes[other][4], boxes[other][5]))
+                if after > before + 1.0:
+                    valid = False
+        if valid and index not in touched_plates:
+            continue
+        placements = pack(
+            {key: boxes[key][3][:2] - boxes[key][2][:2] for key in boxes})
+        for object_id, (x, y) in placements.items():
+            item, matrix, low, _high, *_ = boxes[object_id]
+            matrix[9] = origin[0] + x - low[0]
+            matrix[10] = origin[1] + y - low[1]
+            matrix[11] = -low[2]
+            item.set("transform", " ".join(f"{value:.6f}" for value in matrix))
 
     for plate in settings.findall("plate"):
         for metadata in plate.findall("metadata"):

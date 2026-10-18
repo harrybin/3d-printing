@@ -182,6 +182,7 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Treat a reference mesh as shape evidence, not as a finished printable mechanism. Re-rig, segment, thicken, fuse and add sockets/flexures parametrically while preserving the recognizable source anatomy.
 - Separate visual and mechanical reconstruction: organic parts may reuse researched meshes, while pivots, rails, latches, stops and clearances must come from explicit dimensions and equations.
 - A moving assembly is not complete after static mesh validation. Sample the full motion range, solve every pivot analytically, and run manifold intersection-volume checks against fixed parts and adjacent moving parts. Record a PASS/FAIL report under `docs/`.
+- For every multi-part mechanism, run the "Mechanism and assembly audit" from `reversible-fdm-joints`: BOM-vs-scene completeness, all-pairs collision sweep (not a whitelist), fit clearances including print inaccuracy, gear backlash, positive pin/snap retention, and insertion sweeps for the full assembly order.
 - Verify both end states: the deployed state must clear the enclosure and lid; the retracted state must fit wholly inside the usable cavity with explicit minimum margins. Render both states.
 - Replace any solid tray, bridge or decorative body that crosses the swept volume with an open yoke/frame or another structurally bounded rebuild; never hide a collision in the closed render.
 - Put hinges on the physically correct edge and verify their rotation axis against the reference image before detailing the shell.
@@ -259,6 +260,7 @@ If behavior around print constraints, validation policy, or coordinate targeting
 | Delivered-project support minimization | exact final STL/3MF plus fixed Kobra S1 profiles | `orcaslicer-support-minimization` | `orcaslicer-project-workflow`, `optimize-stl-for-print`, `orcaslicer-print-validation` | Compare bounded absolute datum rotations sequentially, preserve material/plate semantics, save orientation in 3MF, and leave geometry changes as suggestions until separately approved at the source model. |
 | Final slice evidence | successful OrcaSlicer project slice | `orcaslicer-print-validation` | `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Never claim print time or final print readiness without a successful slice. |
 | Complex 3MF packaging | assembled view plus complete print BOM | `multimaterial-assembly-packaging` | `stl-create-edit-interview`, `optimize-stl-for-print` | Deliver exactly one multi-state `-view.3mf` and one settings-bearing `-print.3mf`; group same-color parts on shared plates and add plates as needed. |
+| Mechanism and assembly audit | scripted all-pairs sweep plus PASS/FAIL report in `docs/` | `reversible-fdm-joints` | `validate-stl-mesh`, `multimaterial-assembly-packaging` | No unintended collision at any pose, no missing/extra BOM part, every pin positively retained, every fit and gear backlash sized for print inaccuracy, every assembly step has a free insertion path. |
 
 ## Session-Learned Friction To Avoid
 

@@ -45,16 +45,19 @@ class ContinuousWallTests(unittest.TestCase):
             self.assertAlmostEqual(overlap(self.chest, probe),
                                    probe.volume, delta=0.002)
 
+    def follower_at(self, rise: float):
+        follower = self.rack.copy()
+        follower.apply_transform(np.linalg.inv(m.FOLLOWER_PRINT_MATRIX))
+        follower.apply_translation([0.0, 0.0, rise])
+        return follower
+
     def test_whole_follower_translation_envelope_is_inside(self):
-        start = self.rack.copy()
-        start.apply_transform(trimesh.transformations.rotation_matrix(
-            -np.pi / 2.0, [0, 1, 0]))
-        start.apply_translation([-m.DRIVE_PITCH_R, m.LID_LINK_FRONT_Y, 90.0])
-        end = start.copy()
-        end.apply_translation([0, 0, m.LID_OPEN_TRAVEL])
-        envelope = trimesh.util.concatenate([start, end]).convex_hull
-        self.assertLess(overlap(envelope, self.chest), 0.001)
-        self.assertLess(envelope.bounds[1, 1], 58.0 - m.FIT)
+        # The follower runs inside the chest's guide channel, so check the
+        # swept positions individually instead of a convex hull.
+        for rise in np.linspace(0.0, m.LID_OPEN_TRAVEL, 15):
+            follower = self.follower_at(rise)
+            self.assertLess(overlap(follower, self.chest), 0.001, rise)
+            self.assertLess(follower.bounds[1, 1], 58.0 - m.FIT)
 
     def test_transfer_gears_and_rack_clear_through_lid_opening(self):
         for rise in np.linspace(0, m.LID_OPEN_TRAVEL, 109):
@@ -64,11 +67,7 @@ class ContinuousWallTests(unittest.TestCase):
                 place_gear(self.gear, m.LID_IDLER_Y, -angle),
                 place_gear(self.crank, m.LID_HINGE_Y, angle),
             ]
-            rack = self.rack.copy()
-            rack.apply_transform(trimesh.transformations.rotation_matrix(
-                -np.pi / 2.0, [0, 1, 0]))
-            rack.apply_translation([-m.DRIVE_PITCH_R, m.LID_LINK_FRONT_Y,
-                                    90.0 + rise])
+            rack = self.follower_at(rise)
             self.assertLess(overlap(gears[0], gears[1]), 0.001)
             self.assertLess(overlap(gears[1], gears[2]), 0.001)
             self.assertLess(overlap(gears[0], rack), 0.001)

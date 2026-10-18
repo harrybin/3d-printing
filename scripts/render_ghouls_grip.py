@@ -54,16 +54,44 @@ def rot(angle_deg: float, axis, point=(0.0, 0.0, 0.0)):
 
 
 def lay_arm(mesh: trimesh.Trimesh, theta: float, y: float,
-            mirrored: bool) -> trimesh.Trimesh:
-    """Stand a flat printed arm up in the XZ plane at the given angle."""
+            mirrored: bool, flip: bool = False) -> trimesh.Trimesh:
+    """Stand a flat printed arm up in the XZ plane at the given angle.
+
+    The printed top face (pin counterbores) ends up facing +Y; ``flip``
+    turns the arm over about its long axis first so that face looks -Y.
+    """
     arm = mesh.copy()
     arm.apply_translation([0.0, 0.0, -mesh.extents[2] / 2.0])
+    if flip:
+        arm.apply_transform(rot(180.0, [1, 0, 0]))
     arm.apply_transform(rot(-90.0, [1, 0, 0]))
     arm.apply_transform(rot(-(180.0 - theta) if mirrored else -theta, [0, 1, 0]))
     mid_x = FLOOR_PIVOT[0] + ARM_L * np.cos(np.deg2rad(theta)) / 2.0
     mid_z = FLOOR_PIVOT[1] + ARM_L * np.sin(np.deg2rad(theta)) / 2.0
     arm.apply_translation([mid_x, y, mid_z])
     return arm
+
+
+# The forearm D-socket sits 4 mm down the output-gear shaft (forearm-local z).
+FOREARM_SEAT_Z = -4.0
+
+# Skull knob: the stem face stops 0.4 mm short of the chest bearing boss.
+KNOB_STEM_LEN = 12.0
+KNOB_STEM_FACE_Y = -64.4
+
+PIN_ROLE_VARIANT = {
+    "floor": "floor", "slider": "slider", "centre": "centre",
+    "fixed": "gear", "slot": "short",
+}
+
+
+def place_pin(variant: str, x: float, y_head: float, z: float,
+              direction: float) -> trimesh.Trimesh:
+    """Snap pin with its head underside at ``y_head`` pointing along +-Y."""
+    pin = source_mesh(mechanism.build_pin_variant, variant=variant)
+    pin.apply_transform(rot(-90.0 if direction > 0 else 90.0, [1, 0, 0]))
+    pin.apply_translation([x, y_head, z])
+    return pin
 
 
 def tube_between(start, end, radius: float) -> trimesh.Trimesh:
@@ -127,6 +155,14 @@ def build_scene_at(theta: float):
     ])
     items.append(("lid-crank", lid_crank, MECHANISM_COLOR))
 
+    spacer = source_mesh(mechanism.build_crank_spacer)
+    spacer.apply_transform(rot(90.0, [0, 1, 0]))
+    spacer.apply_translation([
+        -mechanism.DRIVE_PITCH_R - 0.1 - mechanism.CRANK_SPACER_LEN,
+        HINGE_Y, HINGE_Z,
+    ])
+    items.append(("crank-spacer", spacer, MECHANISM_COLOR))
+
     for name, y, angle in (
         ("lid-transfer-input", mechanism.LID_TRANSFER_Y, opening),
         ("lid-transfer-idler", mechanism.LID_IDLER_Y, -opening),
@@ -143,67 +179,79 @@ def build_scene_at(theta: float):
 
     drive_rotation = mechanism.drive_angle(theta)
     pinion = source_mesh(mechanism.build_drive_pinion)
-    pinion.apply_transform(rot(drive_rotation, [0, 0, 1]))
+    pinion.apply_transform(rot(-drive_rotation, [0, 0, 1]))
     pinion.apply_transform(rot(90.0, [1, 0, 0]))
-    pinion.apply_translation(mechanism.DRIVE_AXIS)
+    pinion.apply_translation(
+        mechanism.DRIVE_AXIS
+        + np.array([0.0, mechanism.DRIVE_GEAR_Y[0]
+                    - mechanism.DRIVE_AXIS[1], 0.0]))
     items.append(("drive-pinion", pinion, MECHANISM_COLOR))
 
-    knob_angle = mechanism.KNOB_STOW_ANGLE - drive_rotation
+    knob_angle = mechanism.KNOB_STOW_ANGLE + drive_rotation
     knob = source_mesh(build_drive_knob, shaft_d=mechanism.DRIVE_SHAFT_D)
     knob.apply_transform(rot(90.0, [1, 0, 0]))
     knob.apply_transform(rot(knob_angle, [0, 1, 0]))
-    knob.apply_translation(mechanism.DRIVE_AXIS + np.array([0.0, -17.0, 0.0]))
+    knob.apply_translation(mechanism.DRIVE_AXIS + np.array(
+        [0.0, KNOB_STEM_FACE_Y - KNOB_STEM_LEN - mechanism.DRIVE_AXIS[1],
+         0.0]))
     items.append(("drive-skull-knob", knob, ACCENT_COLOR))
 
-    lid_rack = source_mesh(mechanism.build_lid_rack)
-    lid_rack.apply_transform(rot(-90.0, [0, 1, 0]))
-    drive_rise = mechanism.RETRACTED_SLIDER_X - slider_x
-    lid_rack.apply_translation([
-        -mechanism.DRIVE_PITCH_R,
-        mechanism.DRIVE_AXIS[1],
-        mechanism.LID_LINK_PIN_Z - 40.0 + drive_rise,
-    ])
-    items.append(("lid-rack", lid_rack, MECHANISM_COLOR))
-
+    rise = mechanism.lid_follower_rise(theta)
     follower = source_mesh(mechanism.build_lid_follower_rack)
-    follower.apply_transform(rot(-90.0, [0, 1, 0]))
-    follower.apply_translation([
-        -mechanism.DRIVE_PITCH_R,
-        mechanism.LID_LINK_FRONT_Y,
-        mechanism.LID_LINK_PIN_Z + 20.0
-        + min(drive_rise, mechanism.LID_OPEN_TRAVEL),
-    ])
+    follower.apply_transform(np.linalg.inv(mechanism.FOLLOWER_PRINT_MATRIX))
+    follower.apply_translation([0.0, 0.0, rise])
     items.append(("lid-follower-rack", follower, MECHANISM_COLOR))
 
     arm = source_mesh(mechanism.build_scissor_arm)
     for i, y in enumerate((-SCISSOR_Y, SCISSOR_Y)):
+        side = np.sign(y)
         for mirrored in (False, True):
-            off = 3.0 if mirrored else -3.0
+            # True arms (slider -> fixed pin) run outboard (u 41..45), False
+            # arms (floor -> slot) inboard (u 35..39) on both planes.  The
+            # -Y arms are flipped so every counterbore faces outboard.
+            off = side * 3.0 if mirrored else -side * 3.0
             items.append((f"arm-{i}-{mirrored}",
-                          lay_arm(arm, theta, y + off, mirrored), MECHANISM_COLOR))
+                          lay_arm(arm, theta, y + off, mirrored,
+                                  flip=side < 0), MECHANISM_COLOR))
 
-    # The master assembly includes the real removable scissor pins. Without
-    # them the aligned holes look plausible but do not communicate how the
-    # mechanism is actually retained after printing.
-    scissor_pin_points = (
-        (FLOOR_PIVOT[0], FLOOR_PIVOT[1]),
-        (slider_x, FLOOR_PIVOT[1]),
-        (slider_x / 2.0, FLOOR_PIVOT[1] + lift / 2.0),
-        (FLOOR_PIVOT[0], FLOOR_PIVOT[1] + lift),
+    top = FLOOR_PIVOT[1] + lift
+    gear_start_local, idler_local, gear_end_local = (
+        mechanism.forearm_gear_centres()
     )
+    # (variant, x, z, head-underside |y|, direction in |y|, planes)
+    pin_specs = [
+        ("floor", FLOOR_PIVOT[0], FLOOR_PIVOT[1], 30.0, 1.0),
+        ("slider", slider_x, FLOOR_PIVOT[1], 36.6, 1.0),
+        ("centre", slider_x / 2.0, FLOOR_PIVOT[1] + lift / 2.0, 35.0, 1.0),
+        ("fixed", FLOOR_PIVOT[0], top, 36.6, 1.0),
+        ("slot", slider_x, top, 30.6, 1.0),
+    ]
     for plane, y in enumerate((-SCISSOR_Y, SCISSOR_Y)):
-        for index, (x, z) in enumerate(scissor_pin_points):
-            pin = mechanism.build_pin(3.0, 26.0)
-            # The floor yoke is loaded from the open centre, not through the
-            # closed outer wall. Mirror its positive-side pin head inboard.
-            inboard = index == 0 and y > 0
-            pin.apply_transform(rot(-90.0 if inboard else 90.0, [1, 0, 0]))
-            pin.apply_translation([x, y - 13.0 if inboard else y + 13.0, z])
+        side = np.sign(y)
+        for role, x, z, u_head, direction in pin_specs:
+            variant = PIN_ROLE_VARIANT[role]
+            if role == "fixed":
+                variant = "gear" if side > 0 else "short"
             items.append((
-                f"pivot-pin-3-{plane}-{index}",
-                pin,
+                f"pivot-pin-{role}-{plane}",
+                place_pin(variant, x, side * u_head, z, side * direction),
                 MECHANISM_COLOR,
             ))
+    for index, centre in enumerate(idler_local):
+        world = plat_origin + centre
+        items.append((
+            f"pivot-pin-idler-{index}",
+            place_pin("idler", world[0],
+                      53.0 - mechanism.IDLER_HEAD_CBORE_DEPTH, world[2],
+                      -1.0),
+            MECHANISM_COLOR,
+        ))
+    items.append((
+        "pivot-pin-follower",
+        place_pin("follower", mechanism.FOLLOWER_X, 46.0,
+                  mechanism.FOLLOWER_PIN_Z + rise, 1.0),
+        MECHANISM_COLOR,
+    ))
 
     platform = source_mesh(mechanism.build_platform)
     platform.apply_translation(plat_origin)
@@ -212,9 +260,6 @@ def build_scene_at(theta: float):
     hinge = plat_origin + np.array([ARM_HINGE_X, 0.0, ARM_HINGE_Z])
     tilt = mechanism.forearm_angle(theta)
 
-    gear_start_local, idler_local, gear_end_local = (
-        mechanism.forearm_gear_centres()
-    )
     gear_start = plat_origin + gear_start_local
     idler_centres = [plat_origin + centre for centre in idler_local]
     gear_end = plat_origin + gear_end_local
@@ -239,17 +284,18 @@ def build_scene_at(theta: float):
     items.append(("forearm-output-gear", output_gear, MECHANISM_COLOR))
 
     forearm = source_mesh(mechanism.build_forearm)
-    forearm.apply_translation([0.0, 0.0, -4.0])
+    forearm.apply_translation([0.0, 0.0, FOREARM_SEAT_Z])
     forearm.apply_transform(rot(tilt, [0, 1, 0]))
     forearm.apply_translation(hinge)
     items.append(("forearm", forearm, BONE_COLOR))
 
-    # The common finger flexures remain in their compact pre-curled pose.  The
-    # The rigid redesign changes the box drive, lid and forearm linkage only.
+    # The common finger flexures remain in their compact pre-curled pose.
+    # The palm is located only by the wrist cross pin, so its pin datum must
+    # follow the forearm seat shift; otherwise the pin holes miss by 4 mm.
     hand = grip_hand()
     wrist_transform = palm_to_forearm_transform(
         load_skeleton(),
-        mechanism.FOREARM_LENGTH + 9.0,
+        mechanism.FOREARM_LENGTH + 9.0 + FOREARM_SEAT_Z,
         mechanism.HAND_PALM_ROLL,
     )
     for name, mesh in hand.items():
