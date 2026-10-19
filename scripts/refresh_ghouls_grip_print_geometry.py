@@ -330,7 +330,18 @@ def refresh(project: Path, print_parts: dict, changed: set[str],
                                        "pick_file"}:
                 metadata.set("value", "")
     metadata_entry = "Metadata/ghouls_grip_print_metadata.xml"
-    metadata = ET.fromstring(entries[metadata_entry])
+    if metadata_entry in entries:
+        metadata = ET.fromstring(entries[metadata_entry])
+    else:
+        metadata = ET.Element("ghouls-grip-print-metadata", version="1")
+        for k, v in (
+            ("status", "not-verified"),
+            ("plateCount", str(len(settings.findall("plate")))),
+            ("objectCount", str(len(build))),
+            ("plateDetails", "[]"),
+            ("filamentUsageByColor", "{}"),
+        ):
+            ET.SubElement(metadata, "metadata", name=k, value=v)
     for element in metadata.iter("metadata"):
         name = element.get("name")
         if name == "status":

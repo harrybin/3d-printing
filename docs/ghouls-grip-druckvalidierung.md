@@ -1,44 +1,27 @@
 # The Ghoul's Grip – OrcaSlicer-Druckvalidierung
 
-Slice-Ergebnis: **erfolgreich** mit OrcaSlicer CLI 2.4.2; Profilkonformität: **nicht verifiziert**.
+Slice-Ergebnis: **verifiziert** mit OrcaSlicer CLI; Profilkonformität: **verifiziert** (`layer_height = 0.16`, `seam_position = random`, `ironing_type = top`, `support_type = tree(auto)` mit `0.16 mm` Z-Kontaktabstand).
 
-**Stand 2026-10-17 (Mechanik-Re-Audit):** Die Druckdatei hat vier Plates und
-41 Objekte (28 Teiletypen inklusive Reservepins und neuer
-Kurbel-Distanzhülse `crank-spacer`; 31 Naturweißteile auf Platte 3). Der
-Montage-Audit `docs/ghouls-grip-montage-audit.md` besteht alle 10 Prüfungen.
-Beim ersten Slice nach dem Re-Audit brach Orca das Laden mit
-„parsing aborted“ in `Metadata/model_settings.config` ab: Der
-`<assemble>`-Abschnitt verwies noch auf gelöschte Objekt-IDs.
-`scripts/refresh_ghouls_grip_print_geometry.py` synchronisiert ihn jetzt mit den
-vorhandenen Objekten; ein Test sichert das ab. Der anschließende Slice endete mit
-Exit 0 und vier G-Codes. Aktuelle SHA-256 der Druckdatei:
-`AF3325DB2B8F273C1B41C307B6414481E2F01BBD10602C3743BAC4486E491EA7`.
+**Stand 2026-10-19 (Rückwand-/Sockel-Verbindung + 0,16-mm-/Random-Seam-/Tree-Support-Pflichtregeln):**
+Bei der gedruckten Schatulle zeigte sich an der Rückwand im Übergang zum Sockel (`Z = 8,0 .. 12,0 mm`) ein horizontaler Trennspalt: Die innere Schlitten-Führungsnut (`|y| = 54,0 .. 60,0 mm`, `Z = 8,0 .. 12,0 mm`) schnitt die nominelle `2,0-mm`-Kistenwand (`|y| = 58,0 .. 60,0 mm`) auf ganzer Höhe durch, während die äußere Schienenabdeckung (`rail_covers`) nur `|y| = 60,0 .. 61,2 mm` über `Z = 8,0 .. 12,0 mm` abdeckte – bei `Z = 12,0 mm` bestand dadurch `0,00 mm` horizontale Überlappung (reiner Linienkontakt) und bei `Z = 8,46 mm` nur `0,46 mm` Restwandstärke.
+In `scripts/gothic_chest.py` wurde `rail_covers` als durchgehende 5-Punkt-Rippe (`Z = 5,0 .. 13,7 mm`, `|y| = 58,0 .. 61,5 mm` mit 45°-Fase bis `|y| = 60,0 mm` bei `Z = 13,7 mm`) neu aufgebaut. Dadurch beträgt die Außenwandstärke entlang der Führungsnut durchgängig `1,50 mm` und bildet bei `Z = 12,0 .. 12,2 mm` eine `3,50 mm` starke horizontale Brücke zwischen Sockel und Kistenwand.
+Als Grundlage für `models/ghouls-grip-print.3mf` wurde die vom Nutzer bereitgestellte `ghouls-grip-print.3mf` übernommen und mit allen verbindlichen 3MF-Regeln (`layer_height = 0.16` `<= 0.16 mm`, `seam_position = random`, `support_type = tree(auto)`, `support_top_z_distance = 0.16`, `support_bottom_z_distance = 0.16`) aktualisiert.
 
-Historie (2026-10-12): Damals wurden die 16 Objekte der früheren Naturweiß-Platte 4 mit den 11 Hauptteilen
-von Platte 3 zusammengepackt. `scripts/consolidate_ghouls_grip_mechanism_plates.py`
-erhält Teileorientierungen und Z-Lagen, lässt 6 mm Abstand zwischen den
-Bauteil-Begrenzungsrahmen und mindestens 10 mm Bettrand. Anschließend wurden
-die sieben Knochenobjekte auf Platte 2 ausschließlich in XY neu angeordnet;
-Mesh-Payloads, Rotation und Z-Lagen bleiben erhalten. Ihr Footprint-Abstand
-beträgt mindestens 6 mm, der Bettrandabstand mindestens 69 mm. Der aktualisierte
-OrcaSlicer-CLI-Slice 2.4.2 lief danach mit Exit-Code 0 und vier G-Codes.
-Die damalige Druckdatei-SHA ist durch den Stand vom 2026-10-17 ersetzt.
-
-Aktuelle finale SHA-256 (2026-10-17):
+Aktuelle finale SHA-256 (2026-10-19):
 
 | Datei | SHA-256 |
 | --- | --- |
-| `models/ghouls-grip-view.3mf` | `82A87333F4648A82BB225C5281FFFE9F12FE87C1608BE0FB9C096001020D7B02` |
-| `models/ghouls-grip-preview.stl` | `95DFF18EB160D70EC08AB5952D8F946EAA35BFC1CB723B6E03EDABCA11772FE8` |
-| `models/ghouls-grip-print.3mf` | `AF3325DB2B8F273C1B41C307B6414481E2F01BBD10602C3743BAC4486E491EA7` |
+| `models/ghouls-grip-view.3mf` | `B5EB5A2A932FF3187CAA2222E3069684823766B4A9940110418743D48664BCEF` |
+| `models/ghouls-grip-preview.stl` | `ED4E52DB79CF4520BB1988945747714AC6141CCD633E5A2457C7B09086AE8CFC` |
+| `models/ghouls-grip-print.3mf` | `001C05B7D6FD96E0D24DAB3D967AC6844E5FF7A62835A74B125FC134678E6D8C` |
 
-Schatulle: 76.838 Facetten, 209 × 130,5 × 98 mm, 200.928,569 mm³,
+Schatulle: 76.668 Facetten, 209 × 130,5 × 98 mm, 202.470,353 mm³,
 ein geschlossener Einzelkörper, konsistente Normalen, keine degenerierten
 Dreiecke. Das komplette ASCII-STL ist bewusst eine montierte
 41-Körper-Vorschau, kein Drucklayout; 41 Druckobjekte inklusive Reservepins
 sind im vierplattigen Print-Projekt.
-In dieser Session ist kein STL-Canvas deklariert; die exakte Datei wurde
-stattdessen gelesen, validiert und als Farb-3MF-Bild gerendert, ohne UI-Workaround.
+
+![Reparierte Rückwand-Sockel-Verbindung mit Y-Z-Querschnitt](images/ghouls-grip-rear-wall-plinth-fix.png)
 
 Historie (2026-10-12, 37-Objekt-Stand): Die damalige Bodenlagerreparatur
 ersetzte ausschließlich die Schatullen-Geometrie;
@@ -176,19 +159,19 @@ deren Entfernbarkeit im kleinen Lagerbereich noch physisch zu prüfen ist.
 
 | Plate | Inhalt | Schichten | Filament | davon Stützen | Zeit | Ansicht |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
-| 1 – Schwarz | Schatulle und Deckel (2) | 649 | 334,99 g | 6,71 g (2,0 %) | 12 h 03 min 00 s | [Supportbild](images/ghouls-grip-print-plate-1-supports.png) |
-| 2 – Knochenbeige | Unterarm, Handfläche und Finger (7) | 482 | 43,85 g | 6,25 g (14,3 %) | 3 h 04 min 39 s | [Supportbild](images/ghouls-grip-print-plate-2-supports.png) |
-| 3 – Naturweiß | Hauptmechanik, Zahnräder, Wellen, Pins und Kurbel-Distanzhülse (31) | 631 | 111,63 g | 11,48 g (10,3 %) | 4 h 35 min 21 s | [Supportbild](images/ghouls-grip-print-plate-3-supports.png) |
-| 4 – Grau | Totenkopf-Auslöser (1) | 135 | 23,94 g | 3,39 g (14,2 %) | 1 h 10 min 59 s | [Supportbild](images/ghouls-grip-print-plate-4-supports.png) |
-| **Gesamt** | **41 Druckobjekte / 4 Plates** | – | **514,41 g** | **27,83 g (5,4 %)** | **20 h 53 min 59 s** | [Übersicht](images/ghouls-grip-print-support-overview.png) |
+| 1 – Black PLA+ (Schatulle, Slot 3) | Schatulle und Deckel (2) | 816 | 334,01 g | 5,99 g (1,8 %) | 13 h 15 min 18 s | [Supportbild](images/ghouls-grip-print-plate-1-supports.png) |
+| 2 – PLA Slot 2 (Knochen) | Unterarm, Handfläche und Finger (7) | 633 | 44,48 g | 6,10 g (13,7 %) | 3 h 41 min 22 s | [Supportbild](images/ghouls-grip-print-plate-2-supports.png) |
+| 3 – PLA Slot 1 (Mechanik) | Hauptmechanik, Zahnräder, Wellen, Pins und Kurbel-Distanzhülse (31) | 519 | 116,95 g | 15,33 g (13,1 %) | 6 h 53 min 05 s | [Supportbild](images/ghouls-grip-print-plate-3-supports.png) |
+| 4 – PLA Slot 4 (Totenkopf-Auslöser) | Totenkopf-Auslöser (1) | 168 | 24,30 g | 3,18 g (13,1 %) | 1 h 14 min 26 s | [Supportbild](images/ghouls-grip-print-plate-4-supports.png) |
+| **Gesamt** | **41 Druckobjekte / 4 Plates** | – | **519,74 g** | **30,60 g (5,9 %)** | **25 h 04 min 11 s** | [Übersicht](images/ghouls-grip-print-support-overview.png) |
 
 | Farbgruppe | Zeit | Masse | Stützmaterial | Länge | Volumen | Plates |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Schwarz | 43.380 s | 334,99 g | 6,71 g | 112.316,83 mm | 270.150 mm³ | 1 |
-| Knochenbeige | 11.079 s | 43,85 g | 6,25 g | 14.702,67 mm | 35.360 mm³ | 1 |
-| Naturweiß | 16.521 s | 111,63 g | 11,48 g | 37.426,25 mm | 90.020 mm³ | 1 |
-| Grau | 4.259 s | 23,94 g | 3,39 g | 8.025,39 mm | 19.300 mm³ | 1 |
-| **Gesamt** | **75.239 s** | **514,41 g** | **27,83 g** | **172.471,14 mm** | **414.830 mm³** | **4** |
+| Black PLA+ (Schatulle, `#212721`) | 47.718 s | 334,01 g | 5,99 g | 111.987,71 mm | 269.360 mm³ | 1 |
+| PLA Slot 2 (Knochen, `#89A84F`) | 13.282 s | 44,48 g | 6,10 g | 14.913,92 mm | 35.870 mm³ | 1 |
+| PLA Slot 1 (Mechanik, `#FFC196`) | 24.785 s | 116,95 g | 15,33 g | 39.210,73 mm | 94.310 mm³ | 1 |
+| PLA Slot 4 (Totenkopf-Auslöser, `#009CBD`) | 4.466 s | 24,30 g | 3,18 g | 8.148,82 mm | 19.600 mm³ | 1 |
+| **Gesamt** | **90.251 s** | **519,74 g** | **30,60 g** | **174.261,18 mm** | **419.140 mm³** | **4** |
 
 Die Supportanteile werden aus positiven Extrusionen der Support-/Interface-
 Bewegungen berechnet; `M82`, `M83` und `G92` werden berücksichtigt,
@@ -198,11 +181,11 @@ Masse und Volumen werden mit dem jeweiligen Slice-Verhältnis umgerechnet:
 
 | Plate | Supportlänge | Supportvolumen |
 | --- | ---: | ---: |
-| 1 | 2.400,96 mm | 5.775 mm³ |
-| 2 | 1.977,14 mm | 4.756 mm³ |
-| 3 | 4.469,88 mm | 10.751 mm³ |
-| 4 | 1.140,98 mm | 2.745 mm³ |
-| **Gesamt** | **10.108,44 mm** | **24.314 mm³** |
+| 1 | 2.007,88 mm | 4.829 mm³ |
+| 2 | 2.046,68 mm | 4.923 mm³ |
+| 3 | 5.140,02 mm | 12.363 mm³ |
+| 4 | 1.066,12 mm | 2.564 mm³ |
+| **Gesamt** | **10.260,70 mm** | **24.679 mm³** |
 
 Die Summen und vier Einzelergebnisse sind in `models/ghouls-grip-print.3mf`
 als slicer-neutrale Metadaten gespeichert. Der Metadatenstatus bleibt

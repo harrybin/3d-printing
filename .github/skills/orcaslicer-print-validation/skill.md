@@ -66,10 +66,10 @@ setup guidance in `docs/mcp-setup.md`.
 
 - exact final STL or 3MF path
 - Anycubic Kobra S1 printer profile and nozzle diameter
-- process/layer-height profile
+- process/layer-height profile (`layer_height <= 0.16 mm`, default `0.16 mm`; `seam_position = random`; `ironing_type = top`)
 - filament profile per material/color
 - intended plate and part arrangement
-- support policy
+- support policy (`enable_support = 1`, `support_type = tree(auto)`, 1-layer Z contact distance `support_top_z_distance = support_bottom_z_distance = layer_height`)
 
 Do not report comparable print estimates unless these settings are held constant.
 

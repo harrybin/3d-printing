@@ -45,6 +45,37 @@ class ContinuousWallTests(unittest.TestCase):
             self.assertAlmostEqual(overlap(self.chest, probe),
                                    probe.volume, delta=0.002)
 
+    def test_rear_and_front_walls_are_continuously_connected_to_plinth(self):
+        # Between the corner pilasters (x = -18..78 mm), the internal slider
+        # rail groove cuts |y| = 54..60 mm across z = 8..12 mm. Verify that
+        # both the rear (+Y) and front (-Y) walls remain a single connected
+        # 3D solid across the plinth-to-wall transition (z = 0..25 mm) and
+        # maintain >= 1.50 mm wall thickness along the groove.
+        for sign in (-1.0, 1.0):
+            with self.subTest(sign=sign):
+                slab = box((80.0, 7.0, 16.0), (40.0, sign * 60.5, 12.0))
+                wall_piece = trimesh.boolean.intersection(
+                    [self.chest, slab], engine="manifold")
+                parts = wall_piece.split(only_watertight=False)
+                self.assertEqual(len(parts), 1)
+                self.assertAlmostEqual(float(parts[0].bounds[0, 2]), 4.0, places=3)
+                self.assertAlmostEqual(float(parts[0].bounds[1, 2]), 20.0, places=3)
+                for z in (5.5, 8.5, 10.0, 11.9, 12.1):
+                    rod = box((1.0, 10.0, 0.1), (40.0, sign * 60.0, z))
+                    sample = trimesh.boolean.intersection(
+                        [self.chest, rod], engine="manifold")
+                    y_abs = np.abs(sample.vertices[:, 1])
+                    thickness = float(np.max(y_abs) - np.min(y_abs))
+                    self.assertGreaterEqual(thickness, 1.49, f"z={z}")
+                # At the z = 12.0 mm rail roof, the solid wall must bridge both
+                # the nominal wall (|y| = 58..60) and outer rail cover (|y| = 60..61.5).
+                roof_rod = box((1.0, 10.0, 0.1), (40.0, sign * 60.0, 12.1))
+                roof_sample = trimesh.boolean.intersection(
+                    [self.chest, roof_rod], engine="manifold")
+                roof_y = np.abs(roof_sample.vertices[:, 1])
+                self.assertLessEqual(float(np.min(roof_y)), 58.01)
+                self.assertGreaterEqual(float(np.max(roof_y)), 61.49)
+
     def follower_at(self, rise: float):
         follower = self.rack.copy()
         follower.apply_transform(np.linalg.inv(m.FOLLOWER_PRINT_MATRIX))

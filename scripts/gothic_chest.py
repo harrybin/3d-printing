@@ -1319,18 +1319,22 @@ def build_chest(include_decoration: bool = True) -> trimesh.Trimesh:
     ]
     body = difference(body, service)
 
-    # Close the full-depth internal rail grooves with a printable external
-    # skin, then add the support-free tapered plinth and cornice around it.
-    rail_cover_t = 1.8
+    # Close the full-depth internal rail grooves with a structural plinth-to-wall
+    # gusset that overlaps both the middle plinth course (z=5.0 mm, |y|=61.5 mm)
+    # and the upper chest wall (|y|=58.0..60.0 mm above z=12.0 mm). This avoids
+    # the zero-overlap line contact at z=RAIL_Z+RAIL_W (12.0 mm) and guarantees
+    # >= 1.50 mm outer wall thickness along the rail groove (z=8.0..12.0 mm).
     rail_covers = []
     for sign in (-1.0, 1.0):
-        inner_y = sign * (CHEST_W / 2.0)
-        outer_y = sign * (CHEST_W / 2.0 + rail_cover_t - 0.6)
+        inner_y = sign * (CHEST_W / 2.0 - WALL)
+        outer_y = sign * (CHEST_W / 2.0 + PROUD / 2.0)
+        wall_y = sign * (CHEST_W / 2.0)
         profile = [
-            (inner_y, RAIL_Z),
-            (outer_y, RAIL_Z + abs(outer_y - inner_y)),
-            (outer_y, RAIL_Z + RAIL_W),
-            (inner_y, RAIL_Z + RAIL_W),
+            (inner_y, PLINTH_H / 2.0),
+            (outer_y, PLINTH_H / 2.0),
+            (outer_y, RAIL_Z + RAIL_W + 0.2),
+            (wall_y, RAIL_Z + RAIL_W + 0.2 + PROUD / 2.0),
+            (inner_y, RAIL_Z + RAIL_W + 0.2 + PROUD / 2.0),
         ]
         if sign < 0:
             profile.reverse()

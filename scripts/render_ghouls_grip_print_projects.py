@@ -29,14 +29,22 @@ FILAMENTS = (
 
 
 def plate_filament(path: Path) -> tuple[str, str]:
-    match = re.search(r"; filament used \[g\] = ([0-9., ]+)",
-                      path.read_text(encoding="utf-8", errors="replace"))
+    text = path.read_text(encoding="utf-8", errors="replace")
+    match = re.search(r"; filament used \[g\] = ([0-9., ]+)", text)
     if not match:
         raise RuntimeError(f"Missing filament use metadata in {path}")
     values = [float(item.strip()) for item in match.group(1).split(",")]
     active = [index for index, value in enumerate(values) if value > 0]
     if len(active) != 1 or active[0] >= len(FILAMENTS):
         raise RuntimeError(f"Cannot identify one plate material in {path}")
+    colour_match = re.search(r"; filament_colour = ([^\r\n]+)", text)
+    if colour_match:
+        colours = [c.strip() for c in colour_match.group(1).split(";") if c.strip()]
+        if active[0] < len(colours):
+            from update_ghouls_grip_slice_metadata import FILAMENT_NAMES
+            hex_col = colours[active[0]]
+            label = FILAMENT_NAMES.get(hex_col.lower(), hex_col)
+            return label, hex_col
     return FILAMENTS[active[0]]
 
 
@@ -75,7 +83,11 @@ def _plate_meshes(path: Path) -> dict[int, list[trimesh.Trimesh]]:
 
     plates: dict[int, list[trimesh.Trimesh]] = {}
     for node in scene.graph.nodes_geometry:
-        object_id = object_by_component.get(str(node))
+        object_id = (
+            str(node)
+            if str(node) in object_plate
+            else object_by_component.get(str(node))
+        )
         if object_id is None or object_id not in object_plate:
             raise RuntimeError(
                 f"{path.name}: no plate assignment for mesh node {node}")

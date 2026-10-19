@@ -146,11 +146,15 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Every delivered print plate must be sliced in OrcaSlicer with the intended Kobra
   S1/nozzle/process/filament profiles when OrcaSlicer is available. Record print
   time and material only from a successful slice.
-- Generated OrcaSlicer 3MF projects default to random seam placement, ironing on
-  all top surfaces and enabled automatic support (`seam_position=random`,
-  `ironing_type=top`, `enable_support=1`) unless a documented part-specific reason
-  requires an exception. Support stays on so that a zero-support slice is proven
-  geometry, never a disabled setting.
+- Generated OrcaSlicer 3MF projects MUST always use layer height `<= 0.16 mm`
+  (`layer_height=0.16` default), random seam placement (`seam_position=random`),
+  ironing on all top surfaces (`ironing_type=top`), and enabled automatic tree
+  supports (`enable_support=1`, `support_type=tree(auto)`) with a 1-layer Z
+  contact distance (`support_top_z_distance=0.16`,
+  `support_bottom_z_distance=0.16`, matching `layer_height`) for easy support
+  removal after printing, unless a documented part-specific reason requires an
+  exception. Support stays on so that a zero-support slice is proven geometry,
+  never a disabled setting.
 - New complex assemblies use exactly two 3MF deliverables:
   `models/<name>-view.3mf` contains the fully assembled object, with separate
   plates for other meaningful mechanism states; `models/<name>-print.3mf`
