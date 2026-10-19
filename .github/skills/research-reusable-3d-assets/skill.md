@@ -77,6 +77,12 @@ Keep the original license file when its terms require distribution with derivati
 
 - Send published dimensions to `research-part-specs`.
 - Send organic or sculptural geometry to `blender-assisted-modeling`.
+- For `reference-only` or `rebuild` on organic/visual regions, run the
+  `local-3d-genai-meshgen` decision gate: ask whether local image-to-3D models
+  should create a seed mesh (install on approval with hardware-matched tier) or
+  whether to continue on the Gemini route. Record generated seeds with the same
+  provenance rigor as downloaded assets (model, license, seed, input image).
+  Hunyuan3D weights are not usable in the EU/UK/KR and count as reference-only.
 - Send technical geometry to `create-ascii-stl`.
 - Send every imported mesh to `validate-stl-mesh` before modification and after
   export.

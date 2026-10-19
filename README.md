@@ -249,6 +249,7 @@ If the fit is too tight or too loose, adjust `HOLE_DIA` / `PRESS_CLEAR` in
 | `research-part-specs` | Sources real published dimensions for an identifiable product before modeling, records origin/source/confidence per value in `docs/`, and forbids invented fit-critical numbers. |
 | `research-reusable-3d-assets` | Always searches for exact or similar reusable models before nontrivial original construction, verifies modification/redistribution rights, records attribution, and chooses reuse, hybrid, reference-only, or rebuild. |
 | `blender-assisted-modeling` | Routes organic and visually complex geometry through a controlled local Blender/MCP workflow while freezing technical datums and revalidating every export. |
+| `local-3d-genai-meshgen` | Asks whether local image-to-3D models (TRELLIS.2/Pixal3D via ComfyUI) should create organic seed meshes, probes hardware, installs a matching tier on approval, post-processes seeds into validated STL, and otherwise continues on the Gemini-assisted route. |
 | `validate-stl-mesh` | Validates an STL for manifold correctness and FDM printability: syntax, triangle count, watertight topology, normal consistency, and bed-fit. |
 | `optimize-stl-for-print` | Optimizes a correct mesh for printing: orientation for load direction, overhang and bridge reduction, hole/elephant-foot compensation, bed layout and filament estimate. |
 | `orcaslicer-support-minimization` | Compares stable-datum orientation candidates in OrcaSlicer to minimize support while preserving Kobra S1 profiles, material grouping, plate semantics, strength, fit, and source STL authority; geometry changes remain suggestions only. |
@@ -275,6 +276,7 @@ If the fit is too tight or too loose, adjust `HOLE_DIA` / `PRESS_CLEAR` in
 | Canvas preview | `create-ascii-stl` | Also preview written STL files from `models/`; for 3MF-first outputs, report the 3MF path and preview an STL counterpart when available. |
 | Reusable model assets | `research-reusable-3d-assets` | Always search exact and similar templates before nontrivial original modeling and use only assets with documented, compatible modification and redistribution rights. |
 | Python vs Blender | `blender-assisted-modeling` | Python owns fit-critical geometry; Blender owns approved organic and visual regions, followed by independent export validation. |
+| Local generative meshes | `local-3d-genai-meshgen` | Ask once whether local image-to-3D models or the Gemini route are used; install only after approval, outside git, with MIT-licensed catalog models; generated meshes are organic seeds only and need provenance plus full validation. |
 | Delivered-project support minimization | `orcaslicer-support-minimization` | Compare candidates from one frozen baseline, run OrcaSlicer sequentially, preserve materials/plates, and write the selected transform to 3MF rather than overwriting a generator STL. |
 | Final slicing | `orcaslicer-print-validation` | Do not claim print time or final print readiness without a successful slice using the intended profiles. |
 | Complex and multicolor packaging | `multimaterial-assembly-packaging` | Deliver exactly one multi-state `-view.3mf` and one all-plates `-print.3mf`; group same-color parts on shared plates and prefer keyed color bodies when practical. |
@@ -305,6 +307,27 @@ Lab MCP server through a local `uv` installation. OrcaSlicer is configured as an
 opt-in, disabled-by-default template because the official OrcaSlicer integration is
 its CLI rather than a first-party MCP server. See
 [`docs/mcp-setup.md`](docs/mcp-setup.md) before enabling either integration.
+
+## Local 3D generation models (optional)
+
+For organic regions without a usable licensed asset, agents ask whether local
+image-to-3D models should create a seed mesh. The default install uses ComfyUI
+with the MIT-licensed TRELLIS.2/Pixal3D models and official Comfy-Org templates,
+in a user-local folder outside this repository. If declined or the hardware is
+unsuitable, work continues with Gemini-assisted image analysis and Blender or
+build123d code. Generated meshes are seeds only; fit-critical geometry remains
+parametric.
+
+```powershell
+.\.venv\Scripts\python.exe scripts\genai_hw_probe.py              # tier recommendation
+.\.venv\Scripts\python.exe scripts\genai_local_setup.py           # dry-run install plan
+.\.venv\Scripts\python.exe scripts\genai_local_setup.py --yes     # install
+.\.venv\Scripts\python.exe scripts\genai_comfy_run.py --workflow <api.json> --image <ref.png> --seed 42 --out build\genai\run1
+.\.venv\Scripts\python.exe scripts\genai_mesh_postprocess.py build\genai\run1\<mesh>.glb build\genai\seed.stl --height 80
+```
+
+Hardware tiers, licenses and the learnings adopted from 3DGenStudio are in
+[`docs/local-3d-genai-setup.md`](docs/local-3d-genai-setup.md).
 
 ## Mesh CLI
 

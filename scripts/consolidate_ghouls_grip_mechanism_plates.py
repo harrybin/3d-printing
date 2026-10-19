@@ -221,7 +221,6 @@ def consolidate(project: Path = PROJECT) -> None:
         }
         extents = {}
         positions = {}
-        current_bounds = {}
         mechanism_extruders = set()
         for object_id in object_ids:
             name = names.get(object_id)
@@ -258,8 +257,7 @@ def consolidate(project: Path = PROJECT) -> None:
                 math.ceil((xy[2] - xy[0]) * 1000.0 - 1e-3) / 1000.0,
                 math.ceil((xy[3] - xy[1]) * 1000.0 - 1e-3) / 1000.0,
             )
-            current_bounds[name] = xy
-            positions[name] = (item, transform)
+            positions[name] = (item, transform, bounds)
 
         x_origin, y_origin = MECHANISM_PLATE_ORIGIN
         packed = _pack_rectangles([
@@ -268,10 +266,15 @@ def consolidate(project: Path = PROJECT) -> None:
         ])
 
         for name, (target_x, target_y) in packed.items():
-            item, transform = positions[name]
-            old_x, old_y, _, _ = current_bounds[name]
-            transform[9] += x_origin + BED_MARGIN + target_x - old_x
-            transform[10] += y_origin + BED_MARGIN + target_y - old_y
+            item, transform, bounds = positions[name]
+            local_transform = transform.copy()
+            local_transform[9] = 0.0
+            local_transform[10] = 0.0
+            local_x, local_y, _, _ = _transformed_xy_bounds(
+                bounds, local_transform
+            )
+            transform[9] = x_origin + BED_MARGIN + target_x - local_x
+            transform[10] = y_origin + BED_MARGIN + target_y - local_y
             item.set("transform", " ".join(f"{value:.6f}" for value in transform))
 
         final_bounds = {}

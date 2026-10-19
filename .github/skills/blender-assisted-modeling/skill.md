@@ -36,6 +36,14 @@ relief asset that already comes close to the target, and adapt it. Run
 `research-reusable-3d-assets` and record source, author, license, modification
 and redistribution rights. Only build from scratch when no usable asset exists.
 
+When no usable asset exists, run the decision gate in `local-3d-genai-meshgen`
+before sculpting from primitives: ask whether local image-to-3D models
+(TRELLIS.2/Pixal3D via ComfyUI) should generate a seed mesh from the reference
+photo. A post-processed, validated seed is imported like a licensed asset
+(`organic_*` object, scaled to measured datums, provenance recorded). If the user
+declines or the hardware is unsuitable, continue with Gemini subagents for
+landmark extraction, Blender Python drafts and render critique.
+
 Relief direction is a free choice: raised, engraved or mixed. Engraving is
 allowed wherever the remaining wall thickness keeps the part structurally sound.
 Whatever direction is chosen, slice the decorated part against a matched
@@ -104,8 +112,9 @@ Before editing:
 
 ## Modeling workflow
 
-1. Run `research-reusable-3d-assets` before original modeling.
-2. Import the licensed asset or Python-generated technical reference.
+1. Run `research-reusable-3d-assets` before original modeling; if nothing usable
+   exists, apply the `local-3d-genai-meshgen` gate (local seed mesh or Gemini route).
+2. Import the licensed asset, generated seed mesh, or Python-generated technical reference.
 3. Validate scale and compare bounds with the measurement document.
 4. Perform only the planned Blender operations: sculpt, retopology, modifiers,
    boolean refinement, relief, material/object separation, or render comparison.
