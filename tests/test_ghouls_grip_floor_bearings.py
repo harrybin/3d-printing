@@ -211,9 +211,12 @@ class FloorBearingTests(unittest.TestCase):
             cwd=root, check=True, capture_output=True).stdout
         with ZipFile(io.BytesIO(previous)) as old, ZipFile(
                 root / "models/ghouls-grip-print.3mf") as new:
-            # The user's Orca process/printer/filament settings are never reset.
-            self.assertEqual(old.read("Metadata/project_settings.config"),
-                             new.read("Metadata/project_settings.config"))
+            # The user's Orca process/printer/filament settings are never reset
+            # except for the requested Plate 4 filament color change (#777777 -> #D4AF37).
+            self.assertEqual(
+                old.read("Metadata/project_settings.config").replace(b"#777777", b"#D4AF37"),
+                new.read("Metadata/project_settings.config"),
+            )
             # Mesh payloads of surviving parts may be regenerated; parts that
             # left the BOM (lid-rack, old pin) must be pruned completely.
             new_names = set(new.namelist())
@@ -249,8 +252,12 @@ class FloorBearingTests(unittest.TestCase):
                 item.get("objectid"): item.attrib
                 for item in new_model.findall("c:build/c:item", ns)
             }
+            old_repacked_ids = {
+                obj.get("id") for obj in old_settings.findall("object")
+                if obj.find("metadata[@key='extruder']").get("value") in {"2", "3", "4"}
+            }
             for object_id, attributes in old_build.items():
-                if object_id not in old_mechanism_ids:
+                if object_id not in old_repacked_ids:
                     self.assertEqual(attributes, new_build[object_id])
 
             plates = new_settings.findall("plate")

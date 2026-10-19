@@ -49,7 +49,7 @@ class BonePlateLayoutTests(unittest.TestCase):
         settings = ET.fromstring(after["Metadata/model_settings.config"])
         names_to_ids = _build_id_by_name(settings)
         self.assertEqual(len(settings.findall("plate")), 4)
-        self.assertEqual(len(model.findall("c:build/c:item", NS)), 41)
+        self.assertEqual(len(model.findall("c:build/c:item", NS)), 42)
         object_ids = {obj.get("id") for obj in settings.findall("object")}
         assembled = {item.get("object_id")
                      for item in settings.find("assemble")}
@@ -64,7 +64,7 @@ class BonePlateLayoutTests(unittest.TestCase):
         expected_minima = {
             "forearm": (69.0, 72.0),
             "hand-palm": (100.79, 72.0),
-            "hand-finger-thumb": (69.0, 103.18),
+            "hand-finger-thumb": (69.0, 103.19),
         }
         bounds_by_name = {}
         for name in PART_NAMES:

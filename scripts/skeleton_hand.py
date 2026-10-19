@@ -2,15 +2,13 @@
 
 The bones come from the NIH 3D Print Exchange entry 3DPX-016815 (CC-BY, see
 ``extract_hand_bones.py``). They are delivered as 27 separate shells in a
-relaxed scan pose, which is useless as a printable part: the carpals float
-apart, the fingers curl in the scanner's pose and nothing has a tendon channel.
+relaxed scan pose, which is unsuitable as a printable assembly: the carpals
+float apart and the fingers curl in the scanner's pose.
 
 This module re-rigs them. Every finger ray is rebuilt as a chain - each bone
 keeps its real length and shape but is re-aimed along a designed direction -
-and the chain is then fused into one body with a morphological closing. Cutting
-a V-notch into the palmar side of every joint leaves a thin dorsal web, so one
-printed finger behaves as a compliant multi-joint flexure exactly as the brief
-asks, while still reading as a row of individual finger bones.
+and the chain is fused into one rigid body with rounded, solid knuckles.
+Each finger keeps its curved print pose without relief gaps, wire or tendons.
 """
 
 from __future__ import annotations
@@ -30,27 +28,24 @@ HAND_SCALE = 0.72
 
 DORSAL = np.array([0.0, 0.0, 1.0])
 
-TENDON_D = 2.0
 PEG_D = 4.0
 PEG_LEN = 10.0
+MCP_SOCKET_START = 2.4
+MCP_RELIEF_D = 8.6
+MCP_THUMB_RELIEF_D = 11.2
+MCP_RELIEF_LEN = 7.0
+MCP_RELIEF_START = 2.0
 JOINT_END_INSET = 2.0
-MCP_END_INSET = 4.0
-SOCKET_CLEAR = 1.00
+MCP_END_INSET = 2.4
+SOCKET_CLEAR = 0.40
 WRIST_D = 12.0
 WRIST_SOCKET = 16.0
 WRIST_SOCKET_LEAD_IN = 2.0
 WRIST_PIN_FROM_MOUNT = WRIST_SOCKET * 0.6
-# 0.8 mm is exactly two 0.4 mm perimeters, the thinnest web that still prints
-# solid. Rigid PLA bends most reliably when this web is exactly two perimeters.
-WEB = 0.8          # dorsal hinge web left standing at every flexure joint
-WEB_STEPS = (WEB, 1.0, 1.2, 1.4, 1.6)
-RESOLVED_WEB: dict[str, float] = {}  # web actually used per finger ray
-NOTCH_DEG = 55.0   # travel of one flexure joint before the notch closes
-
 # Flexion per joint. The MCP knuckle is a rigid peg joint, so its bend is built
-# into the palm (angled pegs) and the printed finger stays straight and flat on
-# the bed; the tendon then curls it into the grip pose.
-MCP_DEG = {"thumb": 34.0, "index": 40.0, "middle": 40.0, "ring": 38.0, "little": 36.0}
+# into the palm and the proximal phalanx follows that angle in the print pose.
+MCP_DEG = {"thumb": 40.0, "index": 40.0, "middle": 40.0, "ring": 38.0, "little": 36.0}
+MCP_YAW_DEG = {"thumb": 55.0}
 FLAT_POSE = {
     "thumb": (0.0, 0.0),
     "index": (0.0, 0.0, 0.0),
@@ -59,11 +54,11 @@ FLAT_POSE = {
     "little": (0.0, 0.0, 0.0),
 }
 GRIP_POSE = {
-    "thumb": (MCP_DEG["thumb"], 32.0),
-    "index": (MCP_DEG["index"], 52.0, 32.0),
-    "middle": (MCP_DEG["middle"], 50.0, 30.0),
-    "ring": (MCP_DEG["ring"], 52.0, 32.0),
-    "little": (MCP_DEG["little"], 54.0, 34.0),
+    "thumb": (MCP_DEG["thumb"], 35.0),
+    "index": (MCP_DEG["index"], 57.0, 27.0),
+    "middle": (MCP_DEG["middle"], 55.0, 25.0),
+    "ring": (MCP_DEG["ring"], 57.0, 27.0),
+    "little": (MCP_DEG["little"], 59.0, 29.0),
 }
 
 PHALANGES = {
@@ -120,17 +115,6 @@ def _local_radius(mesh: trimesh.Trimesh, point: np.ndarray,
     return float(np.linalg.norm(radial, axis=1).max())
 
 
-def _palmar_depth(mesh: trimesh.Trimesh, point: np.ndarray,
-                  direction: np.ndarray, palmar: np.ndarray,
-                  window: float = 3.0) -> float:
-    offset = mesh.vertices - point
-    along = offset @ direction
-    near = offset[np.abs(along) <= window]
-    if len(near) < 4:
-        near = offset[np.argsort(np.abs(along))[:40]]
-    return float((near @ palmar).max())
-
-
 @dataclass
 class PosedRay:
     """One re-aimed finger ray plus the frames of its joints."""
@@ -146,6 +130,8 @@ def pose_ray(skeleton: Skeleton, ray: str, angles) -> PosedRay:
     head_axis = skeleton.axes[f"metacarpal-{ray}"]
     base_direction = head_axis[1] - head_axis[0]
     base_direction = base_direction / np.linalg.norm(base_direction)
+    base_direction = _rotate(
+        base_direction, DORSAL, np.deg2rad(MCP_YAW_DEG.get(ray, 0.0)))
     flex_axis = _flex_axis(base_direction)
     cumulative_angle = 0.0
     joint = head_axis[1].copy()
@@ -169,7 +155,7 @@ def pose_ray(skeleton: Skeleton, ray: str, angles) -> PosedRay:
         # Real scan bones have bulbous articular ends. Rotating two complete
         # shells about the same joint centre makes those ends occupy the same
         # volume. Pull each end back to leave a real joint line; the explicit
-        # flexure collar below reconnects them without anatomical overlap.
+        # solid knuckle below reconnects them without anatomical overlap.
         along = (mesh.vertices - joint) @ direction
         start_inset = MCP_END_INSET if not bones else JOINT_END_INSET
         usable = length - start_inset - JOINT_END_INSET
@@ -185,74 +171,27 @@ def pose_ray(skeleton: Skeleton, ray: str, angles) -> PosedRay:
     return PosedRay(bones, joints, directions, base, directions[0])
 
 
-def _notch(point: np.ndarray, direction: np.ndarray, radius: float,
-           dorsal_depth: float, web: float) -> trimesh.Trimesh:
-    """Wedge that opens on the palmar side and leaves a thin dorsal web."""
-    side = _flex_axis(direction)
-    up = np.cross(direction, side)
-    up = up / np.linalg.norm(up)
-
-    apex = point + up * (dorsal_depth - web)
-    depth = dorsal_depth + radius + 4.0
-    half = np.tan(np.deg2rad(NOTCH_DEG) / 2.0) * depth
-    width = radius + 3.0
-
-    corners = []
-    for s in (-1.0, 1.0):
-        corners.append(apex + side * s * width)
-        corners.append(apex - up * depth + direction * half + side * s * width)
-        corners.append(apex - up * depth - direction * half + side * s * width)
-    return clean(trimesh.Trimesh(vertices=np.asarray(corners)).convex_hull)
-
-
-def _tendon_channel(mesh: trimesh.Trimesh, posed: PosedRay,
-                    stop_fraction: float = 0.55) -> list[trimesh.Trimesh]:
-    """Bore that keeps a constant wall to the palmar surface of every segment."""
-    nodes = []
-    for index, direction in enumerate(posed.directions):
-        side = _flex_axis(direction)
-        palmar = -np.cross(direction, side)
-        palmar = palmar / np.linalg.norm(palmar)
-        start = posed.joints[index]
-        end = posed.joints[index + 1]
-        if index == len(posed.directions) - 1:
-            end = start + (end - start) * stop_fraction
-        for point in (start, end):
-            depth = _palmar_depth(posed.bones[index], point, direction, palmar)
-            nodes.append(point + palmar * max(0.0, depth - TENDON_D / 2.0 - 1.0))
-
-    parts = []
-    for i in range(len(nodes) - 1):
-        a, b = nodes[i], nodes[i + 1]
-        length = float(np.linalg.norm(b - a))
-        if length < 0.2:
-            continue
-        parts.append(cylinder(TENDON_D / 2.0, length, (a + b) / 2.0, b - a))
-        parts.append(sphere(TENDON_D / 2.0, a, subdivisions=2))
-    parts.append(sphere(TENDON_D / 2.0, nodes[-1], subdivisions=2))
-    _ = mesh
-    return parts
-
-
 def build_finger(skeleton: Skeleton, ray: str, pose: dict) -> trimesh.Trimesh:
-    """One printed finger: real bones, flexure joints, tendon bore, MCP socket."""
+    """One rigid printed finger: posed bones, solid knuckles and MCP socket."""
     posed = pose_ray(skeleton, ray, pose[ray])
 
-    # A knuckle sphere at every joint guarantees the closing has enough stock to
-    # bridge, so the V-notch can never sever the finger.
     collars = []
     for index in range(1, len(posed.joints) - 1):
         point = posed.joints[index]
-        radius = min(_local_radius(posed.bones[index - 1], point,
-                                   posed.directions[index - 1]),
-                     _local_radius(posed.bones[index], point,
-                                   posed.directions[index]))
-        collars.append(sphere(radius * 1.00, point, subdivisions=3))
+        d0, d1 = posed.directions[index - 1], posed.directions[index]
+        b0, b1 = posed.bones[index - 1], posed.bones[index]
+        v0 = b0.vertices[(b0.vertices - point) @ d0 >= -4.5]
+        v1 = b1.vertices[(b1.vertices - point) @ d1 <= 4.5]
+        collars.append(clean(trimesh.Trimesh(vertices=np.vstack([v0, v1])).convex_hull))
+        radius = min(_local_radius(b0, point - d0 * JOINT_END_INSET, d0, window=2.0),
+                     _local_radius(b1, point + d1 * JOINT_END_INSET, d1, window=2.0))
+        collars.append(sphere(radius * 0.90, point, subdivisions=3))
 
     # Socket neck that slides onto the peg on the metacarpal head.
     neck_length = PEG_LEN - 2.0
     neck = cylinder(PEG_D / 2.0 + 1.6, neck_length,
-                    posed.base + posed.base_direction * (4.0 + neck_length / 2.0),
+                    posed.base + posed.base_direction * (
+                        MCP_SOCKET_START + neck_length / 2.0),
                     posed.base_direction)
 
     # OrcaSlicer 2.3 rejects one pathological 0.35 mm index voxelization even
@@ -263,40 +202,15 @@ def build_finger(skeleton: Skeleton, ray: str, pose: dict) -> trimesh.Trimesh:
                 bridge=1.1, smooth=0.9)
     body = simplify(body, 9000)
 
-    joint_geometry = []
-    for index in range(1, len(posed.joints) - 1):
-        point = posed.joints[index]
-        direction = posed.directions[index - 1] + posed.directions[index]
-        direction = direction / np.linalg.norm(direction)
-        side = _flex_axis(direction)
-        up = np.cross(direction, side)
-        up = up / np.linalg.norm(up)
-        radius = _local_radius(body, point, direction, window=2.0)
-        dorsal = _palmar_depth(body, point, direction, up, window=2.0)
-        joint_geometry.append((point, direction, radius, dorsal))
-
-    fixed = list(_tendon_channel(body, posed))
-    fixed.append(cylinder(
+    socket = cylinder(
         (PEG_D + SOCKET_CLEAR) / 2.0, PEG_LEN + 2.0,
         posed.base + posed.base_direction * (PEG_LEN / 2.0),
-        posed.base_direction))
+        posed.base_direction)
 
-    # The dorsal surface falls away sideways, so a web that is thin enough for
-    # rigid PLA can sever a slim ray such as the little finger. Start at the
-    # 0.8 mm target and thicken only the rays that would otherwise come apart.
-    for step in range(len(WEB_STEPS)):
-        web = WEB_STEPS[step]
-        cutters = [_notch(point, direction, radius, dorsal, web)
-                   for point, direction, radius, dorsal in joint_geometry]
-        # Boolean notches can leave sub-0.01 mm facets which remain manifold
-        # but make OrcaSlicer abort. This preserves topology and volume.
-        result = simplify_tolerance(difference(body, [*cutters, *fixed]), 0.01)
-        if result.is_volume and len(result.split(only_watertight=False)) == 1:
-            RESOLVED_WEB[ray] = web
-            return result
-    raise RuntimeError(
-        f"{ray}: no flexure web between {WEB_STEPS[0]} and {WEB_STEPS[-1]} mm "
-        "keeps the finger in one piece")
+    result = simplify_tolerance(difference(body, [socket]), 0.01)
+    if not result.is_volume or len(result.split(only_watertight=False)) != 1:
+        raise RuntimeError(f"{ray}: solid-knuckle finger is not one closed body")
+    return result
 
 
 def wrist_frame(skeleton: Skeleton) -> tuple[np.ndarray, np.ndarray]:
@@ -355,7 +269,20 @@ def build_palm(skeleton: Skeleton) -> trimesh.Trimesh:
     side = np.array([1.0, 0.0, 0.0])
     cutters.append(cylinder(1.9 / 2.0, WRIST_D + 14.0,
                             mount + forearm * WRIST_PIN_FROM_MOUNT, side))
-    return difference(body, cutters)
+    mcp_reliefs = []
+    for ray in RAYS:
+        direction = peg_direction(skeleton, ray)
+        head = skeleton.axes[f"metacarpal-{ray}"][1]
+        mcp_reliefs.append(cylinder(
+            (MCP_THUMB_RELIEF_D if ray == "thumb" else MCP_RELIEF_D) / 2.0,
+            MCP_RELIEF_LEN,
+            head + direction * (MCP_RELIEF_START + MCP_RELIEF_LEN / 2.0),
+            direction,
+        ))
+    body = difference(body, [*cutters, *mcp_reliefs])
+    # Leave each MCP peg rooted in the metacarpal while clearing its scan-bone
+    # head from the finger's 4.4 mm socket.
+    return union([body, *metacarpal_pegs(skeleton)])
 
 
 def palm_to_forearm_transform(
@@ -396,6 +323,8 @@ def metacarpal_pegs(skeleton: Skeleton) -> list[trimesh.Trimesh]:
 def peg_direction(skeleton: Skeleton, ray: str) -> np.ndarray:
     a, b = skeleton.axes[f"metacarpal-{ray}"]
     direction = (b - a) / np.linalg.norm(b - a)
+    direction = _rotate(
+        direction, DORSAL, np.deg2rad(MCP_YAW_DEG.get(ray, 0.0)))
     direction = _rotate(direction, _flex_axis(direction), np.deg2rad(MCP_DEG[ray]))
     return direction / np.linalg.norm(direction)
 

@@ -7,7 +7,23 @@
 
 Parametrischer, vollständig manueller Funktionsprototyp für den Anycubic Kobra S1. Die Kraftkette verwendet ausschließlich starre Druckteile: **drehbarer Totenkopf → Ritzel/Zahnstangen → Doppelschere, Deckelgetriebe und Unterarmgetriebe**. Es gibt keine Seile, Gummibänder, Federn, Rastklinke oder Wickelspule.
 
-Die Finger sind vorgekrümmte PLA-Flexuren. Sie werden nicht aktiv bewegt; beim Ausfahren präsentiert die Mechanik die offene, gekrümmte Handfläche.
+Die fünf Finger und der um 55° opponierte Daumen werden für den Druck bereits
+in der gekrümmten Schalenpose erzeugt; Sehnen, Draht oder Filament sind dafür
+nicht nötig. Die PIP-, DIP- und Daumen-IP-Gelenke sind als voll geschlossene,
+massive Knöchelübergänge ohne V-Kerben oder Entlastungsschlitze ausgeformt, und
+die MCP-Steckkrägen sitzen bündig an den freigestellten Mittelhandköpfchen.
+In den Mittelhandknochen von Mittel-, Ring- und kleinem Finger sitzen drei
+bündige Sacklöcher (Ø3,4 × 3,6 mm, > 3,5 mm geschlossener Boden zum Handrücken),
+sodass die Handfläche ohne eingesetzte Schale keinerlei abstehende Stege hat.
+In diese Aufnahmen lässt sich optional die tiefer in die Hand eingebettete
+goldene Süßigkeitenschale (`candy-dish`, 48,0 × 55,0 × 39,0 mm inkl. kurzer
+Unterseiten-Steckstifte Ø3,0 × 3,2 mm) einstecken, deren Öffnung bei mittlerem
+Hub ($\theta = 48^\circ$) waagerecht liegt und über den gesamten 60°-Unterarmhub
+maximal $\pm 30^\circ$ kippt (mindestens 11,518 ml statisches Rückhaltevolumen
+bei 2 mm Freibord). Die Schatulle, der Deckel und alle 35 Nicht-Hand-Bauteile
+bleiben exakt unverändert (`docs/ghouls-grip-printed-box-contract.json`).
+Automatische Baumstützen bleiben für die Finger und die Schale eingeschaltet
+und müssen nach dem Druck vorsichtig entfernt werden.
 
 ## Quellen der Geometrie
 
@@ -17,9 +33,10 @@ Die Finger sind vorgekrümmte PLA-Flexuren. Sie werden nicht aktiv bewegt; beim 
 | Starre Mechanik | `scripts/mechanism.py` |
 | Totenkopf-Drehknopf | `scripts/skull.py` |
 | Anatomische Hand | `scripts/skeleton_hand.py` |
+| Süßigkeitenschale & Stützstege | `scripts/candy_hand.py` |
 | Ansichts-/Druckprojekte | `scripts/ghouls_grip.py` |
 | Orca-Projekte | `scripts/export_ghouls_grip_orca_projects.py` |
-| Kollisionsnachweis | `scripts/verify_ghouls_grip_mechanics.py` |
+| Kollisionsnachweis | `scripts/verify_ghouls_grip_mechanics.py`, `scripts/verify_ghouls_grip_candy.py` |
 
 ## Maßvertrag
 
@@ -47,8 +64,10 @@ Die Finger sind vorgekrümmte PLA-Flexuren. Sie werden nicht aktiv bewegt; beim 
 | Totenkopf-Drehweg | 113,544° |
 | Totenkopfknopf | 48,5 × 55,1 × 27,0 mm |
 | Totenkopf-Schaft | Ø8 mm Presssitz, 0,2 mm Untermaß im Knopf |
-| Handfläche | 67,9 × 96,5 × 25,2 mm |
-| Fingerspitzen ausgefahren | 246,7 mm über Aufstellfläche |
+| Handfläche (mit 3 bündigen Schalen-Sacklöchern) | 67,8 × 96,4 × 25,2 mm |
+| Süßigkeitenschale (`candy-dish`, Konstruktionsschätzung) | 48,0 × 55,0 × 39,0 mm (Schalenhöhe 30,0 mm + Unterseitenbeine/Stifte); Boden 2,0 mm, Wand 1,6 mm |
+| Schalen-Positionierstifte / bündige Sacklöcher (Konstruktionsschätzung) | 3 × Ø3,0 × 3,2 mm an Schalenunterseite / Ø3,4 × 3,6 mm bündig in Mittelhandknochen (0,4 mm Spiel, > 3,5 mm geschlossener Knochenboden) |
+| Fingerspitzen ausgefahren | 241,2 mm über Aufstellfläche |
 
 Die Hand ist mit `HAND_SCALE = 0.72` aus einem anatomischen CT-Datensatz abgeleitet. Die größere Handfläche gegenüber der ursprünglichen 50 × 45-mm-Idee ist erforderlich, um Handwurzel- und Mittelhandknochen erkennbar zu erhalten.
 
@@ -187,7 +206,7 @@ in ausreichend starkem Material.
 
 ## Stückliste
 
-Das Orca-Druckprojekt enthält **28 Teiltypen / 41 Druckobjekte** auf vier
+Das Orca-Druckprojekt enthält **29 Teiltypen / 42 Druckobjekte** auf vier
 Platten. Dazu kommen **sechs nicht gedruckte Filamentstifte** (1,75-mm-PLA vom
 Spulenrest), die in Kollisions- und Eingriffsprüfung als Ø1,75-Zylinder
 mitgeführt werden.
@@ -215,9 +234,10 @@ mitgeführt werden.
 | Schnappstift Ø4 Zwischenrad (11,4) | 3 | Ø7,5 × 14,6 mm | Naturweiß |
 | Pressstift Ø4 Folger (Quetschrippen) | 1 | Ø7,5 × 11,8 mm | Naturweiß |
 | Unterarm mit D-Nabe | 1 | 25,8 × 18 × 50 mm | Knochenbeige |
-| Handfläche | 1 | 67,9 × 96,5 × 25,2 mm | Knochenbeige |
-| Fünf Finger | je 1 | 36–66 mm | Knochenbeige |
-| Totenkopf-Drehknopf | 1 | 48,5 × 55,1 × 27,0 mm | Grau |
+| Handfläche (mit 3 bündigen Sacklöchern) | 1 | 67,8 × 96,4 × 25,2 mm | Knochenbeige |
+| Fünf gekrümmte Finger (massive Gelenke) | je 1 | 33–59 mm | Knochenbeige |
+| Totenkopf-Drehknopf | 1 | 48,5 × 55,1 × 27,0 mm | Gold (`#D4AF37`) |
+| Süßigkeitenschale (`candy-dish`, optional steckbar) | 1 | 48,0 × 55,0 × 39,0 mm | Gold (`#D4AF37`) |
 
 **Nicht gedruckte Teile (Filament Ø1,75 mm, abgelängt):**
 
@@ -241,7 +261,8 @@ Die frühere separate Sehnenführung, die starre Deckel-Hauptzahnstange und die
 | Schlitten in der Schiene | zwei integrierte Schnappfinger | senkrecht aufdrücken, Finger rasten in die Nut |
 | Unterarm in Plattform | D-Welle des Abtriebsrads + Filamentstift 10 mm | Unterarm zwischen die Ohren, Welle axial einschieben, außen sichern |
 | Handfläche am Unterarm | 11,6-mm-Zapfen in Ø12-Aufnahme + Filamentstift 16 mm | Querbohrungen fluchten lassen, Stift quer einsetzen |
-| Finger an Handfläche | beschriftete MCP-Steckzapfen | in Druckrichtung aufstecken |
+| Finger an Handfläche | 4-mm-MCP-Zapfen in 4,4-mm-Aufnahme (0,4 mm Durchmesserspiel) | vom freien Zapfenende her entlang der Achse zum Handteller aufschieben (Reihenfolge: Zeige-, Mittel-, Ring-, kleiner Finger, Daumen); das Knochenköpfchen ist ab 2,0 mm auf 7,0 mm Länge freigestellt (Ø8,6 mm bzw. Ø11,2 mm am Daumen), sodass der Steckkragen bündig anschließt |
+| Süßigkeitenschale an Handfläche | 3 asymmetrische Ø3,0-mm-Unterseitenstifte an der Schale in bündigen Ø3,4-mm-Sacklöchern der Mittelhandknochen (0,4 mm Spiel) | optional nach den Fingern entlang der Schalennormale von oben in die Handfläche einstecken; ohne Schale bleibt die Knochenhand frei von abstehenden Stegen |
 | Deckel am Gehäuse | Filament 198 mm als Scharnierachse | von der Stirnseite durch alle Knöchel, Kurbel und Distanzhülse schieben |
 | Totenkopf am Hauptritzel | D-Welle + Filamentstift 14 mm | Knauf aufstecken, Querstift einsetzen |
 | Übertragungsräder | Zapfen Ø2,8 in Ø3,2-Lagerbock, Bund innen, Filamentstift 5 mm außen | axial in -X einschieben, Stift außen quer |
@@ -275,7 +296,17 @@ Druckungenauigkeit (±0,1–0,2 mm) nachgewiesen.
    liegt 64° zur Senkrechten, ein gerades Absenken würde Zahn auf Zahn treffen.
    Zahnrad-, Fest- und Langlochstifte oben einschnappen.
 10. Handfläche auf den Unterarmzapfen schieben (um -75° gerollt), Filamentstift
-    16 mm quer. Finger auf ihre beschrifteten Sockel setzen.
+    16 mm quer. Jeden gekrümmten Finger vom freien Ende des MCP-Zapfens her
+    entlang seiner Achse zum Handteller auf den passenden Sockel schieben
+    (Reihenfolge: Zeige-, Mittel-, Ring-, kleiner Finger, zuletzt der opponierte
+    Daumen). Die proximalen Fingerachsen sind auf die angewinkelten Zapfen
+    ausgerichtet; die MCP-Steckkrägen beginnen bei 2,4 mm und schließen bündig
+    an die ab 2,0 mm freigestellten Mittelhandköpfchen an (4,0 mm Wurzelüberdeckung
+    des Zapfens). Optional die goldene Süßigkeitenschale (`candy-dish`) entlang
+    ihrer Öffnungsnormale mit ihren drei Ø3,0-mm-Unterseitenstiften in die
+    bündigen Ø3,4-mm-Sacklöcher der Mittelhandknochen stecken. Finger- und
+    Schalenpassung sind lösbar (schwerkraft-/steckgelagert, nicht formschlüssig
+    verriegelt) und noch nicht durch einen physischen Testdruck unter Last bestätigt.
 11. Deckel-Baugruppe außerhalb vormontieren: Deckel umgedreht, Deckelkurbel von
     unten einlegen und 5,6 mm in +X in die Mitnehmertasche schieben; die
     Kurbel-Distanzhülse von unten in den Servicekanal zwischen Kurbel und
@@ -287,15 +318,18 @@ Druckungenauigkeit (±0,1–0,2 mm) nachgewiesen.
     der Stirnseite durch Truhe, Deckel, Kurbel und Hülse schieben. Die Hülse
     hält die Kurbel axial im Eingriff (Spiel +0,2/−0,1 mm).
 13. Ohne Süßigkeiten langsam testen: Totenkopf drehen → Deckel öffnet früh →
-    Schere hebt → Unterarm entfaltet. Danach exakt rückwärts drehen.
+    Schere hebt → Unterarm entfaltet. Danach exakt rückwärts drehen. Für
+    Süßigkeiten nur verpackte Ware oder einen lebensmittelechten Einsatz in der
+    Schale verwenden (ungeschütztes FDM-PLA ist nicht als lebensmittelecht
+    zertifiziert) und nicht über die freie Höhe der geschlossenen Kiste füllen.
 
-Zum Zerlegen in umgekehrter Reihenfolge: Schnappstifte durch Zusammendrücken
+Zum Zerlegen in umgekehrter Reihenfolge: Süßigkeitenschale abheben, Schnappstifte durch Zusammendrücken
 der Schlitzhälften von der Nasenseite lösen; Filamentstifte herausziehen.
 ## Druckprojekte
 
 - `models/ghouls-grip-view.3mf` – zusammengesetzte Ansichten auf drei Platten:
   vollständig ausgefahren (78°), Zwischenzustand (48°) und eingefahren (18°).
-- `models/ghouls-grip-print.3mf` – ein Orca-Projekt für alle 41 Druckobjekte
+- `models/ghouls-grip-print.3mf` – ein Orca-Projekt für alle 42 Druckobjekte
   mit vier Filament-/Farbzuordnungen auf vier nach Farbe und Baugruppe
   gruppierten Druckplatten.
 - `models/ghouls-grip-preview.stl` – Canvas-Vorschau.

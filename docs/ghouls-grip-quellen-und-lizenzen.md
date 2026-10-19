@@ -84,9 +84,21 @@ Quellen dienen ausschließlich als Stil- und Proportionsreferenz; daher entsteht
 für die ausgelieferten Reliefs keine zusätzliche Attributions- oder
 Share-Alike-Pflicht.
 
-## Weitere bereits verwendete Anatomiequelle
+## Weitere bereits verwendete Anatomiequelle und Schalenhand-Erweiterung
 
 Die Handgeometrie basiert weiterhin auf **“Wrist Bones Full Hand – Human
 Skeleton”**, NIH 3D Print Exchange, Modell `3DPX-016815`, hochgeladen von My
-Segmenter, **CC BY 4.0**. Diese Überarbeitung verändert weder den Hand-Datensatz
-noch dessen Attribution.
+Segmenter, **CC BY 4.0** ([NIH 3D Entry](https://3d.nih.gov/entries/3DPX-016815)).
+Vor der Schalenhand-Erweiterung am 19. Oktober 2026 wurde zusätzlich nach
+wiederverwendbaren Vorlagen gesucht (`3D printable cupped skeleton hand candy holder bowl removable dish STL license Creative Commons`).
+Zwei Printables-Kandidaten (`model/1436550-skeleton-hand-bowl`,
+`model/590777-halloween-skeleton-candy-bowl`) lieferten beim Abruf der
+Primärseiten HTTP 403; ihre Lizenzen konnten nicht aus der Primärquelle
+verifiziert werden und es wurde keine Geometrie heruntergeladen.
+
+Entscheidung: **Hybrid-Weiterverwendung** des bereits lizenzierten NIH-Hand-Scans
+(`3DPX-016815`, CC BY 4.0) mit starrer Neu-Posierung (opponierter Daumen,
+gekrümmte Finger, massiv geschlossene Knöchel ohne V-Kerben) in
+`scripts/skeleton_hand.py` sowie einer technisch neu konstruierten,
+abnehmbaren elliptischen Süßigkeitenschale (`candy-dish`) mit drei
+asymmetrischen Positionierstiften in `scripts/candy_hand.py`.

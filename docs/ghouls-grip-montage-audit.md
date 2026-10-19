@@ -5,7 +5,7 @@ Automatisch erzeugt von `scripts/audit_ghouls_grip_assembly.py`. Alle Pruefungen
 Toleranzannahmen (Kobra S1, 0.4 mm Duese, 0.2 mm Schicht): radiales Spiel >= 0.2 mm je Seite, axiales Spiel >= 0.1 mm, Flankenspiel >= 0.1 mm je Richtung, Schnapp-Dehnung <= 2 %, Kollision > 0.5 mm3 = FAIL, Einschub-/Montage-Huellen > 0.05 mm3 = FAIL.
 ## Ergebnis
 
-**Gesamt: PASS** (116 s)
+**Gesamt: PASS** (102 s)
 
 | Pruefung | Status |
 | --- | --- |
@@ -23,10 +23,11 @@ Toleranzannahmen (Kobra S1, 0.4 mm Duese, 0.2 mm Schicht): radiales Spiel >= 0.2
 
 ## 1. Stueckliste (gedruckt)
 
-**PASS** - 41 Druckobjekte im Druckprojekt, 41 Teile in der Baugruppe.
+**PASS** - 42 Druckobjekte im Druckprojekt, 42 Teile in der Baugruppe.
 
 | Teil | im Druckprojekt | in der Baugruppe |
 | --- | ---: | ---: |
+| candy-dish | 1 | 1 |
 | chest | 1 | 1 |
 | crank-spacer | 1 | 1 |
 | drive-pinion | 1 | 1 |
@@ -75,15 +76,15 @@ Fehlend: keine; ueberzaehlig: keine; Stift-Mengen-Abweichung: keine.
 
 | Theta | Kontakte | Soll-Pressungen | Kollisionen | groesste unbeabsichtigte mm3 |
 | ---: | ---: | --- | ---: | ---: |
-| 18 | 1 | lid-follower-rackxpivot-pin-follower 0.89 | 0 | 0.000 |
-| 25 | 1 | lid-follower-rackxpivot-pin-follower 0.89 | 0 | 0.000 |
-| 30 | 1 | lid-follower-rackxpivot-pin-follower 0.89 | 0 | 0.000 |
-| 36 | 1 | lid-follower-rackxpivot-pin-follower 0.89 | 0 | 0.000 |
-| 48 | 1 | lid-follower-rackxpivot-pin-follower 0.89 | 0 | 0.000 |
-| 60 | 1 | lid-follower-rackxpivot-pin-follower 0.89 | 0 | 0.000 |
-| 78 | 1 | lid-follower-rackxpivot-pin-follower 0.89 | 0 | 0.000 |
+| 18 | 2 | lid-follower-rackxpivot-pin-follower 0.89 | 0 | 0.026 |
+| 25 | 2 | lid-follower-rackxpivot-pin-follower 0.89 | 0 | 0.026 |
+| 30 | 2 | lid-follower-rackxpivot-pin-follower 0.89 | 0 | 0.026 |
+| 36 | 2 | lid-follower-rackxpivot-pin-follower 0.89 | 0 | 0.026 |
+| 48 | 2 | lid-follower-rackxpivot-pin-follower 0.89 | 0 | 0.026 |
+| 60 | 2 | lid-follower-rackxpivot-pin-follower 0.89 | 0 | 0.026 |
+| 78 | 2 | lid-follower-rackxpivot-pin-follower 0.89 | 0 | 0.026 |
 
-**PASS** - groesste unbeabsichtigte Ueberschneidung 0.000 mm3 (Netz-Rauschen/Flaechenkontakt).
+**PASS** - groesste unbeabsichtigte Ueberschneidung 0.026 mm3 (Netz-Rauschen/Flaechenkontakt).
 
 ## 4. Spiel der Schnappstifte im eingebauten Zustand (Theta 48)
 

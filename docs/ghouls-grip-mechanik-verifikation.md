@@ -23,7 +23,7 @@ Geprüft wird die starre, manuell reversible Kraftkette: Drehbarer Totenkopf -> 
 | Hinterwand am ehemaligen Mechanikfenster | 100.000% massiv |
 | Totenkopf-Drehweg | 113.54° |
 | Einzelkörper je Druckteil | {'scissor-arm': 1, 'slider': 1, 'lid-follower-rack': 1, 'platform': 1, 'drive-pinion': 1, 'lid-crank': 1, 'crank-spacer': 1, 'lid-transfer-gear': 1, 'scissor-drive-gear': 1, 'idler-gear': 1, 'forearm-output-gear': 1, 'forearm': 1, 'chest': 1, 'lid': 1} |
-| Laufzeit | 191.8 s |
+| Laufzeit | 178.0 s |
 | Sweep hand_chest | 0.000 mm³ |
 | Sweep hand_lid | 0.000 mm³ |
 | Sweep hand_platform | 0.000 mm³ |

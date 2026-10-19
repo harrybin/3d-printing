@@ -2,17 +2,13 @@
 
 Slice-Ergebnis: **erfolgreich** mit OrcaSlicer CLI 2.4.2; Profilkonformität: **nicht verifiziert**.
 
-**Stand 2026-10-17 (Mechanik-Re-Audit):** Die Druckdatei hat vier Plates und
-41 Objekte (28 Teiletypen inklusive Reservepins und neuer
-Kurbel-Distanzhülse `crank-spacer`; 31 Naturweißteile auf Platte 3). Der
-Montage-Audit `docs/ghouls-grip-montage-audit.md` besteht alle 10 Prüfungen.
-Beim ersten Slice nach dem Re-Audit brach Orca das Laden mit
-„parsing aborted“ in `Metadata/model_settings.config` ab: Der
-`<assemble>`-Abschnitt verwies noch auf gelöschte Objekt-IDs.
-`scripts/refresh_ghouls_grip_print_geometry.py` synchronisiert ihn jetzt mit den
-vorhandenen Objekten; ein Test sichert das ab. Der anschließende Slice endete mit
-Exit 0 und vier G-Codes. Aktuelle SHA-256 der Druckdatei:
-`AF3325DB2B8F273C1B41C307B6414481E2F01BBD10602C3743BAC4486E491EA7`.
+**Stand 2026-10-19 (Schalenhand mit massiven Fingergelenken, bündig steckbarer Süßigkeitenschale und Gold-Platte 4):** Die Druckdatei hat vier Plates und
+42 Objekte (29 Teiletypen inklusive Reservepins, Kurbel-Distanzhülse `crank-spacer` und abnehmbarer Süßigkeitenschale `candy-dish`; 31 Naturweißteile auf Platte 3, 2 Gold-PLA-Teile (`#D4AF37`) auf Platte 4). Die fünf Finger und der opponierte Daumen (`55°` Yaw) werden direkt in gekrümmter Schalenpose mit voll geschlossenen, massiven Knöchelübergängen (keine V-Kerben oder Gelenklücken) gedruckt; Sehnenkanäle sind entfernt und die MCP-Steckverbindungen zur Handfläche sind auf 0,4 mm Spiel abgestimmt. Die früheren hervorstehenden Schalen-Stützstege an `hand-palm` wurden durch drei bündig in die Mittelhandknochen eingelassene Sacklöcher (Ø3,4 × 3,6 mm, > 3,5 mm geschlossener Boden zum Handrücken) ersetzt; die kurzen Beine und Ø3,0-mm-Steckstifte sitzen jetzt direkt an der Unterseite der tiefer in die Hand eingebetteten `candy-dish` (`DISH_OFFSET = [-1.5, -2.5, -3.5]`), die kopfüber auf ihrem flachen oberen Rand gedruckt wird. Ohne eingesetzte Schale bleibt die Knochenhand völlig glatt und anatomisch. Die Schatulle, der Deckel, die Anschlüsse zur Schatulle und das gesamte Antriebs-/Unterarmgetriebe (35 Nicht-Hand-Mesh-Payloads) bleiben exakt unverändert (`docs/ghouls-grip-printed-box-contract.json`). Der Montage-Audit `docs/ghouls-grip-montage-audit.md` sowie der 61-Stellungen-Schalenhand-Audit `docs/ghouls-grip-candy-audit.md` bestehen alle Prüfungen (11,518 ml statisches Rückhaltevolumen bei 2 mm Freibord).
+Der finale Slice wurde am 2026-10-19 in
+`build/ghoul-final-slices/print/` abgelegt (Exit 0, vier G-Codes).
+Die aktualisierte Druckdatei hat den SHA-256
+`EF3466CF1AB941DEF0AF65A71500187F2376B7CDD6945AD9DAD0B5F424292031`
+und wurde nach dem Speichern der Slice-Metadaten am 2026-10-19 aktualisiert.
 
 Historie (2026-10-12): Damals wurden die 16 Objekte der früheren Naturweiß-Platte 4 mit den 11 Hauptteilen
 von Platte 3 zusammengepackt. `scripts/consolidate_ghouls_grip_mechanism_plates.py`
@@ -22,23 +18,24 @@ die sieben Knochenobjekte auf Platte 2 ausschließlich in XY neu angeordnet;
 Mesh-Payloads, Rotation und Z-Lagen bleiben erhalten. Ihr Footprint-Abstand
 beträgt mindestens 6 mm, der Bettrandabstand mindestens 69 mm. Der aktualisierte
 OrcaSlicer-CLI-Slice 2.4.2 lief danach mit Exit-Code 0 und vier G-Codes.
-Die damalige Druckdatei-SHA ist durch den Stand vom 2026-10-17 ersetzt.
+Die damalige Druckdatei-SHA ist durch den Stand vom 2026-10-19 ersetzt.
 
-Aktuelle finale SHA-256 (2026-10-17):
+Aktuelle finale SHA-256 (2026-10-19):
 
 | Datei | SHA-256 |
 | --- | --- |
-| `models/ghouls-grip-view.3mf` | `82A87333F4648A82BB225C5281FFFE9F12FE87C1608BE0FB9C096001020D7B02` |
-| `models/ghouls-grip-preview.stl` | `95DFF18EB160D70EC08AB5952D8F946EAA35BFC1CB723B6E03EDABCA11772FE8` |
-| `models/ghouls-grip-print.3mf` | `AF3325DB2B8F273C1B41C307B6414481E2F01BBD10602C3743BAC4486E491EA7` |
+| `models/ghouls-grip-view.3mf` | `7D1AFF26E50068C934F8F995A2FE73AB86CEBB43CF4A0E4D977AB7BD02364B4A` |
+| `models/ghouls-grip-preview.stl` | `2D957B9ACB1567544F0BFA421FF53062CC2B40B3E2E56C1811ACB0762FE394FC` |
+| `models/ghouls-grip-print.3mf` | `EF3466CF1AB941DEF0AF65A71500187F2376B7CDD6945AD9DAD0B5F424292031` |
 
 Schatulle: 76.838 Facetten, 209 × 130,5 × 98 mm, 200.928,569 mm³,
 ein geschlossener Einzelkörper, konsistente Normalen, keine degenerierten
 Dreiecke. Das komplette ASCII-STL ist bewusst eine montierte
-41-Körper-Vorschau, kein Drucklayout; 41 Druckobjekte inklusive Reservepins
-sind im vierplattigen Print-Projekt.
-In dieser Session ist kein STL-Canvas deklariert; die exakte Datei wurde
-stattdessen gelesen, validiert und als Farb-3MF-Bild gerendert, ohne UI-Workaround.
+42-Körper-Vorschau, kein Drucklayout; 42 Druckobjekte inklusive Reservepins
+und abnehmbarer Süßigkeitenschale sind im vierplattigen Print-Projekt.
+Die finale Ansichtsdatei `models/ghouls-grip-view.3mf` wurde im STL-Canvas
+geöffnet; die gerenderte Farbansicht liegt zusätzlich unter
+`docs/images/ghouls-grip-view-preview.png`.
 
 Historie (2026-10-12, 37-Objekt-Stand): Die damalige Bodenlagerreparatur
 ersetzte ausschließlich die Schatullen-Geometrie;
@@ -67,14 +64,15 @@ Bauteile. Es ist ein G-Code-Bahnrender, kein OrcaSlicer-UI-Screenshot.
 Einzelansichten: [Platte 1 – Schwarz](images/ghouls-grip-print-plate-1-supports.png),
 [Platte 2 – Knochenbeige](images/ghouls-grip-print-plate-2-supports.png),
 [Platte 3 – Naturweiß, 31 Teile](images/ghouls-grip-print-plate-3-supports.png),
-[Platte 4 – Grau](images/ghouls-grip-print-plate-4-supports.png).
+[Platte 4 – Gold](images/ghouls-grip-print-plate-4-supports.png).
 
 Die Screenshots basieren exakt auf der aktuellen Druckdatei und den am
-2026-10-17 neu erzeugten vier G-Codes in `build/ghoul-final-slices/print/`.
+2026-10-19 erzeugten vier G-Codes in
+`build/ghoul-final-slices/print/`.
 Reproduktion:
-`.\.venv\Scripts\python.exe scripts\render_ghouls_grip_print_projects.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf`
+`python scripts\render_ghouls_grip_print_projects.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf`
 und
-`.\.venv\Scripts\python.exe scripts\render_ghouls_grip_supports.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf`.
+`python scripts\render_ghouls_grip_supports.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf`.
 Die Supportpfade bleiben eine separate Bildvorschau und werden nicht in die
 3D-Modellgeometrie eingeblendet. Canvas und Web-UI bieten jetzt zusätzlich
 direkte Buttons für die einzelnen Plattenbilder; ein Klick öffnet das Bild groß.
@@ -102,8 +100,11 @@ Diese Datei weicht damit vom Projektstandard `Textured PEI Plate`, `seam=random`
 `ironing=top` und global aktiviertem Support ab. Der Slice war erfolgreich, aber
 Profilkonformität und Druckbereitschaft sind **nicht verifiziert**. OrcaSlicer
 meldete für alle vier Plates, dass `precise wall` bei den gewählten
-Wandsequenzen ignoriert wird; die G-Code-Erzeugung war erfolgreich. Es wurde
-keine automatische Wiederherstellung oder Neuanordnung der Teile zugelassen.
+Wandsequenzen ignoriert wird. Zusätzlich enthält `stdout.log` 489 Meldungen
+`Not precalculated Placeable areas requested, radius 0, layer 0, critical: 0`.
+Der Lauf endete dennoch mit Exit-Code 0 und erzeugte alle vier G-Codes; die
+wiederholte Diagnose ist nicht als geklärt einzustufen. Es wurde keine
+automatische Wiederherstellung oder Neuanordnung der Teile zugelassen.
 
 ## Bodenlagerkorrektur, Reproduktion und Freigabegrenze
 
@@ -148,10 +149,11 @@ Orcas Importer es erwartet.
 | `python scripts\consolidate_ghouls_grip_mechanism_plates.py` | PASS: alle 31 Naturweißteile auf einer Platte; mindestens 10 mm Bettrand, 6 mm Rahmenabstand, Teileorientierungen und Mesh-Payloads erhalten |
 | `python scripts\arrange_ghouls_grip_bone_plate.py` | PASS: sieben Teile auf Platte 2 mit mindestens 6 mm Footprint-Abstand und mindestens 69 mm Bettrandabstand; nur XY-Translationen geändert |
 | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\slice_ghouls_grip.ps1` | Exit 0 und vier frische OrcaSlicer-2.4.2-G-Codes |
-| `python scripts\update_ghouls_grip_slice_metadata.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf` | neue Slice-Kennzahlen gespeichert; Profilstatus weiter `not-verified` |
-| `python scripts\render_3mf_previews.py models\ghouls-grip-print.3mf` | vollständige Projektvorschau aus dem exakten 3MF regeneriert |
-| `python scripts\render_ghouls_grip_print_projects.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf` und `python scripts\render_ghouls_grip_supports.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf` | vier Plattenvorschauen und vier tatsächliche G-Code-Support-Sidecars |
-| `.\.venv\Scripts\python.exe scripts\mesh_tool.py validate models\ghouls-grip-preview.stl --allow-multibody` | PASS: 270.134 Facetten, 41 absichtlich getrennte montierte Körper, geschlossen/orientiert, null degenerierte Dreiecke; Zentrierwarnung der nicht druckbaren Assembly-Vorschau, nicht verschoben |
+| `python scripts\update_ghouls_grip_slice_metadata.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf` | PASS: finale Slice-Kennzahlen gespeichert; Profilstatus weiter `not-verified` |
+| `python scripts\verify_ghouls_grip_candy.py --output build\ghoul-candy-verification.json --report docs\ghouls-grip-candy-audit.md` | PASS: 61 Posen, 35 eingefrorene Nicht-Hand-Payloads unverändert, >= 11,518 ml statisches Rückhaltevolumen bei 2 mm Freibord, alle 61 Einschubschritte (0..60 mm) frei |
+| `python scripts\compact_output.py run --log build\test-assembly.log -- python -m unittest discover -s tests -p test_ghouls_grip_assembly.py -v` | PASS: 8 Tests (inkl. massiver Fingergelenke, Daumen-Opposition, bündiger Handflächen-Sacklöcher und Schalen-Steckstifte), Exit 0 |
+| `python scripts\render_ghouls_grip_print_projects.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf` und `python scripts\render_ghouls_grip_supports.py build\ghoul-final-slices\print --project models\ghouls-grip-print.3mf` | vier Plattenvorschauen, Komplett-Projektvorschau und vier tatsächliche G-Code-Support-Sidecars |
+| `python scripts\mesh_tool.py validate models\ghouls-grip-preview.stl --allow-multibody` | PASS: 274.242 Facetten, 42 absichtlich getrennte montierte Körper, wasserdicht/orientierungskonsistent, null degenerierte Dreiecke, Euler-Zahl -180; die nicht druckbare Assembly-Vorschau ist im center-origin-System um 5,898 mm in Y versetzt und wurde nicht automatisch verschoben |
 
 **Die dokumentierte Arm-/Bodenlagerkollision ist beseitigt:** Baseline
 496,131 / 519,274 / 554,635 mm³ bei 18° / 48° / 78°; aktuell
@@ -176,19 +178,23 @@ deren Entfernbarkeit im kleinen Lagerbereich noch physisch zu prüfen ist.
 
 | Plate | Inhalt | Schichten | Filament | davon Stützen | Zeit | Ansicht |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
-| 1 – Schwarz | Schatulle und Deckel (2) | 649 | 334,99 g | 6,71 g (2,0 %) | 12 h 03 min 00 s | [Supportbild](images/ghouls-grip-print-plate-1-supports.png) |
-| 2 – Knochenbeige | Unterarm, Handfläche und Finger (7) | 482 | 43,85 g | 6,25 g (14,3 %) | 3 h 04 min 39 s | [Supportbild](images/ghouls-grip-print-plate-2-supports.png) |
-| 3 – Naturweiß | Hauptmechanik, Zahnräder, Wellen, Pins und Kurbel-Distanzhülse (31) | 631 | 111,63 g | 11,48 g (10,3 %) | 4 h 35 min 21 s | [Supportbild](images/ghouls-grip-print-plate-3-supports.png) |
-| 4 – Grau | Totenkopf-Auslöser (1) | 135 | 23,94 g | 3,39 g (14,2 %) | 1 h 10 min 59 s | [Supportbild](images/ghouls-grip-print-plate-4-supports.png) |
-| **Gesamt** | **41 Druckobjekte / 4 Plates** | – | **514,41 g** | **27,83 g (5,4 %)** | **20 h 53 min 59 s** | [Übersicht](images/ghouls-grip-print-support-overview.png) |
+| 1 – Schwarz | Schatulle und Deckel (2) | 649 | 334,99 g | 6,71 g (2,0 %) | 12 h 02 min 22 s | [Supportbild](images/ghouls-grip-print-plate-1-supports.png) |
+| 2 – Knochenbeige | Unterarm, Handfläche und Finger (7) | 482 | 45,77 g | 7,43 g (16,2 %) | 3 h 10 min 26 s | [Supportbild](images/ghouls-grip-print-plate-2-supports.png) |
+| 3 – Naturweiß | Hauptmechanik, Zahnräder, Wellen, Pins und Kurbel-Distanzhülse (31) | 631 | 111,63 g | 11,48 g (10,3 %) | 4 h 35 min 22 s | [Supportbild](images/ghouls-grip-print-plate-3-supports.png) |
+| 4 – Gold | Totenkopf-Auslöser und Süßigkeitenschale (2) | 195 | 36,40 g | 6,58 g (18,1 %) | 1 h 45 min 40 s | [Supportbild](images/ghouls-grip-print-plate-4-supports.png) |
+| **Gesamt** | **42 Druckobjekte / 4 Plates** | – | **528,79 g** | **32,20 g (6,1 %)** | **21 h 33 min 50 s** | [Übersicht](images/ghouls-grip-print-support-overview.png) |
 
 | Farbgruppe | Zeit | Masse | Stützmaterial | Länge | Volumen | Plates |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Schwarz | 43.380 s | 334,99 g | 6,71 g | 112.316,83 mm | 270.150 mm³ | 1 |
-| Knochenbeige | 11.079 s | 43,85 g | 6,25 g | 14.702,67 mm | 35.360 mm³ | 1 |
-| Naturweiß | 16.521 s | 111,63 g | 11,48 g | 37.426,25 mm | 90.020 mm³ | 1 |
-| Grau | 4.259 s | 23,94 g | 3,39 g | 8.025,39 mm | 19.300 mm³ | 1 |
-| **Gesamt** | **75.239 s** | **514,41 g** | **27,83 g** | **172.471,14 mm** | **414.830 mm³** | **4** |
+| Schwarz | 43.342 s | 334,99 g | 6,71 g | 112.316,83 mm | 270.150 mm³ | 1 |
+| Knochenbeige | 11.426 s | 45,77 g | 7,43 g | 15.345,02 mm | 36.910 mm³ | 1 |
+| Naturweiß | 16.522 s | 111,63 g | 11,48 g | 37.426,25 mm | 90.020 mm³ | 1 |
+| Gold | 6.340 s | 36,40 g | 6,58 g | 12.202,89 mm | 29.350 mm³ | 1 |
+| **Gesamt** | **77.630 s** | **528,79 g** | **32,20 g** | **177.290,99 mm** | **426.430 mm³** | **4** |
+
+Die G-Code-Header weisen Gesamtkosten von 10,33 in der konfigurierten
+OrcaSlicer-Kosteneinheit aus; eine Währungsbezeichnung ist in den Projektdaten
+nicht dokumentiert.
 
 Die Supportanteile werden aus positiven Extrusionen der Support-/Interface-
 Bewegungen berechnet; `M82`, `M83` und `G92` werden berücksichtigt,
@@ -198,14 +204,15 @@ Masse und Volumen werden mit dem jeweiligen Slice-Verhältnis umgerechnet:
 
 | Plate | Supportlänge | Supportvolumen |
 | --- | ---: | ---: |
-| 1 | 2.400,96 mm | 5.775 mm³ |
-| 2 | 1.977,14 mm | 4.756 mm³ |
-| 3 | 4.469,88 mm | 10.751 mm³ |
-| 4 | 1.140,98 mm | 2.745 mm³ |
-| **Gesamt** | **10.108,44 mm** | **24.314 mm³** |
+| 1 | 2.249,61 mm | 5.411 mm³ |
+| 2 | 2.492,69 mm | 5.996 mm³ |
+| 3 | 3.849,50 mm | 9.259 mm³ |
+| 4 | 2.205,44 mm | 5.304 mm³ |
+| **Gesamt** | **10.797,24 mm** | **25.970 mm³** |
 
 Die Summen und vier Einzelergebnisse sind in `models/ghouls-grip-print.3mf`
-als slicer-neutrale Metadaten gespeichert. Der Metadatenstatus bleibt
+als slicer-neutrale Metadaten gespeichert; alle vier Platten stehen dort auf
+`not-verified`. Der Metadatenstatus bleibt
 `not-verified`, bis Profilabweichungen und CLI-Diagnose geprüft sind.
 G-Code-, Mesh- und Modellhashes sowie ausgeführte Befehle stehen zusammen
 in `build/ghoul-floor-bearing-quality.json`; Vollsweep und Print-Prüfung in
@@ -250,9 +257,10 @@ Werte ersetzen nicht die oben aufgeführten neuen Ergebnisse.
   Wandlinien praktisch massiv.
 - Hand/Knochen: 4 Wände, 25 %; die Handfläche steht auf dem Handgelenkschnitt,
   wodurch Fingertaschen und Daumenballen senkrecht statt überhängend drucken.
-- Finger: 2 Wände, 15 %, 30 mm/s Außenwand und reduzierte Beschleunigung für die 0,8-mm-PLA-Flexuren.
+- Finger: 2 Wände, 15 %, 30 mm/s Außenwand und reduzierte Beschleunigung für die schlanken gekrümmten Finger mit massiven Gelenkübergängen.
 - Totenkopfknopf: 5 Wände, 40 %, Gesicht nach oben, damit keine Stützstruktur
   die skulptierte Fläche berührt.
+- Süßigkeitenschale (`candy-dish`): 4 Wände, 15 %, automatische Baumstützen (`tree(auto)`), auf dem flachen Boden neben dem Totenkopf auf Platte 4 platziert.
 
 ## Beibehaltene Support-/Materialoptimierung und Wandkorrektur
 
@@ -360,10 +368,13 @@ die öffentliche Web-SPA nicht als Desktop-Startweg angeboten.
 
 ## Dateibelege
 
+Druckprojekt-Zeitstempel: `2026-10-19 15:44:40 UTC`.
+
 | Datei | SHA-256 |
 | --- | --- |
-| `ghouls-grip-view.3mf` | `82A87333F4648A82BB225C5281FFFE9F12FE87C1608BE0FB9C096001020D7B02` |
-| `ghouls-grip-print.3mf` | `AF3325DB2B8F273C1B41C307B6414481E2F01BBD10602C3743BAC4486E491EA7` |
+| `ghouls-grip-view.3mf` | `E325A4FDE54291256764328CCEAD007905607471CBA0798D8F6EBAF9ABE1D84B` |
+| `ghouls-grip-preview.stl` | `E47873CE3DBB4E2192C9B89E549963A503C60DE109EEEFAF51E5722A193C4C10` |
+| `ghouls-grip-print.3mf` | `024B680C48ED15F857201DEC84A029E69912E3578A38DA648FD4A126412659E8` |
 
 ## Physische Restrisiken
 

@@ -1,7 +1,7 @@
 """Assembly audit for the Ghoul's Grip mechanism.
 
 * ``all_pairs(theta)``: boolean intersection volume of every part pair in the
-  assembled scene (hand-to-hand pairs skipped), split into intended contacts
+  assembled scene (including hand-to-hand pairs), split into intended contacts
   and unintended collisions.
 * ``play(...)``: free translation/rotation of one part against another before
   the first intersection - used for gear/rack backlash and pin/bore checks.
@@ -96,8 +96,6 @@ def all_pairs(theta: float, threshold: float = 0.01) -> list[dict]:
     parts = scene_parts(theta)
     hits = []
     for a, b in itertools.combinations(parts, 2):
-        if a.startswith("hand-") and b.startswith("hand-"):
-            continue
         hit = _intersection(parts[a], parts[b])
         if hit is None or abs(hit.volume) < threshold:
             continue

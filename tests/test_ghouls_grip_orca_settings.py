@@ -35,7 +35,7 @@ class GhoulOrcaSettingsTests(unittest.TestCase):
         ))
         self.assertEqual(
             [MATERIAL_PROJECTS[slug]["color"] for slug in FILAMENT_ORDER],
-            ["#202124", "#D8C6A5", "#F1EBDD", "#777777"],
+            ["#202124", "#D8C6A5", "#F1EBDD", "#D4AF37"],
         )
 
     def test_all_projects_use_random_seams_and_top_ironing(self) -> None:
