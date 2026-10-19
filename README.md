@@ -79,13 +79,14 @@ overview (with additional state plates for mechanisms), and `-print.3mf` is the
 single all-material print project. Same-color parts share plates when safe;
 additional plate count never creates additional print-project files.
 
-All generated OrcaSlicer projects use these repository defaults unless a
+All generated OrcaSlicer projects use these mandatory repository defaults unless a
 documented part-specific override is required:
 
-- seam position: **Random** (`seam_position=random`)
+- layer height: **`<= 0.16 mm`** (`layer_height=0.16` default)
+- seam position: **Random** (`seam_position=random`, mandatory on all 3MF files)
 - ironing: **All top surfaces** (`ironing_type=top`)
-- automatic supports: **enabled** (`enable_support=1`)
-- Textured PEI plate, 0.4 mm nozzle, 0.20 mm layer height
+- automatic tree supports: **enabled** (`enable_support=1`, `support_type=tree(auto)`) with **1 layer Z contact distance** (`support_top_z_distance=0.16`, `support_bottom_z_distance=0.16`, equal to `layer_height`) for easy removal after printing
+- Textured PEI plate, 0.4 mm nozzle
 - XY hole compensation 0.10 mm and elephant-foot compensation 0.15 mm
 
 Support is deliberately left enabled. A zero-support result must come from

@@ -53,12 +53,15 @@ named machine, process and filament preset. Stop with a clear message when
   versus shells. Verify these values from `Metadata/project_settings.config`
   and `Metadata/model_settings.config`; a neutral 3MF with only mesh/color
   metadata is not print-ready.
-- Unless a project documents a specific exception, generated OrcaSlicer 3MFs
-  must set `seam_position=random`, `ironing_type=top` ("All top surfaces") and
-  `enable_support=1`. Verify all three keys in
-  `Metadata/project_settings.config`. Keep automatic support enabled even for
-  parts expected to need none, so a zero-support slice is evidence about the
-  geometry instead of a suppressed setting.
+- Unless a project documents a specific exception, all generated OrcaSlicer 3MFs
+  must set `layer_height <= 0.16` (`layer_height=0.16` default),
+  `seam_position=random` (mandatory), `ironing_type=top` ("All top surfaces"),
+  `enable_support=1`, `support_type=tree(auto)`, and a 1-layer Z contact
+  distance (`support_top_z_distance=0.16`, `support_bottom_z_distance=0.16`,
+  matching `layer_height`) for easy support tree removal after printing. Verify
+  all of these keys in `Metadata/project_settings.config`. Keep automatic tree
+  support enabled even for parts expected to need none, so a zero-support slice
+  is evidence about the geometry instead of a suppressed setting.
 - TPU projects must state that flexible filament is fed from the external spool
   unless the installed feeder is explicitly rated for that TPU.
 - Never assume a filament the user does not own. Confirm the available
@@ -85,8 +88,9 @@ named machine, process and filament preset. Stop with a clear message when
 
 ## Ghoul's Grip defaults
 
-- 0.20 mm layer height, 0.4 mm nozzle.
-- Random seam position and ironing on all top surfaces.
+- `<= 0.16 mm` layer height (`0.16 mm` default), 0.4 mm nozzle.
+- Random seam position (`seam_position=random`) and ironing on all top surfaces (`ironing_type=top`).
+- Automatic tree supports (`enable_support=1`, `support_type=tree(auto)`) with 1-layer Z contact distance (`support_top_z_distance=0.16`, `support_bottom_z_distance=0.16`).
 - Every part is printed in PLA using four color/spool assignments in the single
   project. Bone parts and fingers share bone-beige PLA and one plate. Do not
   reintroduce PETG or TPU without asking.

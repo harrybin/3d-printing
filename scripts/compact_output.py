@@ -57,7 +57,8 @@ def project_summary(path: Path) -> dict:
             "settings": {key: settings.get(key) for key in (
                 "filament_colour", "filament_settings_id", "printer_settings_id",
                 "curr_bed_type", "layer_height", "seam_position",
-                "ironing_type", "enable_support")},
+                "ironing_type", "enable_support", "support_type",
+                "support_top_z_distance", "support_bottom_z_distance")},
         }
 
 
