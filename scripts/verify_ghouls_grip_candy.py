@@ -17,7 +17,7 @@ import mechanism
 import render_ghouls_grip as scene
 from candy_hand import (
     DISH_HEIGHT, DISH_TOP_RADII, DISH_WALL, assembled_hand,
-    build_cavity, dish_frame,
+    build_cavity, dish_frame, dish_rim_points,
 )
 from mesh_kit import box
 from skeleton_hand import (
@@ -105,17 +105,14 @@ def hand_matrix(skeleton, theta: float) -> np.ndarray:
 
 
 def retention(skeleton, thetas) -> dict:
+    from concurrent.futures import ThreadPoolExecutor
+
     cavity = build_cavity(skeleton)
-    rim_angles = np.linspace(0.0, 2.0 * np.pi, 721)
-    radii = DISH_TOP_RADII - DISH_WALL
-    rim = np.column_stack([
-        radii[0] * np.cos(rim_angles),
-        radii[1] * np.sin(rim_angles),
-        np.full(len(rim_angles), DISH_HEIGHT),
-    ])
-    samples = []
-    for theta in thetas:
-        transform = hand_matrix(skeleton, float(theta)) @ dish_frame(skeleton)
+    frame = dish_frame(skeleton)
+    rim = dish_rim_points(721, inner=True)
+
+    def _eval_theta(theta: float) -> dict:
+        transform = hand_matrix(skeleton, float(theta)) @ frame
         world_rim = trimesh.transform_points(rim, transform)
         fill_z = float(world_rim[:, 2].min() - 2.0)
         volume = cavity.copy()
@@ -125,11 +122,14 @@ def retention(skeleton, thetas) -> dict:
         fill = box(high - low, (high + low) / 2.0)
         capacity = intersection_volume(volume, fill) / 1000.0
         normal = transform[:3, 2]
-        samples.append({
+        return {
             "theta_deg": float(theta),
             "opening_tilt_deg": float(np.rad2deg(np.arccos(np.clip(normal[2], -1, 1)))),
             "retained_ml_with_2mm_freeboard": round(capacity, 3),
-        })
+        }
+
+    with ThreadPoolExecutor() as pool:
+        samples = list(pool.map(_eval_theta, [float(t) for t in thetas]))
     return {
         "max_tilt_deg": max(row["opening_tilt_deg"] for row in samples),
         "minimum_retained_ml": min(row["retained_ml_with_2mm_freeboard"] for row in samples),
@@ -138,35 +138,56 @@ def retention(skeleton, thetas) -> dict:
 
 
 def insertion(hand, skeleton, quick: bool) -> dict:
+    from concurrent.futures import ThreadPoolExecutor
+
     dish = hand["candy-dish"]
     normal = dish_frame(skeleton)[:3, 2]
     steps = (0.0, 4.0, 12.0, 30.0, 60.0) if quick else np.linspace(0.0, 60.0, 61)
-    dish_max = {}
-    for distance in steps:
+    other_hand = {name: mesh for name, mesh in hand.items() if name != "candy-dish"}
+
+    def _eval_dish_step(distance: float) -> dict[str, float]:
         candidate = dish.copy()
-        candidate.apply_translation(normal * distance)
-        for name, mesh in hand.items():
-            if name == "candy-dish":
-                continue
-            key = f"dish~{name}"
-            dish_max[key] = max(dish_max.get(key, 0.0), intersection_volume(candidate, mesh))
-    finger_max = {}
+        candidate.apply_translation(normal * float(distance))
+        return {
+            f"dish~{name}": intersection_volume(candidate, mesh)
+            for name, mesh in other_hand.items()
+        }
+
+    with ThreadPoolExecutor() as pool:
+        dish_rows = list(pool.map(_eval_dish_step, steps))
+    dish_max: dict[str, float] = {}
+    for row in dish_rows:
+        for key, val in row.items():
+            dish_max[key] = max(dish_max.get(key, 0.0), val)
+
+    finger_max: dict[str, float] = {}
     installed = {"hand-palm": hand["hand-palm"]}
-    for ray in ("index", "middle", "ring", "little", "thumb"):
-        name = f"hand-finger-{ray}"
-        for distance in ((0.0, 4.0, 8.0, 12.0) if quick else np.linspace(0, 24, 25)):
-            candidate = hand[name].copy()
-            candidate.apply_translation(peg_direction(skeleton, ray) * distance)
-            for obstacle, mesh in installed.items():
-                key = f"{ray}~{obstacle}"
-                finger_max[key] = max(
-                    finger_max.get(key, 0.0), intersection_volume(candidate, mesh))
-        installed[name] = hand[name]
+    f_steps = (0.0, 4.0, 8.0, 12.0) if quick else np.linspace(0, 24, 25)
+    with ThreadPoolExecutor() as pool:
+        for ray in ("index", "middle", "ring", "little", "thumb"):
+            name = f"hand-finger-{ray}"
+            direction = peg_direction(skeleton, ray)
+            obs_snapshot = dict(installed)
+
+            def _eval_finger_step(distance: float, m=hand[name], d=direction, obs=obs_snapshot):
+                candidate = m.copy()
+                candidate.apply_translation(d * float(distance))
+                return {
+                    f"{ray}~{obstacle}": intersection_volume(candidate, mesh)
+                    for obstacle, mesh in obs.items()
+                }
+
+            for row in pool.map(_eval_finger_step, f_steps):
+                for key, val in row.items():
+                    finger_max[key] = max(finger_max.get(key, 0.0), val)
+            installed[name] = hand[name]
     return {"dish_max_intersections_mm3": dish_max,
             "finger_palm_max_intersections_mm3": finger_max}
 
 
 def check(quick: bool) -> dict:
+    from concurrent.futures import ThreadPoolExecutor
+
     errors = frozen_errors()
     skeleton = load_skeleton()
     hand = scene.grip_hand()
@@ -176,21 +197,29 @@ def check(quick: bool) -> dict:
                 and bool(mesh.nondegenerate_faces().all())):
             errors.append(f"Invalid or disconnected mesh: {name}")
     thetas = (18, 25, 30, 36, 48, 60, 78) if quick else np.linspace(18, 78, 61)
-    collision_max = {}
-    closed_bounds = None
-    for theta in thetas:
-        named = {name: mesh for name, mesh, _ in scene.build_scene_at(float(theta))}
+    # Warm up @lru_cache on the first pose before spawning threads
+    first_named = {name: mesh for name, mesh, _ in scene.build_scene_at(float(thetas[0]))}
+    points = np.vstack([first_named[name].bounds for name in hand])
+    closed_bounds = [points.min(0).round(3).tolist(), points.max(0).round(3).tolist()]
+
+    def _eval_pose(theta: float) -> dict[str, float]:
+        named = (first_named if float(theta) == float(thetas[0])
+                 else {name: mesh for name, mesh, _ in scene.build_scene_at(float(theta))})
+        hits: dict[str, float] = {}
         for a, b in itertools.combinations(named, 2):
             if a not in hand and b not in hand:
                 continue
-            key = f"{a}~{b}"
             value = intersection_volume(named[a], named[b])
             if value > 0.001:
+                hits[f"{a}~{b}"] = value
+        return hits
+
+    collision_max: dict[str, float] = {}
+    with ThreadPoolExecutor() as pool:
+        for theta, hits in zip(thetas, pool.map(_eval_pose, [float(t) for t in thetas])):
+            for key, value in hits.items():
                 collision_max[key] = max(collision_max.get(key, 0.0), value)
-        if theta == 18:
-            points = np.vstack([named[name].bounds for name in hand])
-            closed_bounds = [points.min(0).round(3).tolist(), points.max(0).round(3).tolist()]
-        print(f"pose {theta:g}: checked all changed-hand pairs", flush=True)
+            print(f"pose {theta:g}: checked all changed-hand pairs", flush=True)
     for key, value in collision_max.items():
         if value > LIMIT:
             errors.append(f"Motion collision {key}: {value:.3f} mm3")

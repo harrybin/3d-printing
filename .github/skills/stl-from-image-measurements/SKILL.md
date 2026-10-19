@@ -175,6 +175,25 @@ A realistic-looking assembly is not accepted until its motion is proved:
 - rebuild supports around the swept volume (for example as an open yoke) when a solid tray or bridge intersects it;
 - render and preserve both retracted and deployed states.
 
+### 2f. Generative seed-mesh branch (organic regions without a usable asset)
+
+When 2d found no license-compatible scan or mesh and the region is organic or
+visual, run the decision gate in `local-3d-genai-meshgen` before freehand
+modeling:
+
+- probe hardware (`scripts/genai_hw_probe.py`) and ask once whether local
+  image-to-3D models (TRELLIS.2/Pixal3D) should be used; on "yes" install them
+  automatically after approval with the tier the probe recommends;
+- feed the clearest contact-sheet tile(s), preferably 2-4 consistent views
+  (multi-view pack), generate several seeds, post-process each with
+  `scripts/genai_mesh_postprocess.py` to measured scale, and choose by the
+  render-compare loop, not by the generator preview;
+- on "no" or unsuitable hardware, continue on the Gemini route: Gemini subagents
+  extract landmarks/silhouettes from the tiles and draft Blender or build123d
+  code, which is executed and validated locally;
+- in both routes the result is only an organic seed; freeze measured datums and
+  build all fit-critical interfaces parametrically, and record provenance.
+
 ### 3. Shape-first classification and strategy selection (mandatory)
 
 Do not start with fine segmentation. First classify the object as a whole, then choose the cheapest reliable strategy:
@@ -432,6 +451,8 @@ Before finishing, provide:
   asset was reusable or reference-only
 - the shape-first classification used (primitive, glyph/logo, recognizable part family, organic/mixed)
 - the modeling route: Python, Blender, or hybrid, including frozen technical datums
+- the `genai_route` (local model tier, Gemini, or not applicable) and, for local
+  seeds, the model, seed, input tile and post-process report
 - whether segment-and-compose was used, and in which sequence segments were added
 - the evidence used: image cues, researched models, and user measurements
 - the reference image index that was used, and which tile numbers backed which dimension
@@ -462,6 +483,9 @@ When relevant, also use these workspace skills:
   documented provenance and compatible licenses
 - `blender-assisted-modeling` for controlled organic/visual modeling with frozen
   technical datums and validated export roundtrips
+- `local-3d-genai-meshgen` to ask whether local image-to-3D models should create
+  an organic seed mesh (hardware-matched install on approval) or whether to
+  continue on the Gemini route
 - `stl-create-edit-interview` to collect missing print-intent decisions
 - `edit-stl-transform` when modifying an imported STL
 - `create-ascii-stl` when building a new STL from scratch

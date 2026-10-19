@@ -298,6 +298,21 @@ def write_3mf(
                 ET.tostring(model_settings, encoding="utf-8",
                             xml_declaration=True),
             )
+        member(
+            archive,
+            "Metadata/project_settings.config",
+            (
+                '{\n'
+                '  "layer_height": "0.16",\n'
+                '  "seam_position": "random",\n'
+                '  "enable_support": "1",\n'
+                '  "support_type": "tree(auto)",\n'
+                '  "support_top_z_distance": "0.16",\n'
+                '  "support_bottom_z_distance": "0.16",\n'
+                '  "ironing_type": "top"\n'
+                '}\n'
+            ).encode("utf-8"),
+        )
 
 
 def place(mesh: trimesh.Trimesh, translation, rotations=()) -> trimesh.Trimesh:

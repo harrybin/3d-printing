@@ -63,8 +63,8 @@ class BonePlateLayoutTests(unittest.TestCase):
 
         expected_minima = {
             "forearm": (69.0, 72.0),
-            "hand-palm": (100.79, 72.0),
-            "hand-finger-thumb": (69.0, 103.19),
+            "hand-palm": (104.79, 72.0),
+            "hand-finger-thumb": (69.0, 107.19),
         }
         bounds_by_name = {}
         for name in PART_NAMES:

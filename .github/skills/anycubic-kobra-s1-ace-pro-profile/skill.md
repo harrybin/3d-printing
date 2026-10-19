@@ -11,6 +11,11 @@ Use this skill whenever creating or editing STL or 3MF outputs intended for the 
 
 - Stock nozzle/hotend: **0.4 mm** (supported alternatives: 0.25 / 0.6 / 0.8 mm).
 - Hotend temperature capability: up to **320 C**.
+- Mandatory 3MF process defaults:
+  - Layer height: **`<= 0.16 mm`** (`layer_height = 0.16` default).
+  - Seam position: **`random`** (`seam_position = random`, always).
+  - Automatic tree supports: **`enable_support = 1`**, **`support_type = tree(auto)`**, with **1 layer Z contact distance** (`support_top_z_distance = 0.16`, `support_bottom_z_distance = 0.16`, matching `layer_height`) so tree supports detach cleanly after printing.
+  - Ironing: **`top`** (`ironing_type = top`).
 
 ## Authoring defaults for printable geometry
 

@@ -18,7 +18,13 @@ ET.register_namespace("p", PRODUCTION)
 
 BED = 250.0
 BED_MARGIN = 10.0
-PART_GAP = 6.0
+PART_GAP = 7.0
+TREE_SUPPORT_PAD = {
+    "lid-crank": 8.0,
+    "lid-transfer-gear-01": 8.0,
+    "lid-transfer-gear-02": 8.0,
+    "forearm-output-gear": 6.0,
+}
 MECHANISM_PLATE_ORIGIN = (0.0, -300.0)
 
 
@@ -87,11 +93,12 @@ def _pack_rectangles(
     placed: dict[str, tuple[float, float, float, float]] = {}
     ordered = sorted(
         rectangles,
-        key=lambda item: (-item[1] * item[2], -max(item[1], item[2]), item[0]),
+        key=lambda item: (-max(item[1], item[2]), -min(item[1], item[2]), item[0]),
     )
     for name, width, height in ordered:
-        packed_width = width + PART_GAP
-        packed_height = height + PART_GAP
+        extra = TREE_SUPPORT_PAD.get(name, 0.0)
+        packed_width = width + PART_GAP + extra
+        packed_height = height + PART_GAP + extra
         choices = []
         for index, (x, y, free_width, free_height) in enumerate(free):
             if packed_width <= free_width and packed_height <= free_height:
@@ -109,8 +116,8 @@ def _pack_rectangles(
             )
         _, _, y, x, _ = min(choices)
         placed[name] = (
-            x + PART_GAP / 2.0,
-            y + PART_GAP / 2.0,
+            x + (PART_GAP + extra) / 2.0,
+            y + (PART_GAP + extra) / 2.0,
             width,
             height,
         )
@@ -214,7 +221,7 @@ def consolidate(project: Path = PROJECT) -> None:
         }
         extents = {}
         positions = {}
-        current_bounds = {}
+        mechanism_extruders = set()
         for object_id in object_ids:
             name = names.get(object_id)
             config = next(
@@ -224,9 +231,13 @@ def consolidate(project: Path = PROJECT) -> None:
             )
             if not name or config is None:
                 raise ValueError(f"Missing object settings for {object_id}")
-            if _metadata_value(config, "extruder") != "3":
+            ext_val = _metadata_value(config, "extruder")
+            if not ext_val:
+                raise ValueError(f"{name} has no filament slot assignment")
+            mechanism_extruders.add(ext_val)
+            if len(mechanism_extruders) != 1:
                 raise ValueError(
-                    f"{name} is not assigned to the natural-white filament slot"
+                    f"{name} does not share the mechanism plate filament slot"
                 )
             item = build.get(object_id)
             outer = resources.get(object_id)
@@ -246,8 +257,7 @@ def consolidate(project: Path = PROJECT) -> None:
                 math.ceil((xy[2] - xy[0]) * 1000.0 - 1e-3) / 1000.0,
                 math.ceil((xy[3] - xy[1]) * 1000.0 - 1e-3) / 1000.0,
             )
-            current_bounds[name] = xy
-            positions[name] = (item, transform)
+            positions[name] = (item, transform, bounds)
 
         x_origin, y_origin = MECHANISM_PLATE_ORIGIN
         packed = _pack_rectangles([
@@ -256,10 +266,15 @@ def consolidate(project: Path = PROJECT) -> None:
         ])
 
         for name, (target_x, target_y) in packed.items():
-            item, transform = positions[name]
-            old_x, old_y, _, _ = current_bounds[name]
-            transform[9] += x_origin + BED_MARGIN + target_x - old_x
-            transform[10] += y_origin + BED_MARGIN + target_y - old_y
+            item, transform, bounds = positions[name]
+            local_transform = transform.copy()
+            local_transform[9] = 0.0
+            local_transform[10] = 0.0
+            local_x, local_y, _, _ = _transformed_xy_bounds(
+                bounds, local_transform
+            )
+            transform[9] = x_origin + BED_MARGIN + target_x - local_x
+            transform[10] = y_origin + BED_MARGIN + target_y - local_y
             item.set("transform", " ".join(f"{value:.6f}" for value in transform))
 
         final_bounds = {}
@@ -310,7 +325,18 @@ def consolidate(project: Path = PROJECT) -> None:
                     value.set("value", "")
 
         metadata_path = "Metadata/ghouls_grip_print_metadata.xml"
-        metadata = ET.fromstring(entries[metadata_path])
+        if metadata_path in entries:
+            metadata = ET.fromstring(entries[metadata_path])
+        else:
+            metadata = ET.Element("ghouls-grip-print-metadata", version="1")
+            for k, v in (
+                ("status", "not-verified"),
+                ("plateCount", str(len(settings.findall("plate")))),
+                ("objectCount", str(len(names))),
+                ("plateDetails", "[]"),
+                ("filamentUsageByColor", "{}"),
+            ):
+                ET.SubElement(metadata, "metadata", name=k, value=v)
         for element in metadata.iter("metadata"):
             key = element.get("name")
             if key == "status":

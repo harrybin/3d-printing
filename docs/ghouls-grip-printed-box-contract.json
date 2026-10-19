@@ -1,10 +1,14 @@
 {
-  "baseline_project_sha256": "024b680c48ed15f857201dec84a029e69912e3578a38da648fd4a126412659e8",
+  "baseline_project_sha256": "9ce825990d352a6f3551db2cf3db51bbb8f10a285d1e72cad99bdec22e4b6172",
   "source_sha256": {
-    "gothic_chest.py": "7ca2e6758f46abeaa3a394983b412e50c3457384b902dece88e6c9e9df4d1418",
+    "gothic_chest.py": "92744f712c97ee6a03b975c5e34fecece4bd0b4bbe8b78d8e9b3e474a9ccc87e",
     "mechanism.py": "f20b5d8de05948044bcd0d48db63b86cbca9f360254c91f58f529be70e697d98"
   },
   "unchanged_meshes": {
+    "candy-dish": {
+      "mesh_sha256": "5727c5da51aabf49a77eb75fa3cfacadbd3842605f21d21dd3155fdb7e7af0a9",
+      "print_transform": "1.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 1.000000 401.473000 -257.502000 19.485000"
+    },
     "crank-spacer": {
       "mesh_sha256": "f442100cd6bcd595e67770c418f637000633face7b0315b6e3fbca849cd66a6a",
       "print_transform": "1.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 1.000000 140.960000 -114.560000 7.900000"
@@ -123,7 +127,7 @@
     },
     "drive-skull-knob": {
       "mesh_sha256": "690ff760198f23763ecdcd04300082de0d0afc6b44d2246243d05b404e54cf4a",
-      "print_transform": "1 0 0 0 1 0 0 0 1 324.237 -272.434006 13.4750004"
+      "print_transform": "1.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 1.000000 339.237000 -257.434000 13.475000"
     },
     "forearm": {
       "mesh_sha256": "af0e90141336d078c73c256fed603c882d156659178636d7ea99ec1efca20e3e",
@@ -138,7 +142,7 @@
       "print_transform": "1.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 1.000000 181.300000 -200.660000 2.000000"
     },
     "chest": {
-      "mesh_sha256": "7db1f228857dc315830fdc7ebe6b754f158eda4a98031bf181f7da27ed8c82b8",
+      "mesh_sha256": "78b3cd091aec611844a9aff7a467291855163969ff2ac2e7a26ac2eaff58dbfa",
       "print_transform": "1 0 0 0 1 0 0 0 1 131.874178 88.9903403 49"
     },
     "scissor-arm-02": {

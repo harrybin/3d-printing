@@ -71,13 +71,15 @@ class MechanismPlateConsolidationTests(unittest.TestCase):
             for item in model.findall("c:build/c:item", NS)
         }
         boxes = []
+        mechanism_extruders = set()
         for instance in instances:
             object_id = instance.find(
                 "metadata[@key='object_id']").get("value")
             config = object_configs[object_id]
-            self.assertEqual(
-                config.find("metadata[@key='extruder']").get("value"), "3"
+            mechanism_extruders.add(
+                config.find("metadata[@key='extruder']").get("value")
             )
+            self.assertEqual(len(mechanism_extruders), 1)
             component = resources[object_id].find(
                 "c:components/c:component", NS)
             entry = component.get(f"{{{PRODUCTION}}}path").lstrip("/")

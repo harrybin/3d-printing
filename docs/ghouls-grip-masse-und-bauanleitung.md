@@ -16,10 +16,11 @@ In den Mittelhandknochen von Mittel-, Ring- und kleinem Finger sitzen drei
 bündige Sacklöcher (Ø3,4 × 3,6 mm, > 3,5 mm geschlossener Boden zum Handrücken),
 sodass die Handfläche ohne eingesetzte Schale keinerlei abstehende Stege hat.
 In diese Aufnahmen lässt sich optional die tiefer in die Hand eingebettete
-goldene Süßigkeitenschale (`candy-dish`, 48,0 × 55,0 × 39,0 mm inkl. kurzer
-Unterseiten-Steckstifte Ø3,0 × 3,2 mm) einstecken, deren Öffnung bei mittlerem
+goldene Süßigkeitenschale (`candy-dish`, 55,1 × 67,5 × 39,8 mm inkl. kurzer
+Unterseiten-Steckstifte Ø3,0 × 3,2 mm, konturiert vergrößert Richtung Finger,
+Daumen und Unterarm) einstecken, deren Öffnung bei mittlerem
 Hub ($\theta = 48^\circ$) waagerecht liegt und über den gesamten 60°-Unterarmhub
-maximal $\pm 30^\circ$ kippt (mindestens 11,518 ml statisches Rückhaltevolumen
+maximal $\pm 30^\circ$ kippt (mindestens 10,981 ml statisches Rückhaltevolumen
 bei 2 mm Freibord). Die Schatulle, der Deckel und alle 35 Nicht-Hand-Bauteile
 bleiben exakt unverändert (`docs/ghouls-grip-printed-box-contract.json`).
 Automatische Baumstützen bleiben für die Finger und die Schale eingeschaltet
@@ -65,7 +66,7 @@ und müssen nach dem Druck vorsichtig entfernt werden.
 | Totenkopfknopf | 48,5 × 55,1 × 27,0 mm |
 | Totenkopf-Schaft | Ø8 mm Presssitz, 0,2 mm Untermaß im Knopf |
 | Handfläche (mit 3 bündigen Schalen-Sacklöchern) | 67,8 × 96,4 × 25,2 mm |
-| Süßigkeitenschale (`candy-dish`, Konstruktionsschätzung) | 48,0 × 55,0 × 39,0 mm (Schalenhöhe 30,0 mm + Unterseitenbeine/Stifte); Boden 2,0 mm, Wand 1,6 mm |
+| Süßigkeitenschale (`candy-dish`, Konstruktionsschätzung) | 55,1 × 67,5 × 39,8 mm (Schalenhöhe 30,8 mm + Unterseitenbeine/Stifte, konturiert Richtung Finger, Daumen und Unterarm); Boden 1,6 mm, Wand 1,5 mm |
 | Schalen-Positionierstifte / bündige Sacklöcher (Konstruktionsschätzung) | 3 × Ø3,0 × 3,2 mm an Schalenunterseite / Ø3,4 × 3,6 mm bündig in Mittelhandknochen (0,4 mm Spiel, > 3,5 mm geschlossener Knochenboden) |
 | Fingerspitzen ausgefahren | 241,2 mm über Aufstellfläche |
 

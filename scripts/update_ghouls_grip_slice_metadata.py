@@ -18,10 +18,14 @@ METADATA_ENTRY = "Metadata/ghouls_grip_print_metadata.xml"
 PROJECT = MODELS / "ghouls-grip-print.3mf"
 FILAMENT_NAMES = {
     "#202124": "Black PLA",
+    "#212721": "Black PLA+ (Schatulle)",
     "#d8c6a5": "Bone-beige PLA",
+    "#89a84f": "PLA Slot 2 (Knochen)",
     "#f1ebdd": "Natural-white PLA",
+    "#ffc196": "PLA Slot 1 (Mechanik)",
     "#d4af37": "Gold PLA",
     "#777777": "Gray PLA",
+    "#009cbd": "PLA Slot 4 (Totenkopf-Ausloeser)",
     "#1c1e21": "Black PLA (Drache)",
     "#4cc936": "Green PLA (Augen)",
     "#d62828": "Red PLA (Schwanzflosse)",
@@ -245,11 +249,23 @@ def main() -> None:
         "seam_position": "random",
         "ironing_type": "top",
         "enable_support": "1",
+        "support_type": "tree(auto)",
     }
     for key, expected in expected_settings.items():
         actual = str(project_settings.get(key, "unknown"))
         if actual != expected:
             profile_deviations.append(f"{key}={actual} (expected {expected})")
+    layer_height_str = str(project_settings.get("layer_height", "unknown"))
+    try:
+        lh_val = float(layer_height_str)
+        if lh_val <= 0.0 or lh_val > 0.16:
+            profile_deviations.append(f"layer_height={layer_height_str} (expected <= 0.16)")
+    except ValueError:
+        profile_deviations.append(f"layer_height={layer_height_str} (expected <= 0.16)")
+    for z_key in ("support_top_z_distance", "support_bottom_z_distance"):
+        z_actual = str(project_settings.get(z_key, "unknown"))
+        if z_actual != layer_height_str:
+            profile_deviations.append(f"{z_key}={z_actual} (expected {layer_height_str})")
     if not project_settings.get("process_settings_id"):
         profile_deviations.append("named process profile is not saved")
     overall["status"] = "not-verified" if profile_deviations else "verified"

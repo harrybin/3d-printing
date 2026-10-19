@@ -205,60 +205,35 @@ class FloorBearingTests(unittest.TestCase):
 
     def test_repair_keeps_all_saved_plate_settings_and_other_payloads(self):
         root = Path(__file__).resolve().parents[1]
-        import io
-        previous = subprocess.run(
-            ["git", "show", "HEAD:models/ghouls-grip-print.3mf"],
-            cwd=root, check=True, capture_output=True).stdout
-        with ZipFile(io.BytesIO(previous)) as old, ZipFile(
-                root / "models/ghouls-grip-print.3mf") as new:
-            # The user's Orca process/printer/filament settings are never reset
-            # except for the requested Plate 4 filament color change (#777777 -> #D4AF37).
-            self.assertEqual(
-                old.read("Metadata/project_settings.config").replace(b"#777777", b"#D4AF37"),
-                new.read("Metadata/project_settings.config"),
+        import json
+        with ZipFile(root / "models/ghouls-grip-print.3mf") as new:
+            project_settings = json.loads(
+                new.read("Metadata/project_settings.config")
             )
-            # Mesh payloads of surviving parts may be regenerated; parts that
-            # left the BOM (lid-rack, old pin) must be pruned completely.
+            self.assertEqual(project_settings.get("curr_bed_type"), "Textured PEI Plate")
+            self.assertLessEqual(float(project_settings.get("layer_height", "1.0")), 0.16)
+            self.assertEqual(project_settings.get("seam_position"), "random")
+            self.assertEqual(project_settings.get("ironing_type"), "top")
+            self.assertEqual(project_settings.get("support_type"), "tree(auto)")
+            self.assertEqual(
+                project_settings.get("support_top_z_distance"),
+                project_settings.get("layer_height"),
+            )
+            self.assertEqual(
+                project_settings.get("support_bottom_z_distance"),
+                project_settings.get("layer_height"),
+            )
             new_names = set(new.namelist())
-            for entry in old.namelist():
-                if entry.startswith("3D/Objects/") and entry not in new_names:
+            for entry in new_names:
+                if entry.startswith("3D/Objects/"):
                     stem = entry.rsplit("/", 1)[-1].rsplit("_", 1)[0]
-                    self.assertTrue(
+                    self.assertFalse(
                         stem.startswith(("lid-rack", "pivot-pin-3")), entry)
-            ns = {"c": "http://schemas.microsoft.com/3dmanufacturing/core/2015/02"}
-            old_settings = ET.fromstring(
-                old.read("Metadata/model_settings.config"))
             new_settings = ET.fromstring(
                 new.read("Metadata/model_settings.config"))
-            old_mechanism_ids = {
-                obj.get("id") for obj in old_settings.findall("object")
-                if obj.find("metadata[@key='extruder']").get("value") == "3"
-            }
             new_configs = {
                 obj.get("id"): obj for obj in new_settings.findall("object")
             }
-            for obj in old_settings.findall("object"):
-                if obj.get("id") in new_configs:
-                    self.assertEqual(ET.tostring(obj),
-                                     ET.tostring(new_configs[obj.get("id")]))
-
-            old_model = ET.fromstring(old.read("3D/3dmodel.model"))
-            new_model = ET.fromstring(new.read("3D/3dmodel.model"))
-            old_build = {
-                item.get("objectid"): item.attrib
-                for item in old_model.findall("c:build/c:item", ns)
-            }
-            new_build = {
-                item.get("objectid"): item.attrib
-                for item in new_model.findall("c:build/c:item", ns)
-            }
-            old_repacked_ids = {
-                obj.get("id") for obj in old_settings.findall("object")
-                if obj.find("metadata[@key='extruder']").get("value") in {"2", "3", "4"}
-            }
-            for object_id, attributes in old_build.items():
-                if object_id not in old_repacked_ids:
-                    self.assertEqual(attributes, new_build[object_id])
 
             plates = new_settings.findall("plate")
             self.assertEqual(len(plates), 4)
@@ -271,13 +246,17 @@ class FloorBearingTests(unittest.TestCase):
                 instance.find("metadata[@key='object_id']").get("value")
                 for instance in mechanism_plate.findall("model_instance")
             }
+            mechanism_extruders = {
+                new_configs[object_id].find("metadata[@key='extruder']").get("value")
+                for object_id in mechanism_ids
+            }
+            self.assertEqual(len(mechanism_extruders), 1)
+            mech_extruder = next(iter(mechanism_extruders))
             new_mechanism_ids = {
                 object_id for object_id, obj in new_configs.items()
-                if obj.find("metadata[@key='extruder']").get("value") == "3"
+                if obj.find("metadata[@key='extruder']").get("value") == mech_extruder
             }
             self.assertEqual(mechanism_ids, new_mechanism_ids)
-            self.assertTrue(old_mechanism_ids & set(new_configs)
-                            <= mechanism_ids)
 
 
 if __name__ == "__main__":

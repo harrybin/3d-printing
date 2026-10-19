@@ -12,6 +12,12 @@ This repository contains parametric STL generation workflows for FDM printing on
    similar functional or stylistic templates when no exact model is expected.
 5. Route technical/fit geometry to Python, organic/visual geometry to the controlled
    Blender workflow, and every final print job through OrcaSlicer when available.
+6. When an organic/visual region has no usable licensed asset, ask once (per
+   `local-3d-genai-meshgen`) whether local image-to-3D models should generate a
+   seed mesh; install them only after approval with the hardware tier proposed by
+   `scripts\genai_hw_probe.py`. If declined or unsuitable, continue with Gemini
+   subagents (`gemini-4-argon`, `gemini-3.8-flash`) for image analysis and
+   Blender/build123d code drafts.
 
 ## Build And Validation Commands
 
@@ -43,6 +49,10 @@ pipeline after each task. During construction, use only targeted, inexpensive
 checks needed to catch defects or choose the next geometry change. Re-run final
 checks only when subsequent changes invalidate their evidence; never deliver
 stale slices or previews.
+
+- **Cache base meshes across motion sweeps (`build_scene_at`) and parallelize C++ booleans (`ThreadPoolExecutor`):** Never rebuild CAD/boolean/voxel source meshes for every pose angle (`18°..78°`). Build or load each unique part mesh once per process (`@lru_cache`), then apply only `4x4` rigid-body transforms per pose and pre-filter candidate pairs by axis-aligned bounding-box (`bounds`) overlap before invoking `trimesh.boolean.intersection(..., engine="manifold")`. Because `manifold3d` and voxel operations release the Python GIL, use `concurrent.futures.ThreadPoolExecutor` across the 5 fingers in `skeleton_hand.assemble()`, across the 61 motion poses (`18°..78°`), and across the 61 insertion steps in `verify_ghouls_grip_candy.py` / `audit_ghouls_grip_assembly.py` to parallelize across CPU cores while sharing `@lru_cache` meshes without pickling overhead.
+- **Use `--quick` mode during iterative tuning:** During parameter sweeps and geometry adjustments, run `verify_ghouls_grip_candy.py --quick` (7 key poses and 5 insertion steps) or direct numpy/vertex clearance probes. Run the full `61`-pose × `61`-step verification (`verify_ghouls_grip_candy.py`, `audit_ghouls_grip_assembly.py`, `verify_ghouls_grip_mechanics.py`) once after the geometry is finalized.
+- **Run final verification suites and post-slice renders in parallel:** Once `models/ghouls-grip-print.3mf` and `models/ghouls-grip-view.3mf` are generated, run the four independent verification suites (`unittest discover -s tests`, `verify_ghouls_grip_candy.py`, `audit_ghouls_grip_assembly.py`, `verify_ghouls_grip_mechanics.py`) concurrently. Likewise, defer `slice_ghouls_grip.ps1` to the end and then run `update_ghouls_grip_slice_metadata.py`, `render_ghouls_grip.py`, `render_ghouls_grip_print_projects.py`, and `render_ghouls_grip_supports.py` in parallel.
 
 - Create environment:
   - `python -m venv .venv`
@@ -146,11 +156,15 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Every delivered print plate must be sliced in OrcaSlicer with the intended Kobra
   S1/nozzle/process/filament profiles when OrcaSlicer is available. Record print
   time and material only from a successful slice.
-- Generated OrcaSlicer 3MF projects default to random seam placement, ironing on
-  all top surfaces and enabled automatic support (`seam_position=random`,
-  `ironing_type=top`, `enable_support=1`) unless a documented part-specific reason
-  requires an exception. Support stays on so that a zero-support slice is proven
-  geometry, never a disabled setting.
+- Generated OrcaSlicer 3MF projects MUST always use layer height `<= 0.16 mm`
+  (`layer_height=0.16` default), random seam placement (`seam_position=random`),
+  ironing on all top surfaces (`ironing_type=top`), and enabled automatic tree
+  supports (`enable_support=1`, `support_type=tree(auto)`) with a 1-layer Z
+  contact distance (`support_top_z_distance=0.16`,
+  `support_bottom_z_distance=0.16`, matching `layer_height`) for easy support
+  removal after printing, unless a documented part-specific reason requires an
+  exception. Support stays on so that a zero-support slice is proven geometry,
+  never a disabled setting.
 - New complex assemblies use exactly two 3MF deliverables:
   `models/<name>-view.3mf` contains the fully assembled object, with separate
   plates for other meaningful mechanism states; `models/<name>-print.3mf`
@@ -168,6 +182,12 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Detect Blender, Blender MCP, and OrcaSlicer before relying on them. If a tool is
   missing, ask whether the user wants it installed or enabled. If declined,
   continue with repo-native tools and label unavailable validation explicitly.
+- Local image-to-3D models (TRELLIS.2/Pixal3D via ComfyUI) are optional. Install
+  them only outside the git checkout via `scripts\genai_local_setup.py` after
+  approval, use only the MIT catalog in `scripts\genai_catalog.py` (Hunyuan3D is
+  excluded in the EU/UK/KR), and treat generated meshes as organic seeds: post-
+  process with `scripts\genai_mesh_postprocess.py`, validate, record provenance,
+  and never derive fit-critical geometry from them.
 - OrcaSlicer has an official CLI but no project-approved first-party MCP entry. Keep
   the repository's OrcaSlicer MCP template disabled unless a specific third-party
   server has been audited and explicitly enabled.
@@ -231,6 +251,7 @@ If behavior around print constraints, validation policy, or coordinate targeting
 - Image-to-STL workflow: [.github/skills/stl-from-image-measurements/SKILL.md](.github/skills/stl-from-image-measurements/SKILL.md)
 - Reusable asset/license research: [.github/skills/research-reusable-3d-assets/skill.md](.github/skills/research-reusable-3d-assets/skill.md)
 - Blender-assisted modeling: [.github/skills/blender-assisted-modeling/skill.md](.github/skills/blender-assisted-modeling/skill.md)
+- Local 3D GenAI seed meshes: [.github/skills/local-3d-genai-meshgen/SKILL.md](.github/skills/local-3d-genai-meshgen/SKILL.md), [docs/local-3d-genai-setup.md](docs/local-3d-genai-setup.md)
 - OrcaSlicer support minimization: [.github/skills/orcaslicer-support-minimization/SKILL.md](.github/skills/orcaslicer-support-minimization/SKILL.md)
 - OrcaSlicer validation: [.github/skills/orcaslicer-print-validation/skill.md](.github/skills/orcaslicer-print-validation/skill.md)
 - Multimaterial packaging: [.github/skills/multimaterial-assembly-packaging/skill.md](.github/skills/multimaterial-assembly-packaging/skill.md)
@@ -257,6 +278,7 @@ If behavior around print constraints, validation policy, or coordinate targeting
 | Optional helper libraries | repo support status | `.github/skills/README.md` | all skills | Mark non-default helpers such as `scikit-image` or `shapely` explicitly as optional where applicable. |
 | Reusable online assets | original source and explicit license | `research-reusable-3d-assets` | `research-part-specs`, `stl-from-image-measurements` | Search before original modeling; unclear or incompatible licenses are reference-only. |
 | Python vs Blender routing | feature type and frozen datums | `blender-assisted-modeling` | `create-ascii-stl`, `stl-from-image-measurements`, `research-reusable-3d-assets` | Python owns fit geometry; Blender owns approved organic/visual regions, and realistic or sculptural requests move to Blender with a prior license-compatible asset search instead of more primitives. |
+| Local generative seed meshes | `scripts/genai_catalog.py` tiers and MIT allowlist plus the user's answer | `local-3d-genai-meshgen` | `research-reusable-3d-assets`, `blender-assisted-modeling`, `stl-create-edit-interview`, `stl-from-image-measurements` | Ask once local vs Gemini; install only after approval, outside git; generated meshes are seeds with provenance, never fit-critical geometry. |
 | Delivered-project support minimization | exact final STL/3MF plus fixed Kobra S1 profiles | `orcaslicer-support-minimization` | `orcaslicer-project-workflow`, `optimize-stl-for-print`, `orcaslicer-print-validation` | Compare bounded absolute datum rotations sequentially, preserve material/plate semantics, save orientation in 3MF, and leave geometry changes as suggestions until separately approved at the source model. |
 | Final slice evidence | successful OrcaSlicer project slice | `orcaslicer-print-validation` | `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Never claim print time or final print readiness without a successful slice. |
 | Complex 3MF packaging | assembled view plus complete print BOM | `multimaterial-assembly-packaging` | `stl-create-edit-interview`, `optimize-stl-for-print` | Deliver exactly one multi-state `-view.3mf` and one settings-bearing `-print.3mf`; group same-color parts on shared plates and add plates as needed. |

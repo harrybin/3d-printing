@@ -5,7 +5,7 @@ Automatisch erzeugt von `scripts/audit_ghouls_grip_assembly.py`. Alle Pruefungen
 Toleranzannahmen (Kobra S1, 0.4 mm Duese, 0.2 mm Schicht): radiales Spiel >= 0.2 mm je Seite, axiales Spiel >= 0.1 mm, Flankenspiel >= 0.1 mm je Richtung, Schnapp-Dehnung <= 2 %, Kollision > 0.5 mm3 = FAIL, Einschub-/Montage-Huellen > 0.05 mm3 = FAIL.
 ## Ergebnis
 
-**Gesamt: PASS** (102 s)
+**Gesamt: PASS** (172 s)
 
 | Pruefung | Status |
 | --- | --- |

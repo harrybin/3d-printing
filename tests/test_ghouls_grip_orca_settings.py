@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
@@ -44,19 +45,31 @@ class GhoulOrcaSettingsTests(unittest.TestCase):
                 settings = _process_settings(spec)
                 self.assertEqual(settings["seam_position"], "random")
                 self.assertEqual(settings["ironing_type"], "top")
+                self.assertLessEqual(float(settings["layer_height"]), 0.16)
 
     def test_all_projects_keep_automatic_support_enabled(self) -> None:
         for slug, spec in MATERIAL_PROJECTS.items():
             with self.subTest(slug=slug):
                 settings = _process_settings(spec)
                 self.assertEqual(settings["enable_support"], "1")
-                self.assertIn("auto", settings["support_type"])
+                self.assertEqual(settings["support_type"], "tree(auto)")
+                self.assertEqual(
+                    settings["support_top_z_distance"],
+                    settings["layer_height"],
+                )
+                self.assertEqual(
+                    settings["support_bottom_z_distance"],
+                    settings["layer_height"],
+                )
 
     def test_baseline_enables_support_without_a_material_policy(self) -> None:
         spec = {"wall_loops": "4", "infill": "20%", "speed": "standard"}
         settings = _process_settings(spec)
         self.assertEqual(settings["enable_support"], "1")
         self.assertEqual(settings["support_type"], "tree(auto)")
+        self.assertEqual(settings["layer_height"], "0.16")
+        self.assertEqual(settings["support_top_z_distance"], "0.16")
+        self.assertEqual(settings["support_bottom_z_distance"], "0.16")
 
     def test_no_object_override_disables_support(self) -> None:
         for name, override in OBJECT_OVERRIDES.items():
@@ -172,6 +185,35 @@ class GhoulOrcaSettingsTests(unittest.TestCase):
     def test_slice_statistics_select_the_assigned_filament_slot(self) -> None:
         header = "; filament used [g] = 0.00, 43.35, 0.00, 0.00"
         self.assertEqual(_number(header, "filament used [g]", 1), 43.35)
+
+    def test_every_repository_3mf_enforces_layer_height_random_seam_and_tree_supports(self) -> None:
+        three_mf_files = sorted((ROOT / "models").glob("*.3mf"))
+        self.assertGreater(len(three_mf_files), 0)
+        for path in three_mf_files:
+            with self.subTest(model=path.name), ZipFile(path) as archive:
+                self.assertIn("Metadata/project_settings.config", archive.namelist())
+                settings = json.loads(
+                    archive.read("Metadata/project_settings.config").decode("utf-8")
+                )
+                layer_height = float(settings["layer_height"])
+                self.assertGreater(layer_height, 0.0)
+                self.assertLessEqual(layer_height, 0.16)
+                self.assertEqual(settings["seam_position"], "random")
+                self.assertEqual(settings["support_type"], "tree(auto)")
+                self.assertAlmostEqual(
+                    float(settings["support_top_z_distance"]), layer_height, places=4
+                )
+                self.assertAlmostEqual(
+                    float(settings["support_bottom_z_distance"]), layer_height, places=4
+                )
+                if "Metadata/model_settings.config" in archive.namelist():
+                    ms_root = ET.fromstring(archive.read("Metadata/model_settings.config"))
+                    for md in ms_root.findall(".//metadata"):
+                        key = md.get("key")
+                        if key == "seam_position":
+                            self.assertEqual(md.get("value"), "random")
+                        elif key == "layer_height":
+                            self.assertLessEqual(float(md.get("value", "0.16")), 0.16)
 
 
 if __name__ == "__main__":

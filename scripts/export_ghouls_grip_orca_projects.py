@@ -68,7 +68,7 @@ MATERIAL_PROJECTS = {
         "color": "#F1EBDD",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "5", "infill": "40%", "speed": "mechanism",
-        "filament_type": "PLA", "object_overrides": True, "support": "normal",
+        "filament_type": "PLA", "object_overrides": True, "support": "tree",
         "manual_gap": 10.0,
         "bed_margin": 10.0,
         # Compact packing keeps the complete mechanism BOM on two plates.
@@ -167,22 +167,25 @@ def _base_name(name: str) -> str:
 
 def _process_settings(spec: dict) -> dict:
     """Project overrides layered on Orca's recognized Kobra S1 preset."""
+    layer_height = spec.get("layer_height", "0.16")
     data = {
         "curr_bed_type": "Textured PEI Plate",
-        "layer_height": "0.2",
+        "layer_height": layer_height,
         "initial_layer_print_height": "0.2",
         "wall_loops": spec["wall_loops"],
         "sparse_infill_density": spec["infill"],
         "sparse_infill_pattern": "gyroid",
         "seam_position": "random",
         "ironing_type": "top",
-        # Repo default: automatic support stays enabled in every generated
-        # project so a slice that reports zero support is a geometry result
-        # rather than a disabled setting.
+        # Repo default: automatic tree support with 1-layer Z contact distance
+        # stays enabled in every generated project so easy support removal is
+        # guaranteed and a zero-support slice is a geometry result.
         "enable_support": "1",
         "support_type": "tree(auto)",
         "support_on_build_plate_only": "1",
         "support_threshold_angle": "30",
+        "support_top_z_distance": layer_height,
+        "support_bottom_z_distance": layer_height,
         "enable_prime_tower": "0",
         "xy_hole_compensation": "0.1",
         "xy_contour_compensation": "0",
@@ -193,18 +196,13 @@ def _process_settings(spec: dict) -> dict:
         "only_one_wall_top": "0",
     }
     support = spec.get("support")
-    if support == "tree":
+    if support in ("tree", "normal"):
         data.update({
             "enable_support": "1", "support_type": "tree(auto)",
             "support_on_build_plate_only": "1",
             "support_threshold_angle": spec.get("support_threshold_angle", "30"),
-        })
-    elif support == "normal":
-        data.update({
-            "enable_support": "1",
-            "support_type": "normal(auto)", "support_style": "snug",
-            "support_on_build_plate_only": "1",
-            "support_threshold_angle": "30",
+            "support_top_z_distance": layer_height,
+            "support_bottom_z_distance": layer_height,
         })
     if spec.get("support_critical_regions_only"):
         data["support_critical_regions_only"] = "1"
@@ -368,11 +366,7 @@ def _write_multi_plate_settings(
             if MATERIAL_PROJECTS[slug]["match"] == material_for(
                 _base_name(name)).name
         )
-        if spec.get("support") == "normal":
-            _add_metadata(obj, "support_type", "normal(auto)")
-            _add_metadata(obj, "support_style", "snug")
-        else:
-            _add_metadata(obj, "support_type", "tree(auto)")
+        _add_metadata(obj, "support_type", "tree(auto)")
         if spec.get("support_threshold_angle"):
             _add_metadata(obj, "support_threshold_angle",
                           spec["support_threshold_angle"])
@@ -639,8 +633,12 @@ def _verify_combined_project(
         raise RuntimeError(f"{path.name}: wrong printer: {checks['printer']}")
     if checks["bed"] != "Textured PEI Plate":
         raise RuntimeError(f"{path.name}: wrong bed: {checks['bed']}")
-    if checks["layer_height"] != "0.2":
-        raise RuntimeError(f"{path.name}: wrong layer height")
+    try:
+        lh_val = float(checks["layer_height"])
+    except (TypeError, ValueError):
+        lh_val = 999.0
+    if lh_val <= 0.0 or lh_val > 0.16:
+        raise RuntimeError(f"{path.name}: layer_height must be <= 0.16 mm, got {checks['layer_height']}")
     expected_color = [
         MATERIAL_PROJECTS[slug]["color"].upper() for slug in FILAMENT_ORDER
     ]
@@ -658,7 +656,10 @@ def _verify_combined_project(
     if not all(project.get(key) == "1" for key in (
             "enable_support",)) \
             or project.get("seam_position") != "random" \
-            or project.get("ironing_type") != "top":
+            or project.get("ironing_type") != "top" \
+            or project.get("support_type") != "tree(auto)" \
+            or project.get("support_top_z_distance") != str(checks["layer_height"]) \
+            or project.get("support_bottom_z_distance") != str(checks["layer_height"]):
         raise RuntimeError(f"{path.name}: missing required print defaults")
     profile = MATERIAL_PROJECTS[FILAMENT_ORDER[0]]["filament"].removesuffix(
         ".json")

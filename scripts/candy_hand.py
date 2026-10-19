@@ -11,17 +11,30 @@ from __future__ import annotations
 
 import numpy as np
 import trimesh
-from build123d import Align, BuildPart, BuildSketch, Cone, Ellipse, Mode, Plane, loft
+from build123d import (
+    Align,
+    BuildLine,
+    BuildPart,
+    BuildSketch,
+    Cone,
+    Mode,
+    Plane,
+    Spline,
+    loft,
+    make_face,
+)
 
 import mechanism
 from mesh_kit import clean, cylinder, difference, union
 from skeleton_hand import GRIP_POSE, Skeleton, assemble, palm_to_forearm_transform
 
-DISH_BOTTOM_RADII = np.array([17.5, 16.0])
-DISH_TOP_RADII = np.array([24.0, 27.5])
-DISH_HEIGHT = 30.0
-DISH_FLOOR = 2.0
-DISH_WALL = 1.6
+DISH_BOTTOM_RADII = np.array([18.2, 16.0])
+DISH_TOP_RADII = np.array([24.4, 28.8])
+DISH_BOTTOM_CONTOUR = dict(bump_thumb=5.0, notch_thumb=1.5, bump_fingers=0.6, bump_wrist=0.0)
+DISH_TOP_CONTOUR = dict(bump_thumb=5.8, notch_thumb=3.6, bump_fingers=4.8, bump_wrist=6.0)
+DISH_HEIGHT = 30.8
+DISH_FLOOR = 1.6
+DISH_WALL = 1.5
 DISH_CENTRE = np.array([-4.0, 24.0, -8.0])
 DISH_OFFSET = np.array([-1.5, -2.5, -3.5])
 LOCATOR_D = 3.0
@@ -31,6 +44,47 @@ SOCKET_DEPTH = 3.6
 SOCKET_BOSS_RADIUS = 2.6
 SUPPORT_ROOTS = (("middle", 0.35), ("ring", 0.60), ("little", 0.35))
 ROOT_Z_RIMS = (-4.76, -1.90, -5.77)
+
+
+def dish_polar_radii(
+    angles: np.ndarray,
+    base_radii: np.ndarray,
+    bump_thumb: float = 0.0,
+    notch_thumb: float = 0.0,
+    bump_fingers: float = 0.0,
+    bump_wrist: float = 0.0,
+) -> np.ndarray:
+    """Contoured polar radii reaching into fingers (-Y), thumb (+X), and wrist (+Y)."""
+    rx, ry = float(base_radii[0]), float(base_radii[1])
+    r0 = 1.0 / np.hypot(np.cos(angles) / rx, np.sin(angles) / ry)
+
+    def _lobe(center_deg: float, width_deg: float) -> np.ndarray:
+        delta = np.arctan2(
+            np.sin(angles - np.deg2rad(center_deg)),
+            np.cos(angles - np.deg2rad(center_deg)),
+        )
+        return np.exp(-0.5 * (delta / np.deg2rad(width_deg)) ** 2)
+
+    return (
+        r0
+        + bump_thumb * _lobe(-2.0, 22.0)
+        - notch_thumb * _lobe(-54.0, 15.0)
+        + bump_fingers * _lobe(-102.0, 26.0)
+        + bump_wrist * _lobe(105.0, 32.0)
+    )
+
+
+def dish_rim_points(n: int = 721, inner: bool = True) -> np.ndarray:
+    """3D points on the top rim of the dish in dish_frame coordinates."""
+    angles = np.linspace(0.0, 2.0 * np.pi, n, endpoint=False)
+    r_top = dish_polar_radii(angles, DISH_TOP_RADII, **DISH_TOP_CONTOUR)
+    if inner:
+        r_top = r_top - DISH_WALL
+    return np.column_stack([
+        r_top * np.cos(angles),
+        r_top * np.sin(angles),
+        np.full(len(angles), DISH_HEIGHT),
+    ])
 
 
 def _cad_mesh(shape) -> trimesh.Trimesh:
@@ -68,22 +122,41 @@ def mount_datums(skeleton: Skeleton) -> list[tuple[np.ndarray, np.ndarray]]:
 
 
 def build_dish(skeleton: Skeleton) -> trimesh.Trimesh:
+    angles = np.linspace(0.0, 2.0 * np.pi, 72, endpoint=False)
+    r_bot = dish_polar_radii(angles, DISH_BOTTOM_RADII, **DISH_BOTTOM_CONTOUR)
+    r_top = dish_polar_radii(angles, DISH_TOP_RADII, **DISH_TOP_CONTOUR)
+    lower_inner = r_bot + (r_top - r_bot) * DISH_FLOOR / DISH_HEIGHT - DISH_WALL
+    upper_inner = r_top - DISH_WALL + (r_top - r_bot) / DISH_HEIGHT
     with BuildPart() as bowl:
         with BuildSketch(Plane.XY):
-            Ellipse(*DISH_BOTTOM_RADII)
+            with BuildLine():
+                Spline(
+                    [(float(r * np.cos(a)), float(r * np.sin(a))) for r, a in zip(r_bot, angles)],
+                    periodic=True,
+                )
+            make_face()
         with BuildSketch(Plane.XY.offset(DISH_HEIGHT)):
-            Ellipse(*DISH_TOP_RADII)
+            with BuildLine():
+                Spline(
+                    [(float(r * np.cos(a)), float(r * np.sin(a))) for r, a in zip(r_top, angles)],
+                    periodic=True,
+                )
+            make_face()
         loft()
-        lower_inner = (
-            DISH_BOTTOM_RADII
-            + (DISH_TOP_RADII - DISH_BOTTOM_RADII) * DISH_FLOOR / DISH_HEIGHT
-            - DISH_WALL
-        )
         with BuildSketch(Plane.XY.offset(DISH_FLOOR)):
-            Ellipse(*lower_inner)
+            with BuildLine():
+                Spline(
+                    [(float(r * np.cos(a)), float(r * np.sin(a))) for r, a in zip(lower_inner, angles)],
+                    periodic=True,
+                )
+            make_face()
         with BuildSketch(Plane.XY.offset(DISH_HEIGHT + 1.0)):
-            Ellipse(*(DISH_TOP_RADII - DISH_WALL
-                      + (DISH_TOP_RADII - DISH_BOTTOM_RADII) / DISH_HEIGHT))
+            with BuildLine():
+                Spline(
+                    [(float(r * np.cos(a)), float(r * np.sin(a))) for r, a in zip(upper_inner, angles)],
+                    periodic=True,
+                )
+            make_face()
         loft(mode=Mode.SUBTRACT)
     body = _cad_mesh(bowl.part)
     legs = []
@@ -102,16 +175,25 @@ def build_dish(skeleton: Skeleton) -> trimesh.Trimesh:
 
 
 def build_cavity(_skeleton: Skeleton) -> trimesh.Trimesh:
-    lower = (
-        DISH_BOTTOM_RADII
-        + (DISH_TOP_RADII - DISH_BOTTOM_RADII) * DISH_FLOOR / DISH_HEIGHT
-        - DISH_WALL
-    )
+    angles = np.linspace(0.0, 2.0 * np.pi, 72, endpoint=False)
+    r_bot = dish_polar_radii(angles, DISH_BOTTOM_RADII, **DISH_BOTTOM_CONTOUR)
+    r_top = dish_polar_radii(angles, DISH_TOP_RADII, **DISH_TOP_CONTOUR)
+    lower = r_bot + (r_top - r_bot) * DISH_FLOOR / DISH_HEIGHT - DISH_WALL
     with BuildPart() as cavity:
         with BuildSketch(Plane.XY.offset(DISH_FLOOR)):
-            Ellipse(*lower)
+            with BuildLine():
+                Spline(
+                    [(float(r * np.cos(a)), float(r * np.sin(a))) for r, a in zip(lower, angles)],
+                    periodic=True,
+                )
+            make_face()
         with BuildSketch(Plane.XY.offset(DISH_HEIGHT)):
-            Ellipse(*(DISH_TOP_RADII - DISH_WALL))
+            with BuildLine():
+                Spline(
+                    [(float(r * np.cos(a)), float(r * np.sin(a))) for r, a in zip(r_top - DISH_WALL, angles)],
+                    periodic=True,
+                )
+            make_face()
         loft()
     return _cad_mesh(cavity.part)
 

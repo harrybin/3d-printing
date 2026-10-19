@@ -93,18 +93,28 @@ def scene_parts(theta: float) -> dict[str, trimesh.Trimesh]:
 
 def all_pairs(theta: float, threshold: float = 0.01) -> list[dict]:
     """Every intersecting pair above ``threshold`` mm3 at scissor angle theta."""
+    from concurrent.futures import ThreadPoolExecutor
+
     parts = scene_parts(theta)
-    hits = []
-    for a, b in itertools.combinations(parts, 2):
+    candidates = [
+        (a, b) for a, b in itertools.combinations(parts, 2)
+        if np.all(np.minimum(parts[a].bounds[1], parts[b].bounds[1])
+                  > np.maximum(parts[a].bounds[0], parts[b].bounds[0]))
+    ]
+
+    def _check_pair(pair: tuple[str, str]):
+        a, b = pair
         hit = _intersection(parts[a], parts[b])
         if hit is None or abs(hit.volume) < threshold:
-            continue
-        hits.append({
+            return None
+        return {
             "a": a, "b": b, "volume_mm3": abs(float(hit.volume)),
             "bounds": np.round(hit.bounds, 2).tolist(),
             "intended": _intended(a, b),
-        })
-    return hits
+        }
+
+    with ThreadPoolExecutor() as pool:
+        return [res for res in pool.map(_check_pair, candidates) if res is not None]
 
 
 def play(moving: trimesh.Trimesh, fixed: trimesh.Trimesh,
