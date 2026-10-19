@@ -50,6 +50,10 @@ checks needed to catch defects or choose the next geometry change. Re-run final
 checks only when subsequent changes invalidate their evidence; never deliver
 stale slices or previews.
 
+- **Cache base meshes across motion sweeps (`build_scene_at`) and parallelize C++ booleans (`ThreadPoolExecutor`):** Never rebuild CAD/boolean/voxel source meshes for every pose angle (`18°..78°`). Build or load each unique part mesh once per process (`@lru_cache`), then apply only `4x4` rigid-body transforms per pose and pre-filter candidate pairs by axis-aligned bounding-box (`bounds`) overlap before invoking `trimesh.boolean.intersection(..., engine="manifold")`. Because `manifold3d` and voxel operations release the Python GIL, use `concurrent.futures.ThreadPoolExecutor` across the 5 fingers in `skeleton_hand.assemble()`, across the 61 motion poses (`18°..78°`), and across the 61 insertion steps in `verify_ghouls_grip_candy.py` / `audit_ghouls_grip_assembly.py` to parallelize across CPU cores while sharing `@lru_cache` meshes without pickling overhead.
+- **Use `--quick` mode during iterative tuning:** During parameter sweeps and geometry adjustments, run `verify_ghouls_grip_candy.py --quick` (7 key poses and 5 insertion steps) or direct numpy/vertex clearance probes. Run the full `61`-pose × `61`-step verification (`verify_ghouls_grip_candy.py`, `audit_ghouls_grip_assembly.py`, `verify_ghouls_grip_mechanics.py`) once after the geometry is finalized.
+- **Run final verification suites and post-slice renders in parallel:** Once `models/ghouls-grip-print.3mf` and `models/ghouls-grip-view.3mf` are generated, run the four independent verification suites (`unittest discover -s tests`, `verify_ghouls_grip_candy.py`, `audit_ghouls_grip_assembly.py`, `verify_ghouls_grip_mechanics.py`) concurrently. Likewise, defer `slice_ghouls_grip.ps1` to the end and then run `update_ghouls_grip_slice_metadata.py`, `render_ghouls_grip.py`, `render_ghouls_grip_print_projects.py`, and `render_ghouls_grip_supports.py` in parallel.
+
 - Create environment:
   - `python -m venv .venv`
   - `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`

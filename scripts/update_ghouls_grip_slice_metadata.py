@@ -23,6 +23,7 @@ FILAMENT_NAMES = {
     "#89a84f": "PLA Slot 2 (Knochen)",
     "#f1ebdd": "Natural-white PLA",
     "#ffc196": "PLA Slot 1 (Mechanik)",
+    "#d4af37": "Gold PLA",
     "#777777": "Gray PLA",
     "#009cbd": "PLA Slot 4 (Totenkopf-Ausloeser)",
     "#1c1e21": "Black PLA (Drache)",

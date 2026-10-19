@@ -45,6 +45,23 @@ def lowest_vertex(entries_by_name, object_id):
 
 
 class SavedPrintRefreshTests(unittest.TestCase):
+    def test_dish_is_gray_and_shares_plate_four_with_the_skull(self):
+        source = ROOT / "models" / "ghouls-grip-print.3mf"
+        settings = ET.fromstring(entries(source)["Metadata/model_settings.config"])
+        by_name = {
+            node.find("metadata[@key='name']").get("value"): node
+            for node in settings.findall("object")
+        }
+        dish = by_name["candy-dish"]
+        skull = by_name["drive-skull-knob"]
+        self.assertEqual(dish.find("metadata[@key='extruder']").get("value"),
+                         skull.find("metadata[@key='extruder']").get("value"))
+        plate = settings.findall("plate")[3]
+        ids = {node.find("metadata[@key='object_id']").get("value")
+               for node in plate.findall("model_instance")}
+        self.assertEqual(ids, {dish.get("id"), skull.get("id")})
+        self.assertEqual(dish.find("metadata[@key='enable_support']").get("value"), "1")
+
     def test_refresh_preserves_existing_transforms_settings_and_plate_membership(self):
         source = ROOT / "models" / "ghouls-grip-print.3mf"
         before = entries(source)

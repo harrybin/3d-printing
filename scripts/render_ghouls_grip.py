@@ -24,6 +24,7 @@ from gothic_chest import HINGE_Y, HINGE_Z, LID_DROP, build_chest, build_lid
 from skeleton_hand import (GRIP_POSE, assemble, load_skeleton,
                            palm_to_forearm_transform)
 from skull import build_drive_knob
+from candy_hand import assembled_hand
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "images"
@@ -45,7 +46,7 @@ BLACK_COLOR = "#202124"
 BONE_COLOR = "#D8C6A5"
 MECHANISM_COLOR = "#F1EBDD"
 FINGER_COLOR = BONE_COLOR
-ACCENT_COLOR = "#777777"
+ACCENT_COLOR = "#D4AF37"
 
 
 def rot(angle_deg: float, axis, point=(0.0, 0.0, 0.0)):
@@ -115,7 +116,7 @@ def lid_angle(theta: float) -> float:
 @lru_cache(maxsize=1)
 def grip_hand():
     """Build the expensive voxel-fused anatomical hand once per process."""
-    return assemble(load_skeleton(), GRIP_POSE)
+    return assembled_hand(load_skeleton())
 
 
 @lru_cache(maxsize=None)
@@ -289,7 +290,7 @@ def build_scene_at(theta: float):
     forearm.apply_translation(hinge)
     items.append(("forearm", forearm, BONE_COLOR))
 
-    # The common finger flexures remain in their compact pre-curled pose.
+    # The rigid fingers remain in their compact pre-curled pose.
     # The palm is located only by the wrist cross pin, so its pin datum must
     # follow the forearm seat shift; otherwise the pin holes miss by 4 mm.
     hand = grip_hand()
@@ -303,7 +304,7 @@ def build_scene_at(theta: float):
         part.apply_transform(wrist_transform)
         part.apply_transform(rot(tilt, [0, 1, 0]))
         part.apply_translation(hinge)
-        colour = FINGER_COLOR if name.startswith("hand-finger") else BONE_COLOR
+        colour = ACCENT_COLOR if name == "candy-dish" else BONE_COLOR
         items.append((name, part, colour))
 
     return items

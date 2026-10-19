@@ -183,6 +183,15 @@ collided and pins had no retention. Automate the audit as a script (example:
 2. **Function across the full motion range**
    - Solve every pivot/linkage analytically and sample the full range (ends,
      dwell boundaries and at least five interior poses).
+   - Cache every unique part's base mesh once per process (`@lru_cache`) and
+     transform copies via `4x4` matrices for each pose rather than rebuilding
+     CAD/boolean solids inside the pose loop. Pre-filter every pair by bounding
+     box (`bounds`) overlap before running `manifold` boolean intersections,
+     parallelize independent finger builds, pose sweeps, and insertion sweeps
+     with `concurrent.futures.ThreadPoolExecutor` (sharing `@lru_cache` meshes
+     in-memory while `manifold3d` releases the GIL), and use a `--quick` subset
+     (7 key poses, 5 insertion steps) during iterative tuning before running the
+     final full-density verification suites in parallel at the end.
    - Run an **all-pairs** boolean intersection of every body at every pose.
      Any intersection above about 0.5 mm³ is a failure unless it is a
      documented intended contact (pin in bore, tooth flank); fix geometry, do

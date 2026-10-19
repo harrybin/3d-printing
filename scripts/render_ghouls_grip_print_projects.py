@@ -24,7 +24,7 @@ FILAMENTS = (
     ("Black PLA", "#202124"),
     ("Bone-beige PLA", "#D8C6A5"),
     ("Natural-white PLA", "#F1EBDD"),
-    ("Gray PLA", "#777777"),
+    ("Gold PLA", "#D4AF37"),
 )
 
 

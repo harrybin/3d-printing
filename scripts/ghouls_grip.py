@@ -40,7 +40,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import mechanism
 from gothic_chest import build_chest, build_lid
 from mesh_kit import clean, orient_for_print
-from skeleton_hand import FLAT_POSE, RAYS, assemble, load_skeleton
+from skeleton_hand import GRIP_POSE, RAYS, assemble, load_skeleton
+from candy_hand import build_dish, build_hand
 from skull import build_drive_knob
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -83,7 +84,7 @@ BLACK = Material("Schatulle - schwarzes PLA", "#202124FF")
 BONE = Material("Knochen - beiges PLA", "#D8C6A5FF")
 MECH = Material("Mechanik - naturweisses PLA", "#F1EBDDFF")
 FLEX = BONE
-ACCENT = Material("Totenkopf-Ausloeser - graues PLA", "#777777FF")
+ACCENT = Material("Totenkopf-Ausloeser - goldenes PLA", "#D4AF37FF")
 
 
 def validate(name: str, mesh: trimesh.Trimesh) -> None:
@@ -335,6 +336,7 @@ PART_MATERIAL = {
     "forearm-output-gear": MECH,
     **{f"pivot-pin-{variant}": MECH for variant in mechanism.PIN_GRIPS},
     "drive-skull-knob": ACCENT,
+    "candy-dish": ACCENT,
     "forearm": BONE, "hand-palm": BONE,
 }
 
@@ -345,6 +347,8 @@ PRINT_QUANTITIES = {
        for variant, count in mechanism.PIN_QUANTITIES.items() if count > 1},
     "lid-transfer-gear": 2,
 }
+
+PRINT_HAND_POSE = GRIP_POSE
 
 
 def build_parts() -> dict:
@@ -357,7 +361,8 @@ def build_parts() -> dict:
     parts["drive-skull-knob"] = build_drive_knob(
         shaft_d=mechanism.DRIVE_SHAFT_D)
     skeleton = load_skeleton()
-    parts.update(assemble(skeleton, FLAT_POSE))
+    parts.update(build_hand(skeleton))
+    parts["candy-dish"] = build_dish(skeleton)
     return {k: orient_for_print(v) for k, v in parts.items()}
 
 
@@ -409,6 +414,14 @@ def expand_print_parts(parts: dict) -> dict:
                 np.pi, (1.0, 0.0, 0.0)))
             printable.apply_translation(
                 [0.0, 0.0, -printable.bounds[0, 2]])
+        elif name == "candy-dish":
+            # Print the candy dish inverted on its flat top rim so its outer
+            # walls and underside plug-in pins print upwards without support
+            # inside the bowl cavity.
+            printable.apply_transform(trimesh.transformations.rotation_matrix(
+                np.pi, (1.0, 0.0, 0.0)))
+            printable.apply_translation(
+                [0.0, 0.0, -printable.bounds[0, 2]])
         quantity = PRINT_QUANTITIES.get(name, 1)
         for index in range(quantity):
             instance = name if quantity == 1 else f"{name}-{index + 1:02d}"
@@ -422,7 +435,7 @@ def assembly_material(name: str) -> Material:
         return FLEX
     if name in {"chest", "lid"}:
         return BLACK
-    if name == "drive-skull-knob":
+    if name in {"drive-skull-knob", "candy-dish"}:
         return ACCENT
     if name in {"forearm", "hand-palm"}:
         return BONE
@@ -500,8 +513,8 @@ def render_view_3mf(path: Path) -> Path:
         if (part_name in {"forearm", "hand-palm"}
                 or part_name.startswith("hand-finger")):
             return "#D8C6A5"
-        if part_name == "drive-skull-knob":
-            return "#777777"
+        if part_name in {"drive-skull-knob", "candy-dish"}:
+            return "#D4AF37"
         return "#F1EBDD"
 
     thumbnails = []
@@ -544,7 +557,7 @@ def render_view_3mf(path: Path) -> Path:
         thumbnails.append((plate_name[2], Image.open(thumbnail).convert("RGB")))
 
     margin, label_height, width, height = 24, 42, 760, 720
-    output = ROOT / "docs" / "images" / "ghouls-grip-view.png"
+    output = ROOT / "docs" / "images" / "ghouls-grip-view-preview.png"
     canvas = Image.new(
         "RGB",
         (3 * width + 4 * margin, height + label_height + 2 * margin),
@@ -556,7 +569,16 @@ def render_view_3mf(path: Path) -> Path:
         y = margin
         canvas.paste(image, (x, y))
         draw.text((x, y + height + 10), label, fill="#f3f4f6")
-    canvas.save(output)
+    temp_out = output.with_suffix(".tmp.png")
+    canvas.save(temp_out)
+    for attempt in range(10):
+        try:
+            os.replace(temp_out, output)
+            break
+        except OSError:
+            if attempt == 9:
+                raise
+            time.sleep(0.5)
     return output
 
 

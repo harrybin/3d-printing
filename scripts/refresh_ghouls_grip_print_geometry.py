@@ -20,7 +20,7 @@ ET.register_namespace("", CORE)
 ET.register_namespace("p", PRODUCTION)
 BED = 250.0
 PLATE_PITCH = 300.0
-PACK_GAP = 5.0
+PACK_GAP = 14.0
 
 
 def surface(vertices, faces) -> bytes:
@@ -35,17 +35,22 @@ def surface(vertices, faces) -> bytes:
 
 def pack(sizes: dict) -> dict:
     """Shelf-pack XY footprints on one bed; raise when they cannot fit."""
-    placements, x, y, row = {}, 0.0, 0.0, 0.0
-    for key in sorted(sizes, key=lambda k: (-sizes[k][1], -sizes[k][0], k)):
-        width, depth = (float(value) for value in sizes[key])
-        if x > 0.0 and x + width > BED:
-            x, y, row = 0.0, y + row + PACK_GAP, 0.0
-        if x + width > BED or y + depth > BED:
-            raise ValueError(f"plate overflow while packing {key}")
-        placements[key] = (x, y)
-        x += width + PACK_GAP
-        row = max(row, depth)
-    return placements
+    for gap, margin in ((PACK_GAP, 15.0), (5.0, 0.0)):
+        placements, x, y, row = {}, margin, margin, 0.0
+        overflow = False
+        for key in sorted(sizes, key=lambda k: (-sizes[k][1], -sizes[k][0], k)):
+            width, depth = (float(value) for value in sizes[key])
+            if x > margin and x + width > BED - margin:
+                x, y, row = margin, y + row + gap, 0.0
+            if x + width > BED - margin or y + depth > BED - margin:
+                overflow = True
+                break
+            placements[key] = (x, y)
+            x += width + gap
+            row = max(row, depth)
+        if not overflow:
+            return placements
+    raise ValueError(f"plate overflow while packing {key}")
 
 
 def refresh(project: Path, print_parts: dict, changed: set[str],
@@ -174,6 +179,8 @@ def refresh(project: Path, print_parts: dict, changed: set[str],
     # Adding runs before pruning so replaced variants (old pin names) can
     # still serve as templates for their successors.
     def template_for(name: str) -> str:
+        if name == "candy-dish":
+            return "drive-skull-knob"
         base = re.sub(r"-\d{2}$", "", name)
         candidates = [key for key in configs if key.startswith(base)]
         if not candidates:
@@ -231,6 +238,13 @@ def refresh(project: Path, print_parts: dict, changed: set[str],
                 element.set("value", "0")
             elif key.startswith("source_offset_"):
                 element.set("value", "0")
+        if name == "candy-dish":
+            from export_ghouls_grip_orca_projects import OBJECT_OVERRIDES
+            for key, value in OBJECT_OVERRIDES[name].items():
+                metadata = config.find(f"metadata[@key='{key}']")
+                if metadata is None:
+                    metadata = ET.SubElement(config, "metadata", key=key)
+                metadata.set("value", value)
         settings.insert(0, config)
         configs[name] = config
         if plate is not None:
@@ -352,10 +366,22 @@ def refresh(project: Path, print_parts: dict, changed: set[str],
             element.set("value", "{}")
         elif name == "objectCount":
             element.set("value", str(len(build)))
+        elif name == "materialColorName":
+            element.set("value", element.get("value", "").replace("Gray PLA", "Gold PLA"))
+        elif name == "materialColorHex":
+            element.set("value", element.get("value", "").replace("#777777", "#D4AF37"))
         elif name and (name.startswith("estimatedPrintTime")
                        or name.startswith("filamentUsage")
                        or name.startswith("supportFilament")):
             element.set("value", "unknown")
+    if "Metadata/project_settings.config" in entries:
+        entries["Metadata/project_settings.config"] = (
+            entries["Metadata/project_settings.config"]
+            .replace(b"#777777", b"#D4AF37")
+            .replace(b"#777777ff", b"#D4AF37ff")
+            .replace(b"#009CBD", b"#D4AF37")
+            .replace(b"#009CBDff", b"#D4AF37ff")
+        )
     for key, root in (("3D/3dmodel.model", model),
                       ("Metadata/model_settings.config", settings),
                       (metadata_entry, metadata)):

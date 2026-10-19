@@ -83,7 +83,15 @@ Do not report comparable print estimates unless these settings are held constant
    unsupported islands, collisions, and color/material transitions.
 6. Treat unexpected slicer repair as a source defect. Fix and re-export rather than
    silently accepting changed geometry.
-7. Re-slice after every geometry, orientation, support, or profile change.
+7. Defer full multi-plate OrcaSlicer CLI slicing and high-resolution preview/support
+   PNG rendering until after iterative geometry and `--quick` mechanism tuning are
+   complete; run the four final verification suites (`unittest`, `verify_ghouls_grip_candy.py`,
+   `audit_ghouls_grip_assembly.py`, `verify_ghouls_grip_mechanics.py`) concurrently,
+   run the full slice pass once on the finalized geometry, and then execute the
+   independent post-slice metadata/render scripts (`update_ghouls_grip_slice_metadata.py`,
+   `render_ghouls_grip.py`, `render_ghouls_grip_print_projects.py`,
+   `render_ghouls_grip_supports.py`) in parallel.
+8. Re-slice after every geometry, orientation, support, or profile change.
 
 Do not infer `support-free` from a project whose support setting is `none`.
 Generated projects keep `enable_support=1` by default for exactly this reason.

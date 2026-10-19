@@ -81,8 +81,8 @@ MATERIAL_PROJECTS = {
         ),
     },
     "accent-pla": {
-        "match": "Totenkopf-Ausloeser - graues PLA",
-        "color": "#777777",
+        "match": "Totenkopf-Ausloeser - goldenes PLA",
+        "color": "#D4AF37",
         "filament": "Anycubic PLA @Anycubic Kobra S1 0.4 nozzle.json",
         "wall_loops": "4", "infill": "25%", "speed": "standard",
         "filament_type": "PLA", "support": "tree",
@@ -144,6 +144,10 @@ OBJECT_OVERRIDES = {
     "hand-palm": {"wall_loops": "4", "sparse_infill_density": "25%"},
     "drive-skull-knob": {
         "wall_loops": "5", "sparse_infill_density": "40%",
+    },
+    "candy-dish": {
+        "wall_loops": "4", "sparse_infill_density": "15%",
+        "enable_support": "1", "support_type": "tree(auto)",
     },
     "hand-finger": {
         "wall_loops": "2", "sparse_infill_density": "15%",

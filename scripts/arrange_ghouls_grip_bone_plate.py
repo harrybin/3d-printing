@@ -16,7 +16,7 @@ ET.register_namespace("", CORE)
 ET.register_namespace("p", PRODUCTION)
 BED_SIZE = 250.0
 EDGE_MARGIN = 10.0
-PART_CLEARANCE = 6.0
+PART_CLEARANCE = 10.0
 PLATE_X_OFFSET = 300.0
 
 # Target XY bounding-box minima in millimeters. The palm and forearm share

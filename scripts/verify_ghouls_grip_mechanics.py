@@ -310,7 +310,7 @@ def check() -> dict:
         }
         hand_names = [
             name for name in named
-            if name == "forearm" or name.startswith("hand-")
+            if name in {"forearm", "candy-dish"} or name.startswith("hand-")
         ]
         hand = trimesh.util.concatenate([named[name] for name in hand_names])
         arms = trimesh.util.concatenate([
