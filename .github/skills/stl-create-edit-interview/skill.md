@@ -21,6 +21,16 @@ Before the print settings interview:
 3. Detect Blender, the selected Blender MCP integration, and OrcaSlicer before
    promising their use. If missing, ask about installation; if declined, record the
    fallback and never invent unavailable slicer metrics.
+4. If the route is `blender` or `hybrid` and no adequate licensed asset was found
+   (`asset_strategy = reference-only | rebuild`), run the decision gate from
+   `local-3d-genai-meshgen`: probe the hardware with
+   `scripts/genai_hw_probe.py`, then ask one question whether local image-to-3D
+   models (TRELLIS.2/Pixal3D) should generate the organic seed mesh.
+   - Yes: install automatically after approval with the tier the probe proposes
+     (`scripts/genai_local_setup.py`), then generate and post-process.
+   - No, or unsuitable hardware: continue on the Gemini route (Gemini subagents
+     for image analysis, landmarks and Blender/build123d code drafts).
+   Record `genai_route = local | gemini | not-applicable`.
 
 ## Step-by-step user interview (ask one question at a time)
 
@@ -138,6 +148,7 @@ Produce a concise parameter set:
 - output_format
 - asset_strategy
 - modeling_route
+- genai_route
 - frozen_datums
 - tool_availability
 - color_split_strategy

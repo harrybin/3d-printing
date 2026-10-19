@@ -25,6 +25,7 @@ If a procedure is needed more than once, it belongs in a skill file.
 | Reusable asset research | `research-reusable-3d-assets` | Online model discovery, license/attribution gate, and reuse-vs-rebuild decision |
 | Preflight interview | `stl-create-edit-interview` | Required intent questions before creating/editing |
 | Blender modeling | `blender-assisted-modeling` | Organic/visual modeling, MCP safety, frozen datums, and validated export roundtrip |
+| Generative seed meshes | `local-3d-genai-meshgen` | Ask local image-to-3D (TRELLIS.2/Pixal3D via ComfyUI) vs Gemini route, hardware-tiered install, post-processing into validated STL seeds |
 | Mesh quality | `validate-stl-mesh` | Integrity checks, feature probes, stale-file checks |
 | Print optimization | `optimize-stl-for-print` | Orientation and compensation decisions after geometry is correct |
 | Slicer handoff | `orcaslicer-project-workflow` | Pinned standard-OrcaSlicer MCP setup, slicing-only safety boundary and evidence |
@@ -54,6 +55,7 @@ If a procedure is needed more than once, it belongs in a skill file.
 | Reusable online assets | original source and explicit license | `research-reusable-3d-assets` | `research-part-specs`, `stl-from-image-measurements` | Search before original modeling; unclear or incompatible licenses are reference-only. |
 | Python vs Blender routing | feature type and frozen datums | `blender-assisted-modeling` | `create-ascii-stl`, `stl-from-image-measurements`, `edit-stl-transform` | Python owns fit geometry; Blender owns approved organic/visual regions. |
 | Blender MCP security | current official integration docs and local-only configuration | `blender-assisted-modeling` | `AGENTS.md` | Do not expose Blender MCP publicly or silently install/enable it. |
+| Local generative meshes | `scripts/genai_catalog.py` (tiers, MIT model allowlist) plus user answer | `local-3d-genai-meshgen` | `research-reusable-3d-assets`, `blender-assisted-modeling`, `stl-create-edit-interview`, `stl-from-image-measurements` | Ask once (local vs Gemini), install only after approval outside git, never use generated meshes for fit-critical geometry, record provenance. |
 | Project MCP configuration | `.vscode/mcp.json` plus local environment variables | `blender-assisted-modeling`, `orcaslicer-print-validation` | `docs/mcp-setup.md` | Commit names and safe defaults, never executable paths, secrets, downloaded servers, or personal profiles. |
 | Delivered-project support minimization | exact final STL/3MF plus fixed Kobra S1 profiles | `orcaslicer-support-minimization` | `orcaslicer-project-workflow`, `optimize-stl-for-print`, `orcaslicer-print-validation` | Compare bounded absolute datum rotations sequentially, preserve material/plate semantics, save orientation in 3MF, and never apply suggested geometry changes without a later source-model decision. |
 | Final slice evidence | successful OrcaSlicer project slice | `orcaslicer-print-validation` | `optimize-stl-for-print`, `anycubic-kobra-s1-ace-pro-profile` | Never claim print time or final print readiness without a successful slice. |
