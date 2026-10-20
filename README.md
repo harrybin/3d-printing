@@ -112,5 +112,14 @@ for migration ownership and rollback.
 - [Optional local 3D GenAI setup](docs/local-3d-genai-setup.md)
 - [OrcaSlicer integration research](docs/orcaslicer-mcp-recherche.md)
 
+### Optional local 3D GenAI
+
+The optional local image-to-3D workflow uses ComfyUI with TRELLIS.2 and Pixal3D.
+The setup script installs ComfyUI outside the repository under
+`%LOCALAPPDATA%\3d-printing-genai`; generation is opt-in. 3DGenStudio is not
+integrated: its pipeline informed some design choices, but no code or workflow
+files were copied. See the [setup guide](docs/local-3d-genai-setup.md) for
+hardware requirements, model licensing and implementation details.
+
 The repository MIT license is unchanged. Reused assets retain their own licenses
 and attribution requirements in the model catalog.
