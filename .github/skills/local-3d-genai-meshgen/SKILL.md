@@ -13,8 +13,15 @@ source of fit-critical geometry and never a finished print.
 Concepts adapted from the 3DGenStudio pipeline (Images -> Image edit -> Mesh
 generation -> Mesh edit, with parent/child lineage, a managed ComfyUI with
 separated code/model folders, pinned versions and post-install import checks).
-No 3DGenStudio code or workflow files are copied; its license forbids
-redistribution. The runnable workflows are the official MIT Comfy-Org templates.
+No 3DGenStudio code or workflow files are copied; its Community License restricts
+selling the software or derivatives, paid hosting/SaaS, and paid bundles. The
+runnable workflows are the official MIT Comfy-Org templates.
+
+Direct3D-S2 is a related MIT-licensed research candidate, not a supported runtime
+in this skill. Its separate CUDA/TorchSparse stack and high VRAM requirements
+make it unsuitable for adding to the managed ComfyUI packs without an isolated
+benchmark and license/dependency review. See
+[`docs/local-3d-genai-setup.md`](../../../docs/local-3d-genai-setup.md#direct3d-s2-research-neural4d-connection).
 
 ## When this skill applies
 
@@ -185,6 +192,10 @@ produced by repo scripts or Blender and validated like any other.
 
 - 3DGenStudio (concept inspiration only, Community License, no code reused):
   https://github.com/visualbruno/3DGenStudio
+- Direct3D-S2 (research candidate only):
+  https://github.com/DreamTechAI/Direct3D-S2,
+  https://arxiv.org/abs/2505.17412,
+  https://huggingface.co/wushuang98/Direct3D-S2
 - ComfyUI: https://github.com/comfyanonymous/ComfyUI
 - Official workflow templates (MIT): https://github.com/Comfy-Org/workflow_templates
 - Models: https://huggingface.co/Comfy-Org/TRELLIS.2,

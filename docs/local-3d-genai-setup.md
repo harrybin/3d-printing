@@ -61,9 +61,10 @@ models to the catalog.
 
 [3DGenStudio](https://github.com/visualbruno/3DGenStudio) orchestrates text/image
 -> image edit -> mesh generation -> mesh edit -> texturing pipelines on ComfyUI.
-Its Community License forbids redistributing the software or derivatives, so
-**no code or workflow files were copied**; only the following concepts were
-adapted and reimplemented:
+Its Community License permits copying and modification but restricts selling the
+software or derivatives, paid hosting/SaaS, and paid bundles. **No code or
+workflow files were copied**; only the following concepts were adapted and
+reimplemented:
 
 | 3DGenStudio concept | Adopted here as |
 | --- | --- |
@@ -85,6 +86,34 @@ Not adopted: texturing, rigging and animation (no FDM value), text-to-image
 generation (reference photos come from the user), and the SAM part
 segmentation (possible follow-up for color-body splits; colors are currently
 separated as keyed bodies in Blender/Python).
+
+## Direct3D-S2 research (Neural4D connection)
+
+The supplied “AI Image to 3D Generator” title matches Neural4D's indexed image
+generator page, although the `share.google` redirect itself could not be opened
+to confirm the match. Neural4D is a hosted product; the public research project
+associated with it is [Direct3D-S2](https://github.com/DreamTechAI/Direct3D-S2),
+described in its [NeurIPS 2025 paper](https://arxiv.org/abs/2505.17412). The
+paper lists researchers from Nanjing University, Fudan University, Oxford and
+DreamTech.
+
+Direct3D-S2 generates a mesh from an image using sparse 3D volumes and Spatial
+Sparse Attention. Its code repository and linked
+[Hugging Face model](https://huggingface.co/wushuang98/Direct3D-S2) declare MIT
+licensing; any reused code must retain the copyright and license notice. The
+upstream README reports about 10 GB VRAM for 512³ (lower quality) and 24 GB for
+1024³, and tests an Ubuntu/CUDA 12.1/PyTorch 2.5.1 stack with TorchSparse,
+FlashAttention and other dependencies. Its attention speedups are not a
+measured end-to-end print workflow benchmark.
+
+**Decision: do not add it to the supported ComfyUI packs or install path yet.**
+It needs a separate runtime/model integration, while this engine already
+supports opt-in image-to-mesh generation, hardware-aware selection, provenance,
+and print-specific mesh validation. If evaluated later, keep it isolated from
+the managed ComfyUI environment and treat its output only as an organic seed;
+validate it through the existing post-processing, mesh, and slicer gates rather
+than relying on upstream print-readiness claims. Upstream lists `pymeshfix`,
+which must not be used on thin-walled or multi-chamber parts in this repository.
 
 ## Gemini route
 
