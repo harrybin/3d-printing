@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "harrybin-printforge"
-version = "1.0.0"
+version = "1.0.1"
 description = "Reusable FDM mesh tools and agent resources for independent model catalogs"
 requires-python = ">=3.11"
 license = "MIT"

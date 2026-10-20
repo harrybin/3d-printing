@@ -40,6 +40,8 @@ python -m venv .venv
 
 Bootstrap materializes ignored engine tools, skills, Canvas extension, MCP
 template and setup docs at the legacy paths used by existing model instructions.
+Resources travel in a single ZIP inside the wheel to avoid Windows `MAX_PATH`
+failures when pip builds a Git-pinned dependency in its temporary directory.
 Those copies are caches, not independently maintained sources. Re-run bootstrap
 after explicitly updating the engine pin. It refuses to overwrite unmanaged or
 locally edited files. Model generators, docs and assets remain catalog-owned.

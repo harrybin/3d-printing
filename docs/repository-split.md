@@ -39,6 +39,10 @@ The original 81-test baseline already had one error in
 `test_ghouls_grip_bone_plate_layout`: the ring finger's proposed layout crosses
 the plate edge (X maximum 271.07479884546865 mm). That model test/project remains
 unchanged in the catalog; its CI reports the failure rather than hiding it.
+The independent post-migration 60-test model suite reproduced that one error
+without any additional failures. Engine 1.0.1 stores its agent resources in one
+ZIP inside the wheel, avoiding Windows temporary-build `MAX_PATH` errors in
+the initial 1.0.0 Git-pinned installation.
 
 ## Catalog contract
 

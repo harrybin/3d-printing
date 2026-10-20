@@ -8,10 +8,9 @@ import importlib.util
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import sys
-import sysconfig
+from zipfile import ZipFile
 
 from . import __version__
 
@@ -32,45 +31,44 @@ def catalog_root(value: str | Path | None = None) -> Path:
     return root
 
 
-def resource_root() -> Path:
-    installed = Path(sysconfig.get_path("data")) / "share" / "3d-printing"
-    if (installed / ".github" / "skills").is_dir():
-        return installed
+def resource_files() -> dict[Path, bytes]:
+    bundle = Path(__file__).with_name("resources.zip")
+    if bundle.is_file():
+        with ZipFile(bundle) as archive:
+            return {Path(name): archive.read(name) for name in archive.namelist()}
     source = Path(__file__).resolve().parents[2]
     if (source / ".github" / "skills").is_dir():
-        return source
+        files = [
+            path for directory in (".github/skills", ".github/extensions", ".vscode", "tools")
+            for path in (source / directory).rglob("*") if path.is_file()
+        ]
+        files += [source / "docs" / name for name in ENGINE_DOCS]
+        files.append(source / "scripts" / "setup_orcaslicer_mcp.ps1")
+        return {path.relative_to(source): path.read_bytes() for path in files}
     raise FileNotFoundError("Engine resources missing; reinstall the engine wheel")
 
 
 def bootstrap(root: Path) -> int:
     """Materialize ignored engine resources without overwriting catalog files."""
     root = root.resolve()
-    resources = resource_root()
-    sources = [(Path(importlib.util.find_spec(name).origin),
-                Path("scripts") / f"{name}.py") for name in TOOLS]
-    for directory in (".github/skills", ".github/extensions", ".vscode", "tools"):
-        for source in (resources / directory).rglob("*"):
-            if source.is_file():
-                sources.append((source, source.relative_to(resources)))
-    for name in ENGINE_DOCS:
-        source = resources / "docs" / name
-        sources.append((source, Path("docs") / source.name))
-    setup = resources / "scripts" / "setup_orcaslicer_mcp.ps1"
-    sources.append((setup, Path("scripts") / setup.name))
+    sources = resource_files()
+    for name in TOOLS:
+        sources[Path("scripts") / f"{name}.py"] = Path(
+            importlib.util.find_spec(name).origin).read_bytes()
     previous_path = root / ".engine-files.json"
     previous = json.loads(previous_path.read_text()) if previous_path.exists() else {}
     # Check every target before writing anything; a tracked/user-edited file wins.
-    for source, relative in sources:
+    for relative, content in sources.items():
         target = root / relative
-        if target.exists() and target.read_bytes() != source.read_bytes():
+        if target.exists() and target.read_bytes() != content:
             digest = hashlib.sha256(target.read_bytes()).hexdigest()
             if previous.get(relative.as_posix()) != digest:
                 raise ValueError(f"Refusing to overwrite unmanaged/modified file: {target}")
     state = {}
-    for source, relative in sources:
+    for relative, content in sources.items():
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(source, target)
+        target.write_bytes(content)
         state[relative.as_posix()] = hashlib.sha256(target.read_bytes()).hexdigest()
     previous_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
     print(f"Engine {__version__}: materialized {len(state)} ignored resources in {root}")
