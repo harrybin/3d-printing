@@ -1,0 +1,9 @@
+recursive-include .github/skills *
+recursive-include .github/extensions *
+recursive-include .vscode *.json
+include docs/mcp-setup.md
+include docs/local-3d-genai-setup.md
+include docs/orcaslicer-mcp-recherche.md
+include requirements.txt
+recursive-include tools *
+include scripts/setup_orcaslicer_mcp.ps1

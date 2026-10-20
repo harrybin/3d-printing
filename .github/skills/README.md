@@ -5,6 +5,15 @@ If a procedure is needed more than once, it belongs in a skill file.
 
 ## Goal
 
+This library belongs to the `harrybin/3d-printing` engine, not to a specific
+model. Model sources, measurements, licenses, outputs and audits belong to
+`harrybin/3d-printing-models`. Install the catalog's pinned engine dependency
+and run `printforge bootstrap .` there before following skills: it materializes
+ignored copies of engine scripts, skills, viewer and setup docs at the paths
+used below. Do not commit or modify those generated copies; change the engine
+and update its pinned revision instead. `CATALOG_ROOT` selects an external
+catalog for engine-side renders, Canvas and web builds.
+
 - Keep repeatable workflows in one place instead of isolated PR notes.
 - Enforce consistent decisions for geometry, printability, validation, and sourcing.
 - Make future sessions productive without rediscovering the same process steps.

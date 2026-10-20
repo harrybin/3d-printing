@@ -9,7 +9,7 @@ on:
       - '.github/workflows/copilot-agent.yml'
       - 'web/**'
       - 'scripts/**'
-      - 'models/**'
+      - 'docs/**'
       - 'requirements.txt'
       - '.github/workflows/pages-spa.yml'
   workflow_dispatch:
@@ -31,6 +31,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout model catalog
+        uses: actions/checkout@v4
+        with:
+          repository: harrybin/3d-printing-models
+          ref: main
+          path: build/catalog
+          persist-credentials: false
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -40,13 +48,11 @@ jobs:
         working-directory: web
         run: npm install
 
-      - name: Sync model assets into SPA public assets
-        run: node web/scripts/sync-models.mjs
-
       - name: Build
         working-directory: web
         env:
           PAGES_WORKFLOW_REF: main
+          CATALOG_ROOT: ${{ github.workspace }}/build/catalog
         run: npm run build
 
       - name: Setup Pages

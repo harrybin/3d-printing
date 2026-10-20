@@ -1,4 +1,7 @@
 .venv/
+.venv-catalog/
+*.egg-info/
+dist/
 .venv-orcaslicer-mcp/
 __pycache__/
 *.pyc
@@ -8,6 +11,8 @@ web/package-lock.json
 web/public/models/*.stl
 web/public/models/models.json
 web/public/build-info.json
+web/public/app-config.json
+web/public/skills-manifest.json
 
 web/public/models/*.3mf
 build/

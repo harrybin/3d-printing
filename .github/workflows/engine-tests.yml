@@ -1,0 +1,38 @@
+name: Engine tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install .
+      - name: Engine regression tests
+        run: python scripts/compact_output.py run --log build/tests.log -- python -m unittest discover -s tests
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Viewer regression tests
+        working-directory: web
+        run: npm test
+      - name: Build distribution
+        run: python -m pip wheel --no-deps . --wheel-dir dist
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: engine-evidence
+          path: |
+            build/tests.log
+            dist/*.whl

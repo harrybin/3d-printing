@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "harrybin-printforge"
+version = "1.0.1"
+description = "Reusable FDM mesh tools and agent resources for independent model catalogs"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+readme = "README.md"
+dynamic = ["dependencies"]
+
+[project.scripts]
+printforge = "printforge.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "scripts"}
+packages = ["printforge"]
+py-modules = [
+  "compact_output", "fdm_joints", "genai_catalog", "genai_comfy_run",
+  "genai_hw_probe", "genai_local_setup", "genai_mesh_postprocess",
+  "make_contact_sheet", "mesh_kit", "mesh_tool", "render_3mf_previews",
+  "render_gcode_preview", "sdf_blend", "sdf_bones",
+]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}

@@ -1,434 +1,116 @@
-# 3D Printing Models
+# 3D Printing Engine
 
-A collection of ASCII STL models for the Anycubic Kobra S1 Combo + ACE Pro (250 × 250 mm build plate).
+Reusable FDM modeling tools, agent skills and the STL/3MF viewer for the
+Anycubic Kobra S1 Combo + ACE Pro (250 x 250 mm bed). This repository is the
+engine, **not the model catalog**.
 
-## Models
+Models, model-specific generators, measurements, source licenses, assembly
+audits, Blender sources, print projects and previews live in
+[`harrybin/3d-printing-models`](https://github.com/harrybin/3d-printing-models).
+The catalog retains the original relative paths and filtered model history.
+Its `catalog.json` records the original source commit and asset SHA-256 hashes.
+Existing geometry, print-profile status and license notices are not changed
+or newly certified by the repository split.
 
-### Token-efficient command evidence
+## Install the engine
 
-`scripts/compact_output.py` retains full command logs while returning bounded
-JSON summaries with deduplicated diagnostics, result lines and a short tail.
-It uses only Python's standard library and preserves command exit codes:
+Python 3.11 or newer is required.
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\compact_output.py run --log build\tests.log -- .\.venv\Scripts\python.exe -m unittest discover -s tests
-.\.venv\Scripts\python.exe scripts\compact_output.py log build\tests.log --limit 12 --tail 8
-.\.venv\Scripts\python.exe scripts\compact_output.py project models\ghouls-grip-print.3mf
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install .
+.\.venv\Scripts\python.exe -m printforge --version
 ```
 
-The project mode reports plate membership counts and selected Orca settings
-without dumping meshes/XML. Summaries are not validation: omitted diagnostics
-are counted, full logs remain available, and unknown warnings or failures need
-targeted inspection. The Ghoul's Grip slice wrapper uses log summaries
-automatically. Run the helper's tests with
-`.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_compact_output.py`.
+The distribution is `harrybin-printforge`; the CLI is `printforge`. Existing
+shared Python imports such as `mesh_kit`, `fdm_joints` and `mesh_tool` remain
+available so model generators need no geometry-affecting rewrites.
 
-| File | Description |
-|------|-------------|
-| `models/wedge_100x20x40.stl` | 100 × 20 × 40 mm wedge |
-| `models/lineal-clip-kappe.stl` | Snap-fit clip cap for the two holes at the end of a steel ruler ([see example](#example-from-photo-to-printable-stl)) |
-| `models/duschscharnier_ersatz.stl` | Shower-door hinge replacement body generated from `scripts/duschscharnier_ersatz.py` |
-| `models/waeschespinne-reduzierring-67-50.2.stl` | ASA reducer ring for a confirmed 67.0 mm sleeve bore and 50.2 mm laundry-line pole; 77 mm retaining collar ([dimensions](docs/waeschespinne-reduzierring-masse.md)) |
-| `models/zylinder_scheibe_2026_2027.stl` | Cylindrical/washer-style reference part |
-| `models/lampe-5-rahmen.3mf` | Multi-material frame for the 240 mm number-5 wall lamp |
-| `models/lampe-5-leuchtflaechen.stl` | All four translucent lamp panels arranged together on the 250 × 250 mm bed |
-| `models/modellauto-reifen.stl` / `models/modellauto-reifen-print.3mf` | Completed PLA toy-car replacement tyre, 37.2 mm diameter × 26 mm width ([3MF project preview](docs/images/modellauto-reifen-print-preview.png)); [archived measurements and print notes](docs/modellauto-reifen-masse.md) |
-| `models/ghouls-grip-view.3mf` | Assembled multi-material view on three plates: deployed, intermediate at a 48° scissor angle, and retracted ([project preview](docs/images/ghouls-grip-view-preview.png); [dimensions and assembly](docs/ghouls-grip-masse-und-bauanleitung.md)) |
-| `models/ghouls-grip-print.3mf` | One settings-bearing OrcaSlicer project with four PLA color/spool assignments and 42 objects on four plates ([all-plate preview](docs/images/ghouls-grip-print-preview.png)). The 31 natural-white mechanism parts share plate 3; the seven bone-beige cupped-hand parts (with solid knuckles, opposed thumb, and flush palm sockets) share plate 2 with at least 6 mm between footprints; the gold (`#D4AF37`) skull knob and optional plug-in candy dish share plate 4. All 35 non-hand payloads remain frozen to the already printed chest/drive contract (`docs/ghouls-grip-printed-box-contract.json`). See [slice/profile status and physical fit risks](docs/ghouls-grip-druckvalidierung.md). |
-| `models/ghouls-grip-preview.stl` | Deployed assembly-only multi-body preview; printable parts regenerate from `scripts/` |
-| `model-sources/ghouls-grip/ghouls-grip-master.blend` | Blender CLI/MCP scene checkpoint; technical objects are frozen and organic objects are separately marked |
-| `models/butterfly-messer-view.3mf` | Assembled 2-color balisong / butterfly knife on three state plates: Open (`0°`), Mid-flip (`90°`), and Closed & latched (`180°` with T-latch engaged) ([project preview](docs/images/butterfly-messer-view-preview.png); [dimensions & kinematics](docs/butterfly-messer-masse-und-mechanik.md)) |
-| `models/butterfly-messer-print.3mf` | Consolidated 2-plate Anycubic Kobra S1 + ACE Pro print project (14 objects across Silver-Gray and Anthracite PLA plates: Klinge & T-Latch on Plate 1; 4× Griffschalen, 4× D-Bolzen & 4× U-Clips on Plate 2), verified in OrcaSlicer with **`0.00 g` support**, `24.90 g` total filament, and `1h 45m 27s` print time ([print preview](docs/images/butterfly-messer-print-preview.png); [slice validation](docs/butterfly-messer-druckvalidierung.md)) |
-| `models/butterfly-messer.stl` / `models/butterfly-messer-*.stl` | Assembled multi-body preview STL and 14 print-oriented watertight component STLs generated by `scripts/butterfly_messer.py` |
+## Work on models
 
-### The Ghoul's Grip: final project contract
-
-The original spring, rubber-band, tendon and latch concept was replaced by a
-fully rigid, manually reversible mechanism:
-
-`rotating skull knob -> rack-and-pinion slider -> dual scissor lift + lid linkage + five-gear forearm drive`
-
-The closed box contains the complete mechanism. The internal lid rack, follower
-and crank sit below a sealed black service hood with a continuous 2.0 mm roof;
-only its assembly cavity opens toward the inside of the chest. The intended
-external skull knob remains accessible at the front.
-
-The current user-edited print project contains **42 physical objects on four plates**.
-The file has been sliced with OrcaSlicer CLI 2.4.2; its saved profile settings
-differ from repository defaults, so print-profile compliance is not verified.
-
-| Plate group | Plates | Main contents | Slice material / support / time |
-| --- | ---: | --- | ---: |
-| Black PLA | 1 | chest and lid (2) | 334.99 g / 6.71 g / 12 h 02 min 22 s |
-| Bone-beige PLA | 1 | forearm, palm with flush dish sockets, five solid-knuckle curved fingers (7) | 45.77 g / 7.43 g / 3 h 10 min 26 s |
-| Natural-white PLA | 1 | all 31 mechanism parts, gears, shafts, crank spacer and pivot pins (31) | 111.63 g / 11.48 g / 4 h 35 min 22 s |
-| Gold PLA (`#D4AF37`) | 1 | anatomical skull drive knob and optional plug-in candy dish (2) | 36.40 g / 6.58 g / 1 h 45 min 40 s |
-| **Total** | **4** | **42 print objects** | **528.79 g / 32.20 g / 21 h 33 min 50 s** |
-
-Floor-bearing repair: two 4 mm cheeks around each open 12 mm arm channel,
-unchanged pivots and arm geometry. Actual per-arm/chest Boolean volumes are
-0.000 mm³ to three decimals across 18–78° (maximum numerical residual
-0.000020464 mm³, acceptance tolerance 0.001 mm³). The 16 former connector-plate
-objects now share the mechanism plate with the 11 main parts; the complete
-37-object BOM remains intact. All 36 unaffected mesh payloads remain unchanged.
-The floor pins insert from the chest centre; dimensions introduced for clearance
-and strength are design estimates requiring a physical PLA fit/load test.
-Profile compliance remains **not-verified**, not print-ready.
-Complex projects follow the two-file convention: `-view.3mf` is the assembled
-overview (with additional state plates for mechanisms), and `-print.3mf` is the
-single all-material print project. Same-color parts share plates when safe;
-additional plate count never creates additional print-project files.
-
-All generated OrcaSlicer projects use these mandatory repository defaults unless a
-documented part-specific override is required:
-
-- layer height: **`<= 0.16 mm`** (`layer_height=0.16` default)
-- seam position: **Random** (`seam_position=random`, mandatory on all 3MF files)
-- ironing: **All top surfaces** (`ironing_type=top`)
-- automatic tree supports: **enabled** (`enable_support=1`, `support_type=tree(auto)`) with **1 layer Z contact distance** (`support_top_z_distance=0.16`, `support_bottom_z_distance=0.16`, equal to `layer_height`) for easy removal after printing
-- Textured PEI plate, 0.4 mm nozzle
-- XY hole compensation 0.10 mm and elephant-foot compensation 0.15 mm
-
-Support is deliberately left enabled. A zero-support result must come from
-self-supporting geometry and a successful slice, never from switching support
-generation off. The exact per-plate support quantities and measured orientation
-comparisons are recorded in
-[`docs/ghouls-grip-druckvalidierung.md`](docs/ghouls-grip-druckvalidierung.md).
-Every 3MF also has a complete-project preview at
-`docs/images/<3mf-stem>-preview.png`. After a successful slice, each sliced plate
-has a G-code-derived support screenshot at
-`docs/images/<3mf-stem>-plate-<n>-supports.png`; both the Canvas and Web viewer
-provide buttons for these images, including in the expandable per-plate details.
-The current print-project preview shows all four plates and their material
-grouping:
-
-![Ghoul's Grip complete print project, all four plates](docs/images/ghouls-grip-print-preview.png)
-
-Assembly order, connector use and dimensions are in
-[`docs/ghouls-grip-masse-und-bauanleitung.md`](docs/ghouls-grip-masse-und-bauanleitung.md);
-the full swept-volume proof is in
-[`docs/ghouls-grip-mechanik-verifikation.md`](docs/ghouls-grip-mechanik-verifikation.md).
-
-## Setup
-
-Python tooling for parametric model generation lives in a project-local virtual environment:
+Open the **model catalog** and install its pinned `requirements.txt`. Run these
+commands from its root:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m printforge bootstrap .
+.\.venv\Scripts\python.exe -m printforge verify-catalog .
 ```
 
-Generator scripts live in `scripts/` and write their output to `models/`:
+Bootstrap materializes ignored engine tools, skills, Canvas extension, MCP
+template and setup docs at the legacy paths used by existing model instructions.
+Resources travel in a single ZIP inside the wheel to avoid Windows `MAX_PATH`
+failures when pip builds a Git-pinned dependency in its temporary directory.
+Those copies are caches, not independently maintained sources. Re-run bootstrap
+after explicitly updating the engine pin. It refuses to overwrite unmanaged or
+locally edited files. Model generators, docs and assets remain catalog-owned.
+
+`printforge run --catalog <directory> <script> [arguments]` executes a
+catalog-owned script with the catalog as its working directory, sets
+`CATALOG_ROOT`, and propagates its exit code. `printforge tool <module>
+[arguments]` runs an installed engine tool without materializing it.
+`printforge --help` lists the supported commands.
+
+## Engine boundaries
+
+| Here: engine | Model catalog |
+| --- | --- |
+| Mesh validation, booleans, FDM joints, SDF helpers | Specific geometry, mechanisms and generators |
+| Contact sheets, generic 3MF/G-code rendering | References, measurements, licenses and final previews |
+| Optional local GenAI tooling and safe MCP setup | Model provenance, audits and test-print risks |
+| Skills, Canvas extension, web viewer | STL/3MF outputs and model regression tests |
+| Engine tests and Python package releases | Pinned engine dependency and catalog Pages deployment |
+
+Project-specific slicing/export/verification scripts stay with their models;
+they are not treated as general APIs merely because they use generic tools.
+The catalog uses normal Git for binary assets, preserving existing direct
+downloads without an additional LFS requirement.
+
+## External catalog and viewer
+
+Set `CATALOG_ROOT` to the absolute model-catalog directory when using engine-side
+rendering, the Canvas extension or web builds. Relative values are resolved
+against the engine repository for the web build, or the current workspace for
+Canvas. An explicit invalid catalog fails rather than showing an empty gallery.
+In a catalog workspace, Canvas uses that workspace by default.
+
+The web build copies catalog STL/3MF files, model metadata and the exact
+`docs/images/<stem>-preview.png` / per-plate support sidecars into static assets.
+Repository and issue links come from the catalog manifest, not the engine repo.
+See [web/README.md](web/README.md).
+
+The catalog's workflow publishes its pinned viewer at
+<https://harrybin.github.io/3d-printing-models/>. The existing engine Pages
+workflow also checks out the external catalog, preserving the former viewer URL.
+GitHub Actions' `COPILOT_GITHUB_TOKEN` and allowlist, if used, must be configured
+separately in the model repository; secrets are never copied between repos.
+
+## Validation and releases
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\lineal_clip_kappe.py
+.\.venv\Scripts\python.exe scripts\compact_output.py run --log build\tests.log -- .\.venv\Scripts\python.exe -m unittest discover -s tests
+npm --prefix web test
+.\.venv\Scripts\python.exe -m pip wheel --no-deps . --wheel-dir dist
 ```
 
-The final print gate uses OrcaSlicer's official CLI. `.vscode/mcp.json` supports
-the official Blender Lab MCP through a user-local `BLENDER_MCP_DIR`, bound to
-`127.0.0.1:9876`. The third-party OrcaSlicer MCP entry remains disabled; official
-Orca CLI slicing is authoritative. See [`docs/mcp-setup.md`](docs/mcp-setup.md).
-Render complete 3MF project previews with
-`.\.venv\Scripts\python.exe scripts\render_3mf_previews.py`; after a successful
-plate slice, render color-coded plate previews and G-code support-path screenshots
-with the corresponding scripts in `scripts/`.
-Printer control remains disabled unless explicitly requested.
+The compact runner preserves exit codes and full logs; its heuristic summaries
+are not proof that omitted warnings are harmless. Engine CI checks the generic
+Python suite, viewer suite and wheel build independently of production models.
+`tests/test_printforge.py` exercises a temporary fixture catalog.
 
-## Example: From Photo to Printable STL
+Publish engine changes as versioned releases. Update both package version
+declarations, tag the tested commit, then explicitly update the catalog's
+Python dependency and Pages viewer ref together. Never point production model
+work at a floating engine branch. See [docs/repository-split.md](docs/repository-split.md)
+for migration ownership and rollback.
 
-This walkthrough shows how the skills in this repo turn a photo plus a couple of
-measurements into a validated, printable STL. The example produces
-`models/lineal-clip-kappe.stl` — a small cap that clicks into the two holes at the
-end of a steel ruler.
+## Setup references
 
-### 1. Provide a photo with a scale reference
+- [Reusable skills](.github/skills/README.md)
+- [Blender / OrcaSlicer MCP setup](docs/mcp-setup.md)
+- [Optional local 3D GenAI setup](docs/local-3d-genai-setup.md)
+- [OrcaSlicer integration research](docs/orcaslicer-mcp-recherche.md)
 
-Place the object on graph paper (or next to a ruler/coin) so the agent can derive a
-scale. Here the 5 mm grid **and** the ruler's own cm scale give two independent
-references:
-
-![Reference photo of the ruler end on 5 mm graph paper](docs/images/lineal-clip-kappe-referenz.png)
-
-Then describe the intent, e.g.:
-
-> Create an STL file:
-> - the object should be a narrow rectangle that sits on top of the two holes
-> - it should have two bumps that fit exactly into the holes so it clicks in
-
-### 2. The agent derives measurements from the image
-
-When several reference photos exist, the agent first builds a numbered contact sheet
-so it can pick the right photo instead of opening all of them at full resolution:
-
-```powershell
-.\.venv\Scripts\python.exe scripts\make_contact_sheet.py model-sources
-```
-
-This writes `model-sources/_index.png` plus an index-to-path legend; measurements are
-then taken from the full-resolution tiles that actually show the feature.
-
-Once a model is finished, the raw reference photos are deleted and only the contact
-sheet is kept, renamed after the model, under `model-sources/archiv/`
-(see `model-sources/archiv/README.md` for the tile-to-file legend).
-
-The `stl-from-image-measurements` skill scales the image and reports what is measured
-versus inferred:
-
-| Dimension | Value | Source |
-|-----------|-------|--------|
-| Ruler width | 14.5 mm | image scaling (5 mm grid ≈ 14.4 px/mm) |
-| Hole diameter | 2.5 mm | image scaling |
-| Hole spacing (centre-to-centre) | 9.1 mm | image scaling |
-| Hole centre from top edge | 3.2 mm | image scaling |
-| Material thickness | 2.0 mm | **user supplied** (not visible from a top view) |
-
-### 3. Confirm the fit-critical values
-
-Anything that controls a fit is confirmed before geometry is built. In this run the
-agent asked three targeted questions:
-
-1. Are the estimated hole diameter / spacing / width correct? → *accept estimates*
-2. How thick is the ruler? → *2.0 mm*
-3. How should the bumps engage? → *snap hooks with a retaining lip (audible click)*
-
-### 4. Geometry is generated as a parametric script
-
-`scripts/lineal_clip_kappe.py` builds the solid with `trimesh` + `manifold3d` booleans,
-so every dimension stays editable:
-
-- Plate: 14.5 × 7.0 × 2.0 mm
-- Peg shaft ⌀2.30 mm = 2.5 mm hole − 0.20 mm press-fit clearance
-- Shaft length 2.0 mm (= material thickness), then a ⌀3.00 mm barb with a 0.35 mm retaining ledge
-- 1.4 mm lead-in cone (≈34°) for easy insertion
-- 0.6 mm compliance slot per peg → two 0.85 mm spring legs so it actually snaps
-
-### 5. Validate and preview
-
-The `validate-stl-mesh` checks must all pass before the file is considered done:
-
-```
-facets: 972
-extents: [14.5, 7.0, 5.4]
-watertight: True
-winding_consistent: True
-euler: 2
-degenerate: 0
-volume_mm3: 217.761
-```
-
-The result is then opened in the new STL Canvas SPA (GitHub Pages), which uses
-the same renderer as the GitHub Copilot App canvas extension — shown here with
-the **Normal** shader and fully zoomed to the model:
-
-![STL Canvas SPA preview (Normal shader) of the clip cap](docs/images/lineal-clip-kappe-spa-normal.png)
-
-### 6. Print orientation
-
-The model is exported in its print orientation: plate flat on the bed, snap pegs
-pointing up (+Z). No supports are needed — the only overhang is the 0.35 mm retaining
-ledge. In use the part is flipped and pressed onto the ruler.
-
-### 7. Iterate
-
-If the fit is too tight or too loose, adjust `HOLE_DIA` / `PRESS_CLEAR` in
-`scripts/lineal_clip_kappe.py` and re-run the script instead of editing the mesh.
-
-## Agent Skills
-
-| Skill | Description |
-|-------|-------------|
-| `anycubic-kobra-s1-ace-pro-profile` | Printer defaults and constraints (bed size, nozzle, temperatures, wall minimums) for the Anycubic Kobra S1 Combo + ACE Pro. Referenced by other skills when authoring or editing STL/3MF outputs. |
-| `create-ascii-stl` | Generates new printable geometry with print-safe defaults. Collects dimensions, material, use case, and material/color-semantics intent before producing geometry; enforces 3MF when distinct material/color regions must be preserved. |
-| `edit-stl-transform` | Edits existing STL geometry: scale, rotate, translate, merge, split, and origin alignment — while preserving manifold/watertight topology. |
-| `stl-create-edit-interview` | Guided interview run before creating or editing STL/3MF outputs. Determines wall strategy, mesh pattern, infill strategy, fit intent, and material-semantics/output-format decisions one question at a time. |
-| `image-relief-vectorize` | Conditionally converts noisy reference photos into a relief/height-like image and a cleaned vector-style contour when a pictured object itself must be reconstructed. |
-| `photo-anchor-candidate-fit` | Refines an existing model toward image references by freezing trusted geometry, branching controlled candidates, and comparing them against calibrated landmarks. |
-| `visual-hull-envelope-fit` | Uses multiple accepted silhouettes or views to constrain the outer envelope before rebuild or refinement. |
-| `partial-rebuild-instead-of-mutate` | Rebuilds one wrong local region from a stable boundary instead of continuing to mutate a drifting model. |
-| `stl-from-image-measurements` | Creates or edits STL/3MF outputs from user photos plus measurements: identifies the whole shape first, researches existing models, applies reuse-vs-segmentation strategy, derives scale from reference objects, and validates against printer constraints. |
-| `research-part-specs` | Sources real published dimensions for an identifiable product before modeling, records origin/source/confidence per value in `docs/`, and forbids invented fit-critical numbers. |
-| `research-reusable-3d-assets` | Always searches for exact or similar reusable models before nontrivial original construction, verifies modification/redistribution rights, records attribution, and chooses reuse, hybrid, reference-only, or rebuild. |
-| `blender-assisted-modeling` | Routes organic and visually complex geometry through a controlled local Blender/MCP workflow while freezing technical datums and revalidating every export. |
-| `local-3d-genai-meshgen` | Asks whether local image-to-3D models (TRELLIS.2/Pixal3D via ComfyUI) should create organic seed meshes, probes hardware, installs a matching tier on approval, post-processes seeds into validated STL, and otherwise continues on the Gemini-assisted route. |
-| `validate-stl-mesh` | Validates an STL for manifold correctness and FDM printability: syntax, triangle count, watertight topology, normal consistency, and bed-fit. |
-| `optimize-stl-for-print` | Optimizes a correct mesh for printing: orientation for load direction, overhang and bridge reduction, hole/elephant-foot compensation, bed layout and filament estimate. |
-| `orcaslicer-support-minimization` | Compares stable-datum orientation candidates in OrcaSlicer to minimize support while preserving Kobra S1 profiles, material grouping, plate semantics, strength, fit, and source STL authority; geometry changes remain suggestions only. |
-| `orcaslicer-print-validation` | Performs the final slicer gate and records exact profiles, print time, material use, supports, warnings, status, and plate previews. |
-| `multimaterial-assembly-packaging` | Builds one assembled multi-state view 3MF and one consolidated print 3MF with all plates, favoring keyed separately printed color parts to reduce purge waste. |
-| `.github/skills/README.md` *(meta)* | Skills library index for reusable procedures: which rules are maintained in which skills and how new findings should be categorized. |
-
-## Central consistency matrix
-
-| Concern | Primary skill | Rule |
-| --- | --- | --- |
-| Fit-critical dimensions | `research-part-specs` | Never invent fit-critical dimensions; use measured or cited values and record them in `docs/`. |
-| Photo-driven reconstruction | `stl-from-image-measurements` | Image-driven workflows apply only when reconstructing a pictured object or motif. |
-| Free-design / no-original parts | `create-ascii-stl` | Do not force photo-tracing workflows onto invented or function-first parts. |
-| Relief-first contour extraction | `image-relief-vectorize` | Traced contours are candidate outlines only, not authority for fit-critical geometry. |
-| Anti-drift model refinement | `photo-anchor-candidate-fit` | Freeze trusted datums and compare branched candidates from one baseline instead of chaining STL tweaks. |
-| Multi-view outer-envelope recovery | `visual-hull-envelope-fit` | Use silhouette-derived hulls only to constrain outer envelopes, not hidden or mating geometry. |
-| Partial rebuild | `partial-rebuild-instead-of-mutate` | If one local region is structurally wrong, rebuild that region from a stable script boundary instead of continuing mutation. |
-| Source of geometry edits | `create-ascii-stl` | Regenerate from parametric scripts in `scripts/`; do not hand-edit STL facets. |
-| STL vs 3MF | `stl-create-edit-interview` | Distinct material/color regions require a 3MF deliverable; STL is only for merged single-region output. |
-| Coordinate convention | `validate-stl-mesh` | Auto-detect center-origin vs corner-origin unless the user specifies it. |
-| Feature proof | `validate-stl-mesh` | Use probes, slices, and compare checks instead of screenshots alone. |
-| Final model image in chat | `create-ascii-stl` | Post an inline render of the exact final STL/3MF in the final chat response; a canvas preview or path alone is not enough. |
-| Canvas preview | `create-ascii-stl` | Also preview written STL files from `models/`; for 3MF-first outputs, report the 3MF path and preview an STL counterpart when available. |
-| Reusable model assets | `research-reusable-3d-assets` | Always search exact and similar templates before nontrivial original modeling and use only assets with documented, compatible modification and redistribution rights. |
-| Python vs Blender | `blender-assisted-modeling` | Python owns fit-critical geometry; Blender owns approved organic and visual regions, followed by independent export validation. |
-| Local generative meshes | `local-3d-genai-meshgen` | Ask once whether local image-to-3D models or the Gemini route are used; install only after approval, outside git, with MIT-licensed catalog models; generated meshes are organic seeds only and need provenance plus full validation. |
-| Delivered-project support minimization | `orcaslicer-support-minimization` | Compare candidates from one frozen baseline, run OrcaSlicer sequentially, preserve materials/plates, and write the selected transform to 3MF rather than overwriting a generator STL. |
-| Final slicing | `orcaslicer-print-validation` | Do not claim print time or final print readiness without a successful slice using the intended profiles. |
-| Complex and multicolor packaging | `multimaterial-assembly-packaging` | Deliver exactly one multi-state `-view.3mf` and one all-plates `-print.3mf`; group same-color parts on shared plates and prefer keyed color bodies when practical. |
-
-## Blender and OrcaSlicer workflow
-
-Technical features, dimensions, fits, joints and clearances remain parametric in
-Python. Organic or visually complex regions may be authored or refined in Blender.
-Use Blender CLI for deterministic scene builds, batch import/export and renders,
-and the official local Blender Lab MCP for bounded interactive inspection and
-visual edits. The two paths may be combined, but Blender exports are always treated
-as external meshes and must pass the same scale, topology, feature and render
-checks as any downloaded model.
-
-Every new complex assembly is delivered as `models/<name>-view.3mf` plus one
-`models/<name>-print.3mf`. The view file contains the assembled object, with
-meaningful mechanism states on additional plates; the single print project
-contains all material/spool mappings and print plates, grouping same-color parts
-when safe. OrcaSlicer is the final print gate: each print plate is sliced with
-the intended Kobra S1, nozzle, process and filament profiles, and the resulting
-print time, material estimate, supports and warnings are documented. When colors
-can be separated without unacceptable loss of appearance or strength, keyed
-separately printed bodies are preferred over purge-heavy in-place multicolor
-printing.
-
-The project MCP template is `.vscode/mcp.json`. Blender uses the official Blender
-Lab MCP server through a local `uv` installation. OrcaSlicer is configured as an
-opt-in, disabled-by-default template because the official OrcaSlicer integration is
-its CLI rather than a first-party MCP server. See
-[`docs/mcp-setup.md`](docs/mcp-setup.md) before enabling either integration.
-
-## Local 3D generation models (optional)
-
-For organic regions without a usable licensed asset, agents ask whether local
-image-to-3D models should create a seed mesh. The default install uses ComfyUI
-with the MIT-licensed TRELLIS.2/Pixal3D models and official Comfy-Org templates,
-in a user-local folder outside this repository. If declined or the hardware is
-unsuitable, work continues with Gemini-assisted image analysis and Blender or
-build123d code. Generated meshes are seeds only; fit-critical geometry remains
-parametric.
-
-```powershell
-.\.venv\Scripts\python.exe scripts\genai_hw_probe.py              # tier recommendation
-.\.venv\Scripts\python.exe scripts\genai_local_setup.py           # dry-run install plan
-.\.venv\Scripts\python.exe scripts\genai_local_setup.py --yes     # install
-.\.venv\Scripts\python.exe scripts\genai_comfy_run.py --workflow <api.json> --image <ref.png> --seed 42 --out build\genai\run1
-.\.venv\Scripts\python.exe scripts\genai_mesh_postprocess.py build\genai\run1\<mesh>.glb build\genai\seed.stl --height 80
-```
-
-Hardware tiers, licenses and the learnings adopted from 3DGenStudio are in
-[`docs/local-3d-genai-setup.md`](docs/local-3d-genai-setup.md).
-
-## Mesh CLI
-
-`scripts/mesh_tool.py` is the shared command-line companion for the skills above.
-It uses `trimesh` + `manifold3d`, always writes ASCII STL, and knows the 250 × 250 mm
-bed and both coordinate conventions.
-
-```powershell
-.\.venv\Scripts\python.exe scripts\mesh_tool.py info     models\lineal-clip-kappe.stl
-.\.venv\Scripts\python.exe scripts\mesh_tool.py validate models\lineal-clip-kappe.stl
-.\.venv\Scripts\python.exe scripts\mesh_tool.py overhang models\lineal-clip-kappe.stl
-.\.venv\Scripts\python.exe scripts\mesh_tool.py measure  models\lineal-clip-kappe.stl --infill 20
-```
-
-| Command | Purpose |
-|---------|---------|
-| `info` / `validate` | mesh stats, watertightness, Euler number, degenerate faces, bed placement |
-| `repair` | lossless repair recipe for OCCT/build123d exports (no `pymeshfix`) |
-| `measure` | bounding box, volume, mass and filament length estimate |
-| `center` / `transform` | bed centering per convention, scale/rotate/translate/fit |
-| `boolean` | union/difference/intersection via the manifold engine |
-| `probe` / `slices` | prove a feature exists (volume probe, cross-section sweep) |
-| `overhang` | unsupported area for the current print orientation |
-| `arrange` | lay several parts out on the build plate |
-| `compare` | compare the same model across worktrees before trusting a bug report |
-
-## Web app: "3d-printing model viewer"
-
-Die GitHub-Pages-SPA ist jetzt ein schlanker STL/3MF-Viewer für Dateien aus
-`models/`. Sie verwendet denselben Browser-Renderer wie die Copilot-Canvas-
-Erweiterung, zeigt also lokale Vorschauen konsistent im Web und im Agent-UI an.
-
-### Funktionen
-
-- 3D-Vorschau für **STL und 3MF** aus `models/`
-- Mehrplattige 3MF-Dateien öffnen standardmäßig mit **All plates**:
-  alle Platten mit Projekt-Gesamtwerten und Plattenzahl.
-  Build-/Komponenten-Transformationen und OrcaSlicer-`plater_id` bleiben
-  erhalten; mehr als zwei Platten werden nur in der Gesamtansicht in einem
-  Grid mit Abstand angeordnet. Zwei Platten stehen nebeneinander.
-  Einzelplatten bleiben auswählbar; Reload derselben Datei behält die Auswahl,
-  ein Dateiwechsel setzt sie auf **All plates** zurück.
-- Materialfarben aus OrcaSlicers Filamentpalette und Objekt-/Teilzuweisungen;
-  Standard-3MF-Materialfarben bleiben der Fallback für andere 3MF-Dateien.
-- kompakte, ständig sichtbare Druckübersicht für Zeit, Gesamtmaterial,
-  Stützmaterial, Filamentlänge und Validierungsstatus **aller Plates**,
-  auch wenn eine einzelne Plate ausgewählt ist
-- einklappbares Detail-Overlay rechts unten mit Profil, Farbe, Bett, Wänden,
-  Infill, Supportart, Plattenzahl und vollständigen Projektmetadaten sowie
-  einer separat aufklappbaren Tabelle **Print data by plate** mit Druckzeit,
-  Material, Stützmaterial, Filamentlänge und Status pro Plate
-- ein einziges einklappbares Menü für Reload/Auto-Reload, Zoom, Shading,
-  Wireframe, Ansichten, Modellrotation, Hilfsanzeigen und Messwerkzeuge
-- lokaler Canvas-Button **3mf öffnen**, der genau die aktuell gewählte
-  Workspace-3MF über den validierten lokalen Launcher mit dem für `.3mf`
-  registrierten Standardprogramm öffnet
-- direkter Download der aktuell gewählten Datei
-- GitHub-Link zurück zum Repository
-- Button für ein neues Modell-Ticket über
-  `.github/ISSUE_TEMPLATE/model-request.yml`
-
-Die Web-SPA und die Copilot-Canvas-Erweiterung teilen Renderer und Layout. Der
-OrcaSlicer-Launcher ist nur in der lokalen Extension verfügbar; die öffentliche
-Webseite kann keine lokale Desktop-Anwendung starten.
-
-Auf Mobilgeräten verwendet die Seite ein reduziertes Canvas-Pixelverhältnis und
-deaktiviert das frühere automatische Polling, damit große Modelle spürbar
-schneller geladen und gerendert werden.
-
-### Neues Modell anfragen
-
-Für neue Teile oder fit-kritische Änderungen öffne ein Issue über das Template
-`.github/ISSUE_TEMPLATE/model-request.yml` und hänge dort Fotos, Maße in mm,
-Material-/Farbhinweise und die Definition of Done an.
-
-### PR-Ausgabe für Modellarbeit
-
-PRs, die aus solchen Modell-Issues entstehen, sollen
-`.github/pull_request_template.md` verwenden. Die Vorlage fordert:
-
-- genaue Pfade der geänderten Skripte/Modelle/Dokumente
-- Validierungsbefehle und Mesh-Ergebnisse
-- gerenderte Vorschaubilder bzw. Slicer-Previews für das finale STL/3MF
-- Kennzeichnung von Schätzungen und verbleibendem Testdruck-Risiko
-
-## Coordinate Convention
-
-Models support both placement conventions on the 250 × 250 mm bed:
-
-- **Center-origin** — XY target `(0, 0)`
-- **Corner-origin** — XY target `(125, 125)`
-
-Convention is auto-detected from coordinates: negative XY implies center-origin, otherwise corner-origin. When ambiguous, corner-origin is used to match common slicer build-plate coordinates.
-
-## Third-party geometry and attribution
-
-The skeleton hand of the Ghoul's Grip is derived from
-**"Wrist Bones Full Hand - Human Skeleton"**, NIH 3D Print Exchange model
-`3DPX-016815` by *My Segmenter* (mysegmenter.com), licensed **CC BY**.
-
-Only the derived, classified and decimated bone set
-`model-sources/ghouls-grip/reference/hand_bones.npz` is committed;
-`scripts/extract_hand_bones.py` re-downloads the 12 MB source STL on demand.
-Redistributing the Ghoul's Grip models must keep this attribution.
+The repository MIT license is unchanged. Reused assets retain their own licenses
+and attribution requirements in the model catalog.
