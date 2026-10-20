@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from zipfile import ZipFile
@@ -12,7 +13,10 @@ import trimesh
 import vedo
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(os.environ.get("CATALOG_ROOT", Path.cwd())).resolve()
+if "CATALOG_ROOT" in os.environ:
+    from printforge.cli import catalog_root
+    ROOT = catalog_root(ROOT)
 MODELS = ROOT / "models"
 OUTPUT = ROOT / "docs" / "images"
 DEFAULT_COLOR = "#8b949e"
@@ -118,6 +122,8 @@ def main() -> None:
                         help="Optional 3MF files; defaults to every models/*.3mf")
     args = parser.parse_args()
     paths = args.models or sorted(MODELS.glob("*.3mf"))
+    if not paths:
+        parser.error("No 3MF files found; set CATALOG_ROOT or pass explicit project paths")
     OUTPUT.mkdir(parents=True, exist_ok=True)
     for path in paths:
         output = OUTPUT / f"{path.stem}-preview.png"

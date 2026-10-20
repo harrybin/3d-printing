@@ -9,7 +9,9 @@ import { joinSession, createCanvas, CanvasError } from "@github/copilot-sdk/exte
 import { compose3mfTransforms, transform3mfPoint as apply3mfTransform, orcaMaterialAssignments } from "./viewer-app.mjs";
 import { launchDefault3mfApp, validateOrcaModelPath } from "./orca-launcher.mjs";
 import { createModelApiPayload, handleOrcaOpenRequest } from "./canvas-server-helpers.mjs";
+import { resolveCatalogRoot } from "./catalog-paths.mjs";
 
+const catalogRoot = resolveCatalogRoot();
 const extensionDir = dirname(fileURLToPath(import.meta.url));
 const viewerAppPath = join(extensionDir, "viewer-app.mjs");
 const viewerCssPath = join(extensionDir, "viewer.css");
@@ -89,7 +91,7 @@ function resolveWorkspaceModelPath(stlPath) {
         return resolve(normalized);
     }
     const relative = normalized.includes("/") ? normalized : `models/${normalized}`;
-    return resolve(process.cwd(), relative);
+    return resolve(catalogRoot, relative);
 }
 
 function resolveRequestedModelPath(inputStlPath) {
@@ -102,7 +104,7 @@ function resolveRequestedModelPath(inputStlPath) {
 }
 
 function listWorkspaceStlFiles() {
-    const modelsDir = resolve(process.cwd(), "models");
+    const modelsDir = resolve(catalogRoot, "models");
     if (!existsSync(modelsDir)) return [];
     return readdirSync(modelsDir)
         .filter((name) => /\.(stl|3mf)$/i.test(name))
@@ -127,7 +129,7 @@ function listWorkspaceModelVersions() {
 }
 
 function modelLabelToPath(label) {
-    return resolve(process.cwd(), "models", label);
+    return resolve(catalogRoot, "models", label);
 }
 
 function parseAsciiStl(content) {
@@ -601,7 +603,7 @@ async function startServer(modelPath) {
                 res.end("Invalid project image path");
                 return;
             }
-            const resolved = resolve(process.cwd(), "docs", "images", filename);
+            const resolved = resolve(catalogRoot, "docs", "images", filename);
             let imageSize;
             try {
                 const stat = statSync(resolved);
@@ -632,7 +634,7 @@ async function startServer(modelPath) {
             await handleOrcaOpenRequest(req, res, {
                 defaultModelPath: modelPath,
                 expectedNonce: openInOrcaNonce,
-                validate: (requestedPath) => validateOrcaModelPath(requestedPath, process.cwd()),
+                validate: (requestedPath) => validateOrcaModelPath(requestedPath, catalogRoot),
                 launch: launchDefault3mfApp,
             });
             return;

@@ -59,7 +59,7 @@ function renderShell() {
           <p class="lede" id="appTagline">Browse printable models from this repository, preview them in 3D, download them, or open a new model request on GitHub.</p>
         </div>
         <div class="hero-actions" id="heroActions">
-          <a id="repoLink" class="icon-link" href="https://github.com/harrybin/3d-printing" target="_blank" rel="noreferrer" aria-label="Open GitHub repository">
+          <a id="repoLink" class="icon-link" href="https://github.com/harrybin/3d-printing-models" target="_blank" rel="noreferrer" aria-label="Open GitHub repository">
             <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
               <path fill="currentColor" d="M8 0C3.58 0 0 3.67 0 8.2c0 3.63 2.29 6.7 5.47 7.78.4.08.55-.18.55-.39 0-.19-.01-.82-.01-1.49-2.01.38-2.53-.51-2.69-.97-.09-.24-.48-.97-.81-1.16-.27-.15-.66-.54-.01-.55.61-.01 1.05.58 1.2.82.69 1.18 1.79.85 2.23.64.07-.51.27-.85.49-1.05-1.78-.21-3.64-.92-3.64-4.08 0-.9.31-1.64.82-2.22-.08-.21-.36-1.06.08-2.2 0 0 .67-.22 2.2.85.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.07 2.2-.85 2.2-.85.44 1.14.16 1.99.08 2.2.51.58.82 1.31.82 2.22 0 3.17-1.87 3.87-3.65 4.08.29.25.53.73.53 1.49 0 1.07-.01 1.94-.01 2.21 0 .21.15.47.55.39A8.23 8.23 0 0 0 16 8.2C16 3.67 12.42 0 8 0Z"></path>
             </svg>
@@ -68,7 +68,7 @@ function renderShell() {
           <a id="downloadModelBtn" class="action-link" href="#" aria-disabled="true" tabindex="-1">
             <span class="button-label">Download model</span>
           </a>
-          <a id="newIssueLink" class="action-link primary" href="https://github.com/harrybin/3d-printing/issues/new?template=model-request.yml" target="_blank" rel="noreferrer">Work on new model</a>
+          <a id="newIssueLink" class="action-link primary" href="https://github.com/harrybin/3d-printing-models/issues/new?template=model-request.yml" target="_blank" rel="noreferrer">Work on new model</a>
           <a class="action-link" href="https://gist.github.com/harrybin/b65029b5b28ee25d016bec93fd898af6" target="_blank" rel="noreferrer">Example: Ghoul's Grip Box</a>
         </div>
       </header>
@@ -102,7 +102,7 @@ async function bootstrap() {
       },
       repository: {
         owner: 'harrybin',
-        repo: '3d-printing',
+        repo: '3d-printing-models',
       },
     }
   }
@@ -122,7 +122,7 @@ async function bootstrap() {
   repoLink.href = repoUrl
   newIssueLink.href = `${repoUrl}/issues/new?template=model-request.yml`
 
-  const defaultModelFile = state.config?.app?.defaultModel || state.config?.defaultModel || 'ghouls-grip-print.3mf'
+  const defaultModelFile = state.config?.app?.defaultModel || state.config?.defaultModel || ''
 
   initStlCanvas({
     root: document.querySelector('#viewerRoot'),
