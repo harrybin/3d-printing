@@ -66,7 +66,7 @@ checks. Online assets are never assumed to be dimensionally accurate or printabl
 
 ## Documentation
 
-Write the result to `docs/<model>-quellen-und-lizenzen.md` or the model's existing
+Write the result to `docs/<model>-sources-and-licenses.md` or the model's existing
 measurement document. Include rejected candidates when they materially explain why
 the model was rebuilt.
 

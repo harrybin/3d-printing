@@ -38,16 +38,16 @@ Print-orientation rotations belong in a new file or the slicer, never overwritin
 generator's output. For anything beyond a transform, change the parametric source
 script and regenerate.
 
-## German `wenden` for vertical models
+## Top-to-bottom inversion for vertical models
 
-When the user says `nun das objekt wenden (oben <--> unten)` about a vertical
-print model, interpret it as a complete top-to-bottom inversion: the face currently
-on the print bed becomes the top, and its opposite face becomes the print-bed
-contact face. For an upright model, this is normally a 180-degree rotation around
-the X axis, followed by dropping the transformed model back to Z=0.
+When the user asks to "flip the object top to bottom" on a vertical print model,
+interpret it as a complete inversion: the face currently on the print bed becomes
+the top, and its opposite face becomes the print-bed contact face. For an upright
+model, this is normally a 180-degree rotation around the X axis, followed by
+dropping the transformed model back to Z=0.
 
 1. Keep the script-generated source STL unchanged. Write the result as a derived
-   sibling named `<base>-druckorientiert.stl`; do not overwrite the original.
+   sibling named `<base>-print-oriented.stl`; do not overwrite the original.
 2. Apply the X-axis 180-degree rotation and align the new lowest Z extent to the
    bed. Recompute and report the bounding box.
 3. Verify the intended inversion programmatically before describing it as flipped.
@@ -55,8 +55,8 @@ the X axis, followed by dropping the transformed model back to Z=0.
    otherwise measure the bed-contact area, and confirm that the former contact face
    is now at the top and the opposite face is now at the bed.
 4. State the physical orientation in feature terms when known. For example, the
-   validated pepper-mill insert has its round collar (`Kragen`) on the print bed
-   and its smooth shaft facing upward after `wenden`.
+   validated pepper-mill insert has its round collar on the print bed and its
+   smooth shaft facing upward after the inversion.
 
 ## Required behavior
 
