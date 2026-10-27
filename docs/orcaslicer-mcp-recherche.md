@@ -1,40 +1,40 @@
-# Recherche: OrcaSlicer MCP und Skills
+# OrcaSlicer MCP and Skill Research
 
-Stand: 2026-10-07.
+As of 2026-10-07.
 
-## Aktuelle Entscheidung
+## Current decision
 
-Für die verbindliche Druckvalidierung wird OrcaSlicers **offizielle CLI**
-verwendet. Sie sliced die exakten 3MF-Projekte, exportiert G-Code und liefert
-Zeit-, Material-, Schicht- und Warnungsdaten ohne zusätzlichen MCP-Server.
+OrcaSlicer's **official CLI** is used for final print validation. It slices the
+exact 3MF projects, exports G-code, and provides time, material, layer, and
+warning data without requiring an additional MCP server.
 
-`ShreddyKrueger75/claude-orcaslicer-mcp`, Commit
-`b1a7cd13c853a733e09367f18d3c183f04c349d9`, wurde früher als MIT-lizenzierte
-lokale Integration geprüft. Es bleibt eine Drittanbieteroption und ist nicht
-mehr die voreingestellte oder automatisch aktivierte Projektlösung.
+`ShreddyKrueger75/claude-orcaslicer-mcp`, commit
+`b1a7cd13c853a733e09367f18d3c183f04c349d9`, was previously evaluated as an
+MIT-licensed local integration. It remains a third-party option and is no longer
+the project's default or automatically enabled solution.
 
-Die `.vscode/mcp.json` enthält daher nur ein deaktiviertes, umgebungsvariablen-
-basiertes OrcaSlicer-Template. Absolute Installationspfade, heruntergeladene
-Server und persönliche Profile werden nicht eingecheckt. Einrichtung und
-Sicherheitsregeln stehen in `docs/mcp-setup.md`.
+Therefore, `.vscode/mcp.json` contains only a disabled OrcaSlicer template that
+uses environment variables. Absolute installation paths, downloaded servers,
+and personal profiles are not committed. Setup instructions and security rules
+are in `docs/mcp-setup.md`.
 
-## Geprüfte Alternative
+## Evaluated alternative
 
-`MaxEllis/orcaslicer-mcp`, AGPL-3.0, bietet die deutlich engere Live-GUI-
-Integration. Sie benötigt jedoch einen speziellen OrcaSlicer-Fork mit lokaler
-Remote-API und Token. Da auf dem Zielsystem bereits Standard-OrcaSlicer läuft,
-ist sie nicht die voreingestellte Projektlösung.
+`MaxEllis/orcaslicer-mcp`, licensed under AGPL-3.0, offers a more tightly
+integrated live GUI. However, it requires a special OrcaSlicer fork with a local
+remote API and token. Since the target system already runs standard OrcaSlicer,
+it is not the project's default solution.
 
-## Skill-Recherche
+## Skill research
 
-Gefunden wurden unter anderem:
+The research found, among others:
 
-- `autonomous-ai/openharness/.../orcaslicer/SKILL.md`: vollständiger
-  Mesh-zu-Slicer-Handoff; als fachliche Referenz verwendet.
-- `OrcaSlicer/OrcaSlicer/.claude/skills/orca-profiles/SKILL.md`: auf die
-  Entwicklung von OrcaSlicer-Profilen im OrcaSlicer-Quellrepository
-  zugeschnitten, daher nicht direkt übernommen.
+- `autonomous-ai/openharness/.../orcaslicer/SKILL.md`: a complete mesh-to-slicer
+  handoff; used as a technical reference.
+- `OrcaSlicer/OrcaSlicer/.claude/skills/orca-profiles/SKILL.md`: tailored to
+  OrcaSlicer profile development in the OrcaSlicer source repository, so it was
+  not adopted directly.
 
-Der projektspezifische, kürzere Skill liegt in
-`.github/skills/orcaslicer-project-workflow/SKILL.md` und ergänzt die
-bestehenden Anycubic- und Mesh-Validierungsregeln.
+The shorter, project-specific skill is in
+`.github/skills/orcaslicer-project-workflow/SKILL.md` and complements the
+existing Anycubic and mesh validation rules.

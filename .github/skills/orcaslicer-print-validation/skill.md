@@ -102,7 +102,7 @@ support does not override a span beyond the repository limit.
 
 ## Required report
 
-Write `docs/<model>-druckvalidierung.md` or update the model's existing validation
+Write `docs/<model>-print-validation.md` or update the model's existing validation
 document with:
 
 - OrcaSlicer version
